@@ -52,7 +52,24 @@ export interface AffiliateLink {
   creatorId: string;
   campaignName: string;
   projectId?: string;
+  campaignId?: string;
   url: string;
+  createdAt: string;
+}
+
+export interface Campaign {
+  id: string;
+  name: string;
+  detail: string;
+  promotionImg?: string;
+  leadTarget: string;
+  budget: number;
+  utmSource: string;
+  utmMedium: string;
+  utmId: string;
+  utmCampaign: string;
+  landingUrl: string;
+  projectIds: string[];
   createdAt: string;
 }
 

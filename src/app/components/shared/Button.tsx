@@ -6,6 +6,7 @@ interface ButtonProps {
   fullWidth?: boolean;
   disabled?: boolean;
   size?: 'sm' | 'md' | 'lg';
+  className?: string;
 }
 
 export function Button({ 
@@ -15,7 +16,8 @@ export function Button({
   variant = 'primary',
   fullWidth = false,
   disabled = false,
-  size = 'md'
+  size = 'md',
+  className = ''
 }: ButtonProps) {
   const sizeStyles = {
     sm: 'px-3 py-1.5 text-sm',
@@ -40,7 +42,7 @@ export function Button({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`${baseStyles} ${sizeStyles[size]} ${variantStyles[variant]} ${widthStyles} ${disabledStyles}`}
+      className={`${baseStyles} ${sizeStyles[size]} ${variantStyles[variant]} ${widthStyles} ${disabledStyles} ${className}`}
     >
       {children}
     </button>

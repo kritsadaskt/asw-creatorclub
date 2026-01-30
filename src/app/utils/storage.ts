@@ -1,4 +1,4 @@
-import { CreatorProfile, AffiliateLink, Project } from '../types';
+import { CreatorProfile, AffiliateLink, Project, Campaign } from '../types';
 import { supabase } from './supabase';
 import { verifyPassword } from './password';
 
@@ -145,9 +145,10 @@ export const saveAffiliateLink = async (link: AffiliateLink): Promise<void> => {
     .from('affiliate_links')
     .insert({
       id: link.id,
-      kol_id: link.creatorId,
+      creator_id: link.creatorId,
       campaign_name: link.campaignName,
       project_id: link.projectId,
+      campaign_id: link.campaignId,
       url: link.url,
       created_at: link.createdAt
     });
@@ -176,7 +177,7 @@ export const getAffiliateLinksByCreator = async (creatorId: string): Promise<Aff
   const { data, error } = await supabase
     .from('affiliate_links')
     .select('*')
-    .eq('kol_id', creatorId)
+    .eq('creator_id', creatorId)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -190,9 +191,10 @@ export const getAffiliateLinksByCreator = async (creatorId: string): Promise<Aff
 // Helper function to map database row to AffiliateLink
 const mapDbToAffiliateLink = (row: any): AffiliateLink => ({
   id: row.id,
-  creatorId: row.kol_id,
+  creatorId: row.creator_id,
   campaignName: row.campaign_name || '',
   projectId: row.project_id,
+  campaignId: row.campaign_id,
   url: row.url || '',
   createdAt: row.created_at || new Date().toISOString()
 });
@@ -268,6 +270,107 @@ const mapDbToProject = (row: any): Project => ({
   location: row.location || '',
   description: row.description,
   baseUrl: row.base_url || '',
+  createdAt: row.created_at || new Date().toISOString()
+});
+
+// ===== Campaign Operations =====
+
+export const saveCampaign = async (campaign: Campaign): Promise<void> => {
+  const { error } = await supabase
+    .from('campaigns')
+    .upsert({
+      id: campaign.id,
+      name: campaign.name,
+      detail: campaign.detail,
+      promotion_img: campaign.promotionImg,
+      lead_target: campaign.leadTarget,
+      budget: campaign.budget,
+      utm_source: campaign.utmSource,
+      utm_medium: campaign.utmMedium,
+      utm_id: campaign.utmId,
+      utm_campaign: campaign.utmCampaign,
+      landing_url: campaign.landingUrl,
+      project_ids: campaign.projectIds,
+      created_at: campaign.createdAt
+    }, { onConflict: 'id' });
+
+  if (error) {
+    console.error('Error saving campaign:', error);
+    throw error;
+  }
+};
+
+export const getCampaigns = async (): Promise<Campaign[]> => {
+  const { data, error } = await supabase
+    .from('campaigns')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error getting campaigns:', error);
+    throw error;
+  }
+
+  return (data || []).map(mapDbToCampaign);
+};
+
+export const getCampaignById = async (id: string): Promise<Campaign | null> => {
+  const { data, error } = await supabase
+    .from('campaigns')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null; // Not found
+    console.error('Error getting campaign by ID:', error);
+    throw error;
+  }
+
+  return data ? mapDbToCampaign(data) : null;
+};
+
+export const getCampaignsByProjectId = async (projectId: string): Promise<Campaign[]> => {
+  const { data, error } = await supabase
+    .from('campaigns')
+    .select('*')
+    .contains('project_ids', [projectId])
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error getting campaigns by project ID:', error);
+    throw error;
+  }
+
+  return (data || []).map(mapDbToCampaign);
+};
+
+export const deleteCampaign = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('campaigns')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deleting campaign:', error);
+    throw error;
+  }
+};
+
+// Helper function to map database row to Campaign
+const mapDbToCampaign = (row: any): Campaign => ({
+  id: row.id,
+  name: row.name || '',
+  detail: row.detail || '',
+  promotionImg: row.promotion_img,
+  leadTarget: row.lead_target || '',
+  budget: row.budget || 0,
+  utmSource: row.utm_source || '',
+  utmMedium: row.utm_medium || '',
+  utmId: row.utm_id || '',
+  utmCampaign: row.utm_campaign || '',
+  landingUrl: row.landing_url || '',
+  projectIds: row.project_ids || [],
   createdAt: row.created_at || new Date().toISOString()
 });
 

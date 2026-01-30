@@ -112,7 +112,7 @@ export function ProjectManagement() {
         </div>
         <Button
           onClick={() => setIsFormOpen(true)}
-          className="flex items-center gap-2"
+          className={`flex items-center gap-2 cursor-pointer ${isFormOpen ? 'hidden' : ''}`}
         >
           <Plus className="w-4 h-4" />
           เพิ่มโครงการ
