@@ -2,7 +2,7 @@ interface ButtonProps {
   children: React.ReactNode;
   onClick?: () => void;
   type?: 'button' | 'submit';
-  variant?: 'primary' | 'secondary' | 'outline';
+  variant?: 'primary' | 'secondary' | 'outline' | 'accent';
   fullWidth?: boolean;
   disabled?: boolean;
   size?: 'sm' | 'md' | 'lg';
@@ -28,7 +28,8 @@ export function Button({
   const variantStyles = {
     primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
     secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-    outline: 'border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground'
+    outline: 'border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground',
+    accent: 'bg-accent text-accent-foreground hover:bg-accent/90'
   };
 
   const widthStyles = fullWidth ? 'w-full' : '';

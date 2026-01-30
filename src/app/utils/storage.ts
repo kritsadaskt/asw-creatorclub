@@ -1,69 +1,291 @@
-import { KOLProfile, AffiliateLink } from '../types';
+import { CreatorProfile, AffiliateLink, Project } from '../types';
+import { supabase } from './supabase';
+import { verifyPassword } from './password';
 
-const STORAGE_KEYS = {
-  KOLS: 'kol_profiles',
-  AFFILIATES: 'affiliate_links',
-  CURRENT_USER: 'current_user',
-  USER_ROLE: 'user_role'
+// Helper function to generate UUID
+export const generateUUID = (): string => {
+  return crypto.randomUUID();
 };
 
-// KOL Profile operations
-export const saveKOL = (kol: KOLProfile): void => {
-  const kols = getKOLs();
-  const index = kols.findIndex(k => k.id === kol.id);
-  
-  if (index >= 0) {
-    kols[index] = kol;
-  } else {
-    kols.push(kol);
+// ===== Creator Profile Operations =====
+
+export const saveCreator = async (creator: CreatorProfile): Promise<void> => {
+  const { error } = await supabase
+    .from('profiles')
+    .upsert({
+      id: creator.id,
+      email: creator.email,
+      name: creator.name,
+      phone: creator.phone,
+      base_location: creator.baseLocation,
+      province: creator.province,
+      category: creator.category,
+      followers: creator.followers,
+      profile_image: creator.profileImage,
+      social_accounts: creator.socialAccounts,
+      follower_counts: creator.followerCounts,
+      budgets: creator.budgets,
+      status: creator.status,
+      project_name: creator.projectName,
+      created_at: creator.createdAt,
+      role: 'creator',  // Required by profiles_role_check constraint (allowed: 'creator', 'admin')
+      facebook_id: creator.facebookId,
+      password_hash: creator.passwordHash,
+    }, { onConflict: 'id' });
+
+  if (error) {
+    console.error('Error saving Creator:', error);
+    throw error;
   }
+};
+
+export const getCreators = async (): Promise<CreatorProfile[]> => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error getting Creators:', error);
+    throw error;
+  }
+
+  return (data || []).map(mapDbToCreatorProfile);
+};
+
+export const getCreatorById = async (id: string): Promise<CreatorProfile | null> => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null; // Not found
+    console.error('Error getting Creator by ID:', error);
+    throw error;
+  }
+
+  return data ? mapDbToCreatorProfile(data) : null;
+};
+
+export const getCreatorByEmail = async (email: string): Promise<CreatorProfile | null> => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('email', email)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null; // Not found
+    console.error('Error getting Creator by email:', error);
+    throw error;
+  }
+
+  return data ? mapDbToCreatorProfile(data) : null;
+};
+
+// Helper function to map database row to CreatorProfile
+const mapDbToCreatorProfile = (row: any): CreatorProfile => ({
+  id: row.id,
+  email: row.email || '',
+  name: row.name || '',
+  phone: row.phone || '',
+  baseLocation: row.base_location || '',
+  province: row.province,
+  category: row.category || '',
+  followers: row.followers || 0,
+  profileImage: row.profile_image,
+  socialAccounts: row.social_accounts || {},
+  followerCounts: row.follower_counts || {},
+  budgets: row.budgets || {},
+  status: row.status || 'general',
+  projectName: row.project_name,
+  createdAt: row.created_at || new Date().toISOString(),
+  facebookId: row.facebook_id,
+  passwordHash: row.password_hash,
+});
+
+// ===== Authentication Operations =====
+
+export const getCreatorByFacebookId = async (facebookId: string): Promise<CreatorProfile | null> => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('facebook_id', facebookId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null; // Not found
+    console.error('Error getting Creator by Facebook ID:', error);
+    throw error;
+  }
+
+  return data ? mapDbToCreatorProfile(data) : null;
+};
+
+export const authenticateCreator = async (
+  email: string,
+  password: string
+): Promise<CreatorProfile | null> => {
+  const creator = await getCreatorByEmail(email);
   
-  localStorage.setItem(STORAGE_KEYS.KOLS, JSON.stringify(kols));
+  if (!creator || !creator.passwordHash) {
+    return null; // User not found or registered via Facebook
+  }
+
+  const isValid = await verifyPassword(password, creator.passwordHash);
+  return isValid ? creator : null;
 };
 
-export const getKOLs = (): KOLProfile[] => {
-  const data = localStorage.getItem(STORAGE_KEYS.KOLS);
-  return data ? JSON.parse(data) : [];
+// ===== Affiliate Link Operations =====
+
+export const saveAffiliateLink = async (link: AffiliateLink): Promise<void> => {
+  const { error } = await supabase
+    .from('affiliate_links')
+    .insert({
+      id: link.id,
+      kol_id: link.creatorId,
+      campaign_name: link.campaignName,
+      project_id: link.projectId,
+      url: link.url,
+      created_at: link.createdAt
+    });
+
+  if (error) {
+    console.error('Error saving affiliate link:', error);
+    throw error;
+  }
 };
 
-export const getKOLById = (id: string): KOLProfile | undefined => {
-  return getKOLs().find(kol => kol.id === id);
+export const getAffiliateLinks = async (): Promise<AffiliateLink[]> => {
+  const { data, error } = await supabase
+    .from('affiliate_links')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error getting affiliate links:', error);
+    throw error;
+  }
+
+  return (data || []).map(mapDbToAffiliateLink);
 };
 
-export const getKOLByEmail = (email: string): KOLProfile | undefined => {
-  return getKOLs().find(kol => kol.email === email);
+export const getAffiliateLinksByCreator = async (creatorId: string): Promise<AffiliateLink[]> => {
+  const { data, error } = await supabase
+    .from('affiliate_links')
+    .select('*')
+    .eq('kol_id', creatorId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error getting affiliate links by Creator:', error);
+    throw error;
+  }
+
+  return (data || []).map(mapDbToAffiliateLink);
 };
 
-// Affiliate Link operations
-export const saveAffiliateLink = (link: AffiliateLink): void => {
-  const links = getAffiliateLinks();
-  links.push(link);
-  localStorage.setItem(STORAGE_KEYS.AFFILIATES, JSON.stringify(links));
+// Helper function to map database row to AffiliateLink
+const mapDbToAffiliateLink = (row: any): AffiliateLink => ({
+  id: row.id,
+  creatorId: row.kol_id,
+  campaignName: row.campaign_name || '',
+  projectId: row.project_id,
+  url: row.url || '',
+  createdAt: row.created_at || new Date().toISOString()
+});
+
+// ===== Project Operations =====
+
+export const saveProject = async (project: Project): Promise<void> => {
+  const { error } = await supabase
+    .from('projects')
+    .upsert({
+      id: project.id,
+      name: project.name,
+      type: project.type,
+      location: project.location,
+      description: project.description,
+      base_url: project.baseUrl,
+      created_at: project.createdAt
+    }, { onConflict: 'id' });
+
+  if (error) {
+    console.error('Error saving project:', error);
+    throw error;
+  }
 };
 
-export const getAffiliateLinks = (): AffiliateLink[] => {
-  const data = localStorage.getItem(STORAGE_KEYS.AFFILIATES);
-  return data ? JSON.parse(data) : [];
+export const getProjects = async (): Promise<Project[]> => {
+  const { data, error } = await supabase
+    .from('projects')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error getting projects:', error);
+    throw error;
+  }
+
+  return (data || []).map(mapDbToProject);
 };
 
-export const getAffiliateLinksByKOL = (kolId: string): AffiliateLink[] => {
-  return getAffiliateLinks().filter(link => link.kolId === kolId);
+export const getProjectById = async (id: string): Promise<Project | null> => {
+  const { data, error } = await supabase
+    .from('projects')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null; // Not found
+    console.error('Error getting project by ID:', error);
+    throw error;
+  }
+
+  return data ? mapDbToProject(data) : null;
 };
 
-// Current user operations
-export const setCurrentUser = (id: string, role: 'kol' | 'admin'): void => {
-  localStorage.setItem(STORAGE_KEYS.CURRENT_USER, id);
-  localStorage.setItem(STORAGE_KEYS.USER_ROLE, role);
+export const deleteProject = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('projects')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deleting project:', error);
+    throw error;
+  }
 };
 
-export const getCurrentUser = (): { id: string; role: 'kol' | 'admin' } | null => {
-  const id = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-  const role = localStorage.getItem(STORAGE_KEYS.USER_ROLE) as 'kol' | 'admin';
+// Helper function to map database row to Project
+const mapDbToProject = (row: any): Project => ({
+  id: row.id,
+  name: row.name || '',
+  type: row.type || 'condo',
+  location: row.location || '',
+  description: row.description,
+  baseUrl: row.base_url || '',
+  createdAt: row.created_at || new Date().toISOString()
+});
+
+// ===== Current User Operations (still use localStorage for session) =====
+
+export const setCurrentUser = (id: string, role: 'creator' | 'admin'): void => {
+  localStorage.setItem('current_user', id);
+  localStorage.setItem('user_role', role);
+};
+
+export const getCurrentUser = (): { id: string; role: 'creator' | 'admin' } | null => {
+  const id = localStorage.getItem('current_user');
+  const role = localStorage.getItem('user_role') as 'creator' | 'admin';
   
   return id && role ? { id, role } : null;
 };
 
 export const logout = (): void => {
-  localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
-  localStorage.removeItem(STORAGE_KEYS.USER_ROLE);
+  localStorage.removeItem('current_user');
+  localStorage.removeItem('user_role');
 };

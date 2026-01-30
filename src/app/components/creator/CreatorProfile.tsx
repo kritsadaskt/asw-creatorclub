@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
-import { KOLProfile as KOLProfileType } from '../../types';
-import { getKOLById, saveKOL } from '../../utils/storage';
+import { CreatorProfile as CreatorProfileType } from '../../types';
+import { getCreatorById, saveCreator } from '../../utils/storage';
 
-interface KOLProfileProps {
-  kolId: string;
+interface CreatorProfileProps {
+  creatorId: string;
   onNavigate: (view: 'profile' | 'affiliate') => void;
 }
 
@@ -21,29 +22,54 @@ const CATEGORIES = [
   'อื่นๆ'
 ];
 
-export function KOLProfile({ kolId, onNavigate }: KOLProfileProps) {
-  const [profile, setProfile] = useState<KOLProfileType | null>(null);
+export function CreatorProfile({ creatorId, onNavigate }: CreatorProfileProps) {
+  const [profile, setProfile] = useState<CreatorProfileType | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const kol = getKOLById(kolId);
-    if (kol) {
-      setProfile(kol);
-      // Auto-enable editing if profile is incomplete
-      if (!kol.category || kol.followers === 0) {
-        setIsEditing(true);
-      }
-    }
-  }, [kolId]);
+    loadProfile();
+  }, [creatorId]);
 
-  const handleSave = () => {
-    if (profile) {
-      saveKOL(profile);
-      setIsEditing(false);
+  const loadProfile = async () => {
+    try {
+      setLoading(true);
+      const creator = await getCreatorById(creatorId);
+      if (creator) {
+        setProfile(creator);
+        // Auto-enable editing if profile is incomplete
+        if (!creator.category || creator.followers === 0) {
+          setIsEditing(true);
+        }
+      } else {
+        toast.error('ไม่พบข้อมูลโปรไฟล์');
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      toast.error('ไม่สามารถโหลดข้อมูลได้');
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (!profile) {
+  const handleSave = async () => {
+    if (!profile) return;
+
+    try {
+      setSaving(true);
+      await saveCreator(profile);
+      setIsEditing(false);
+      toast.success('บันทึกข้อมูลสำเร็จ!');
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      toast.error('ไม่สามารถบันทึกข้อมูลได้');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading || !profile) {
     return <div className="p-8 text-center">กำลังโหลด...</div>;
   }
 
@@ -61,11 +87,10 @@ export function KOLProfile({ kolId, onNavigate }: KOLProfileProps) {
         <div className="space-y-4">
           <h3 className="text-primary">ข้อมูลพื้นฐาน</h3>
           
-          <Input
-            label="URL รูปโปรไฟล์"
-            value={profile.profileImage || ''}
-            onChange={(value) => setProfile({ ...profile, profileImage: value })}
-            placeholder="https://example.com/image.jpg"
+          <img
+            src={profile.profileImage || ''}
+            alt="Profile Image"
+            className="w-32 h-32 rounded-full object-cover border-4 border-primary/20"
           />
 
           <Input
@@ -176,8 +201,8 @@ export function KOLProfile({ kolId, onNavigate }: KOLProfileProps) {
         </div>
 
         <div className="flex gap-3 pt-4">
-          <Button onClick={handleSave} fullWidth>
-            บันทึกข้อมูล
+          <Button onClick={handleSave} fullWidth disabled={saving}>
+            {saving ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
           </Button>
         </div>
       </div>

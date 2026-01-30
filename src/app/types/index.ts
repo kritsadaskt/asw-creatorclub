@@ -1,8 +1,10 @@
-export interface KOLProfile {
+export interface CreatorProfile {
   id: string;
   email: string;
   name: string;
   phone: string;
+  baseLocation: string;
+  province?: string; // For when baseLocation is 'ต่างจังหวัด'
   category: string;
   followers: number;
   profileImage?: string;
@@ -13,15 +15,45 @@ export interface KOLProfile {
     youtube?: string;
     twitter?: string;
   };
+  followerCounts: {
+    facebook?: number;
+    instagram?: number;
+    tiktok?: number;
+    youtube?: number;
+    twitter?: number;
+  };
+  budgets: {
+    facebook?: number;
+    instagram?: number;
+    tiktok?: number;
+    youtube?: number;
+    twitter?: number;
+  };
+  status: 'general' | 'resident'; // บุคคลทั่วไป or ลูกบ้านแอสเซทไวส์
+  projectName?: string; // For when status is 'resident'
+  createdAt: string;
+  // Authentication fields
+  facebookId?: string; // Facebook user ID (for Facebook login)
+  passwordHash?: string; // Hashed password (for traditional login)
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  type: 'condo' | 'house';
+  location: string;
+  description?: string;
+  baseUrl: string;
   createdAt: string;
 }
 
 export interface AffiliateLink {
   id: string;
-  kolId: string;
+  creatorId: string;
   campaignName: string;
+  projectId?: string;
   url: string;
   createdAt: string;
 }
 
-export type UserRole = 'kol' | 'admin';
+export type UserRole = 'creator' | 'admin';
