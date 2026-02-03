@@ -110,6 +110,7 @@ export function ProjectManagement() {
             จัดการคอนโด/บ้านสำหรับ Affiliate
           </p>
         </div>
+        {!isFormOpen && (
         <Button
           onClick={() => setIsFormOpen(true)}
           className={`flex items-center gap-2 cursor-pointer ${isFormOpen ? 'hidden' : ''}`}
@@ -117,6 +118,7 @@ export function ProjectManagement() {
           <Plus className="w-4 h-4" />
           เพิ่มโครงการ
         </Button>
+        )}
       </div>
 
       {/* Form */}
