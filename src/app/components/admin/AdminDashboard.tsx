@@ -409,7 +409,7 @@ export function AdminDashboard() {
                     <div key={idx} className="flex items-center gap-2">
                       <span className="text-sm font-medium text-foreground w-24">{social.name}:</span>
                       <a
-                        href={social.url}
+                        href={`https://${social.url}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-sm text-primary hover:underline break-all"

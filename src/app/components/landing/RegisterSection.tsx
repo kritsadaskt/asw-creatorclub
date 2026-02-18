@@ -231,7 +231,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
   const hasPendingFacebook = typeof window !== 'undefined' && sessionStorage.getItem('pendingFacebookId');
 
   return (
-    <section id="register-section" className="py-16 bg-gradient-to-br from-primary/5 to-primary/10">
+    <section id="register-section" className="py-16">
       <div className="max-w-3xl mx-auto px-6">
         <div className="bg-white rounded-2xl shadow-xl p-8 md:p-10">
           <div className="text-center mb-8">
@@ -262,9 +262,6 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
             </svg>
             {facebookLoading ? 'กำลังดำเนินการ...' : 'ลงทะเบียนด้วย Facebook'}
           </button>
-          <p className="text-center text-sm text-muted-foreground mb-6">
-            ง่ายและรวดเร็ว - เราจะดึงข้อมูลชื่อและอีเมลจาก Facebook ของคุณ
-          </p>
 
           {/* Divider */}
           <div className="relative my-6">
