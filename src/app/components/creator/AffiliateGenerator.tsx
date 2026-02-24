@@ -11,13 +11,16 @@ interface AffiliateGeneratorProps {
 }
 
 export function AffiliateGenerator({ creatorId }: AffiliateGeneratorProps) {
-  const navigate = useNavigate();
+  const [campaignName, setCampaignName] = useState('');
+  const [baseUrl, setBaseUrl] = useState('');
+  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [projects, setProjects] = useState<Project[]>([]);
   const [links, setLinks] = useState<AffiliateLink[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   // Cache project and campaign data for display
   const [projectCache, setProjectCache] = useState<Record<string, Project>>({});
-  const [campaignCache, setCampaignCache] = useState<Record<string, Campaign>>({});
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadData();
@@ -57,11 +60,54 @@ export function AffiliateGenerator({ creatorId }: AffiliateGeneratorProps) {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">ลิงค์ของฉัน</h2>
-          <p className="text-muted-foreground mt-1">
-            จัดการ Affiliate Links ทั้งหมดของคุณ
-          </p>
+        <h2>สร้าง Affiliate Link</h2>
+        <Button onClick={() => navigate('../profile')} variant="outline">
+          กลับไปโปรไฟล์
+        </Button>
+      </div>
+
+      {/* Generator Form */}
+      <div className="bg-white rounded-xl shadow-sm border border-border p-6 mb-6">
+        <h3 className="text-primary mb-4">สร้างลิงค์ใหม่</h3>
+        
+        <div className="space-y-4">
+          <Input
+            label="ชื่อแคมเปญ"
+            value={campaignName}
+            onChange={setCampaignName}
+            placeholder="เช่น โปรโมชั่นสินค้า A"
+            required
+          />
+
+          <div>
+            <label className="block text-sm mb-2 text-foreground">
+              เลือกโครงการ (ไม่บังคับ)
+            </label>
+            <select
+              value={selectedProjectId}
+              onChange={(e) => handleProjectSelect(e.target.value)}
+              className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
+            >
+              <option value="">ไม่เลือก - ใช้ URL กำหนดเอง</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.type === 'condo' ? '🏢' : '🏠'} {project.name} - {project.location}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <Input
+            label="URL ปลายทาง"
+            value={baseUrl}
+            onChange={setBaseUrl}
+            placeholder="https://example.com/product"
+            required
+          />
+
+          <Button onClick={generateLink} fullWidth disabled={saving}>
+            {saving ? 'กำลังสร้าง...' : 'สร้างลิงค์'}
+          </Button>
         </div>
         <Button onClick={() => navigate('/affiliate')} className="flex items-center gap-2">
           <Plus className="w-4 h-4" />

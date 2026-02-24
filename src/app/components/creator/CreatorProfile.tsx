@@ -23,11 +23,11 @@ const CATEGORIES = [
 ];
 
 export function CreatorProfile({ creatorId }: CreatorProfileProps) {
-  const navigate = useNavigate();
   const [profile, setProfile] = useState<CreatorProfileType | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadProfile();
@@ -78,7 +78,7 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
     <div className="max-w-7xl mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h2>โปรไฟล์ของฉัน</h2>
-        <Button onClick={() => navigate('/affiliate')} variant="outline">
+        <Button onClick={() => navigate('../affiliate')} variant="outline">
           สร้าง Affiliate Link
         </Button>
       </div>

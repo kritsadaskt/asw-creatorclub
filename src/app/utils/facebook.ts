@@ -28,7 +28,7 @@ export const initFacebookSDK = (): Promise<void> => {
     if (!document.getElementById('facebook-jssdk')) {
       const script = document.createElement('script');
       script.id = 'facebook-jssdk';
-      script.src = 'https://connect.facebook.net/th_TH/sdk.js';
+      script.src = 'https://connect.facebook.net/en_US/sdk.js';
       script.async = true;
       script.defer = true;
       document.head.appendChild(script);
