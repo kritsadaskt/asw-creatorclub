@@ -187,7 +187,7 @@ function AdminLayout({ onLogout }: LayoutProps) {
           </div>
           <div className="flex gap-4">
             <NavLink
-              to="dashboard"
+              to="/creatorclub/admin/dashboard"
               end
               className={({ isActive }) =>
                 `pb-2 transition-colors border-b-2 ${
@@ -200,7 +200,7 @@ function AdminLayout({ onLogout }: LayoutProps) {
               จัดการ Creators
             </NavLink>
             <NavLink
-              to="projects"
+              to="/creatorclub/admin/projects"
               className={({ isActive }) =>
                 `pb-2 transition-colors border-b-2 ${
                   isActive
