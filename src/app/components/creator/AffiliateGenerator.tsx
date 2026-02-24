@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
@@ -8,10 +9,9 @@ import { Building2, Home } from 'lucide-react';
 
 interface AffiliateGeneratorProps {
   creatorId: string;
-  onNavigate: (view: 'profile' | 'affiliate') => void;
 }
 
-export function AffiliateGenerator({ creatorId, onNavigate }: AffiliateGeneratorProps) {
+export function AffiliateGenerator({ creatorId }: AffiliateGeneratorProps) {
   const [campaignName, setCampaignName] = useState('');
   const [baseUrl, setBaseUrl] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState('');
@@ -22,6 +22,7 @@ export function AffiliateGenerator({ creatorId, onNavigate }: AffiliateGenerator
   const [saving, setSaving] = useState(false);
   // Cache project data for display
   const [projectCache, setProjectCache] = useState<Record<string, Project>>({});
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadData();
@@ -109,7 +110,7 @@ export function AffiliateGenerator({ creatorId, onNavigate }: AffiliateGenerator
     <div className="max-w-4xl mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h2>สร้าง Affiliate Link</h2>
-        <Button onClick={() => onNavigate('profile')} variant="outline">
+        <Button onClick={() => navigate('../profile')} variant="outline">
           กลับไปโปรไฟล์
         </Button>
       </div>

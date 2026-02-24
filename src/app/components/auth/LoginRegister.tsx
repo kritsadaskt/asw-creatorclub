@@ -13,6 +13,7 @@ import {
 } from '../../utils/storage';
 import { loginWithFacebook, getFacebookUserInfo } from '../../utils/facebook';
 import { hashPassword, validatePassword, validatePasswordConfirm } from '../../utils/password';
+import { setSession } from '../../utils/auth';
 
 interface LoginRegisterProps {
   onLogin: (id: string, role: 'creator' | 'admin') => void;
@@ -46,6 +47,7 @@ export function LoginRegister({ onLogin }: LoginRegisterProps) {
       if (creator) {
         // User exists, log them in
         setCurrentUser(creator.id, 'creator');
+        setSession({ id: creator.id, role: 'creator' });
         toast.success('เข้าสู่ระบบสำเร็จ!', {
           description: `ยินดีต้อนรับ ${creator.name}`,
         });
@@ -81,6 +83,7 @@ export function LoginRegister({ onLogin }: LoginRegisterProps) {
       // Admin login shortcut
       if (email === 'admin@creatorsclub.com' && password === 'admin') {
         setCurrentUser('admin', 'admin');
+        setSession({ id: 'admin', role: 'admin' });
         toast.success('เข้าสู่ระบบสำเร็จ!', {
           description: 'ยินดีต้อนรับผู้ดูแลระบบ'
         });
@@ -95,6 +98,7 @@ export function LoginRegister({ onLogin }: LoginRegisterProps) {
         const creator = await authenticateCreator(email, password);
         if (creator) {
           setCurrentUser(creator.id, 'creator');
+          setSession({ id: creator.id, role: 'creator' });
           toast.success('เข้าสู่ระบบสำเร็จ!', {
             description: `ยินดีต้อนรับ ${creator.name}`
           });
@@ -151,6 +155,7 @@ export function LoginRegister({ onLogin }: LoginRegisterProps) {
         await saveCreator(newCreator);
         sessionStorage.removeItem('pendingFacebookId');
         setCurrentUser(newCreator.id, 'creator');
+        setSession({ id: newCreator.id, role: 'creator' });
         toast.success('ลงทะเบียนสำเร็จ!', {
           description: 'ยินดีต้อนรับเข้าสู่ระบบ'
         });

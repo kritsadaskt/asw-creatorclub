@@ -1,0 +1,142 @@
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { CampaignLayout } from '../layout/CampaignLayout';
+import { Input } from '../shared/Input';
+import { Button } from '../shared/Button';
+import { getSession } from '../../utils/auth';
+
+export function FriendGetFriendPage() {
+  const session = getSession();
+  const isLoggedIn = !!session;
+
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [lineId, setLineId] = useState('');
+  const [interestedProject, setInterestedProject] = useState('');
+  const [referralCode, setReferralCode] = useState('');
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+
+    // TODO: Connect to actual submission handling (API / storage)
+    // For now, keep behavior minimal so you can review the UI.
+    console.log('Friend Get Friend submission', {
+      name,
+      email,
+      phone,
+      lineId,
+      interestedProject,
+      referralCode
+    });
+  };
+
+  return (
+    <CampaignLayout>
+      <div className="max-w-2xl mx-auto px-6 py-12 bg-white rounded-2xl shadow-xl">
+        <h1 className="text-3xl font-semibold mb-4 text-primary">
+          Friend Get Friend
+        </h1>
+
+        <p className="text-muted-foreground mb-2">
+          แคมเปญพิเศษสำหรับ Creator Club ชวนเพื่อนมาร่วมเป็นครีเอเตอร์กับเรา
+          ยิ่งชวนมาก ยิ่งมีโอกาสได้รับสิทธิพิเศษและของรางวัลจาก ASW
+        </p>
+        <p className="text-muted-foreground mb-4">
+          กรณียังไม่ได้เข้าสู่ระบบ คุณจะสามารถดูรายละเอียดของแคมเปญได้เท่านั้น
+          หากต้องการกรอกฟอร์มแนะนำเพื่อน กรุณาเข้าสู่ระบบ Creator Club ก่อน
+        </p>
+
+        <Link
+          to="/creatorclub"
+          title="กลับสู่หน้า Creator Club"
+          className="inline-flex text-primary hover:underline"
+        >
+          กลับสู่หน้า Creator Club
+        </Link>
+
+        {!isLoggedIn && (
+          <div className="mt-6 rounded-lg bg-muted px-4 py-3 text-sm text-muted-foreground">
+            ยังไม่ได้เข้าสู่ระบบ
+            <span className="mx-1">-</span>
+            กรุณาเข้าสู่ระบบที่หน้า Creator Club เพื่อเริ่มแนะนำเพื่อนเข้าร่วมแคมเปญ
+          </div>
+        )}
+
+        {isLoggedIn && (
+          <div className="mt-10 border-t border-border pt-8">
+            <h2 className="text-2xl font-semibold text-primary mb-2">
+              ฟอร์มแนะนำเพื่อน
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              กรุณากรอกข้อมูลของคุณและเพื่อนที่ต้องการแนะนำให้ครบถ้วน
+              เพื่อให้ทีมงานสามารถติดต่อกลับได้อย่างรวดเร็ว
+            </p>
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-4">
+                <h3 className="font-medium text-foreground">
+                  ข้อมูลผู้แนะนำ (คุณ)
+                </h3>
+                <Input
+                  label="ชื่อ-นามสกุล"
+                  value={name}
+                  onChange={setName}
+                  placeholder="กรอกชื่อ-นามสกุลของคุณ"
+                  required
+                />
+                <Input
+                  label="อีเมล"
+                  type="email"
+                  value={email}
+                  onChange={setEmail}
+                  placeholder="example@email.com"
+                  required
+                />
+                <Input
+                  label="เบอร์โทรศัพท์"
+                  type="tel"
+                  value={phone}
+                  onChange={setPhone}
+                  placeholder="กรอกเบอร์โทรศัพท์ที่ติดต่อได้"
+                  required
+                />
+                <Input
+                  label="LINE ID"
+                  value={lineId}
+                  onChange={setLineId}
+                  placeholder="กรอก LINE ID ของคุณ"
+                  required
+                />
+              </div>
+
+              <div className="space-y-4 pt-4 border-t border-border">
+                <h3 className="font-medium text-foreground">
+                  ข้อมูลเพื่อนที่ต้องการแนะนำ
+                </h3>
+                <Input
+                  label="โครงการที่สนใจแนะนำเพื่อน"
+                  value={interestedProject}
+                  onChange={setInterestedProject}
+                  placeholder="เช่น คอนโดโครงการใดที่ต้องการแนะนำ"
+                  required
+                />
+                <Input
+                  label="รหัส Referal (ถ้ามี)"
+                  value={referralCode}
+                  onChange={setReferralCode}
+                  placeholder="กรอกรหัส Referal ของคุณ"
+                />
+              </div>
+
+              <Button type="submit" fullWidth>
+                ส่งข้อมูลการแนะนำเพื่อน
+              </Button>
+            </form>
+          </div>
+        )}
+      </div>
+    </CampaignLayout>
+  );
+}
+

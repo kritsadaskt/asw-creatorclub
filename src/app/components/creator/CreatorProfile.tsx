@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
@@ -7,7 +8,6 @@ import { getCreatorById, saveCreator } from '../../utils/storage';
 
 interface CreatorProfileProps {
   creatorId: string;
-  onNavigate: (view: 'profile' | 'affiliate') => void;
 }
 
 const CATEGORIES = [
@@ -22,11 +22,12 @@ const CATEGORIES = [
   'อื่นๆ'
 ];
 
-export function CreatorProfile({ creatorId, onNavigate }: CreatorProfileProps) {
+export function CreatorProfile({ creatorId }: CreatorProfileProps) {
   const [profile, setProfile] = useState<CreatorProfileType | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadProfile();
@@ -77,7 +78,7 @@ export function CreatorProfile({ creatorId, onNavigate }: CreatorProfileProps) {
     <div className="max-w-4xl mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h2>โปรไฟล์ของฉัน</h2>
-        <Button onClick={() => onNavigate('affiliate')} variant="outline">
+        <Button onClick={() => navigate('../affiliate')} variant="outline">
           สร้าง Affiliate Link
         </Button>
       </div>
