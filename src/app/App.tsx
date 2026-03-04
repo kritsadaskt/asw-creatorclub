@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Toaster } from 'sonner';
-import { Routes, Route, Navigate, NavLink, Outlet } from 'react-router-dom';
+import { Routes, Route, Navigate, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { LandingPage } from './components/landing/LandingPage';
 import { CreatorProfile } from './components/creator/CreatorProfile';
 import { AffiliateGenerator } from './components/creator/AffiliateGenerator';
@@ -40,10 +40,17 @@ export default function App() {
     }
   }, []);
 
+  const navigate = useNavigate();
+
   const handleLogin = (id: string, role: UserRole) => {
     setCurrentUserId(id);
     setUserRole(role);
     setSession({ id, role });
+    if (role === 'creator') {
+      navigate('profile');
+    } else if (role === 'admin') {
+      navigate('admin');
+    }
   };
 
   const handleLogout = () => {
@@ -63,24 +70,22 @@ export default function App() {
             userRole === 'admin' ? (
               <Navigate to="admin" replace />
             ) : (
-              <LandingPage onLogin={handleLogin} />
+              <LandingPage onLogin={handleLogin} isLoggedIn={!!currentUserId} />
             )
           }
         />
 
+        <Route path="creator" element={<Navigate to="profile" replace />} />
+        <Route path="creator/*" element={<Navigate to="profile" replace />} />
         <Route
-          path="creator/*"
+          path="profile/*"
           element={
             <RequireAuth requiredRole="creator">
               <CreatorLayout onLogout={handleLogout} />
             </RequireAuth>
           }
         >
-          <Route index element={<Navigate to="profile" replace />} />
-          <Route
-            path="profile"
-            element={<CreatorProfile creatorId={currentUserId!} />}
-          />
+          <Route index element={<CreatorProfile creatorId={currentUserId!} />} />
           <Route
             path="affiliate"
             element={<AffiliateGenerator creatorId={currentUserId!} />}
@@ -124,7 +129,8 @@ function CreatorLayout({ onLogout }: LayoutProps) {
           </div>
           <div className="flex gap-4 items-center">
             <NavLink
-              to="profile"
+              to=""
+              end
               className={({ isActive }) =>
                 `transition-colors ${
                   isActive

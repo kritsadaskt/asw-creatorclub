@@ -3,13 +3,15 @@ import { X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
-import { 
-  getCreatorByEmail, 
-  getCreatorByFacebookId, 
-  setCurrentUser, 
-  authenticateCreator 
+import {
+  getCreatorByEmail,
+  getCreatorByFacebookId,
+  setCurrentUser,
+  authenticateCreator,
+  saveCreator,
 } from '../../utils/storage';
-import { loginWithFacebook, getFacebookUserInfo } from '../../utils/facebook';
+import { loginWithFacebook, getFacebookUserInfo, fetchAndUploadFacebookProfileImage } from '../../utils/facebook';
+import { isFacebookProfileImageUrl } from '../../utils/profileImage';
 
 interface LoginModalProps {
   onClose: () => void;
@@ -28,9 +30,9 @@ export function LoginModal({ onClose, onLogin }: LoginModalProps) {
     setFacebookLoading(true);
 
     try {
-      // Login with Facebook
-      await loginWithFacebook();
+      const loginResponse = await loginWithFacebook();
       const fbUser = await getFacebookUserInfo();
+      const accessToken = loginResponse.authResponse?.accessToken;
 
       // Try to find user by Facebook ID first
       let creator = await getCreatorByFacebookId(fbUser.id);
@@ -41,6 +43,16 @@ export function LoginModal({ onClose, onLogin }: LoginModalProps) {
       }
 
       if (creator) {
+        // Re-host Facebook profile image if current one is from Facebook (lookaside or Graph URL often 404 in browser)
+        const isFacebookUrl =
+          isFacebookProfileImageUrl(creator.profileImage) ||
+          creator.profileImage?.includes('graph.facebook.com');
+        if (accessToken && isFacebookUrl) {
+          const newUrl = await fetchAndUploadFacebookProfileImage(accessToken, fbUser.id);
+          if (newUrl) {
+            await saveCreator({ ...creator, profileImage: newUrl });
+          }
+        }
         setCurrentUser(creator.id, 'creator');
         toast.success('เข้าสู่ระบบสำเร็จ!', {
           description: `ยินดีต้อนรับ ${creator.name}`,

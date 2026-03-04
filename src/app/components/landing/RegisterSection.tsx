@@ -4,7 +4,7 @@ import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
 import { CreatorProfile } from '../../types';
 import { saveCreator, getCreatorByEmail, getCreatorByFacebookId, setCurrentUser, generateUUID } from '../../utils/storage';
-import { loginWithFacebook, getFacebookUserInfo } from '../../utils/facebook';
+import { loginWithFacebook, getFacebookUserInfo, fetchAndUploadFacebookProfileImage } from '../../utils/facebook';
 import { hashPassword, validatePassword, validatePasswordConfirm } from '../../utils/password';
 import { UserPlus } from 'lucide-react';
 
@@ -57,9 +57,10 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
     setFacebookLoading(true);
 
     try {
-      // Login with Facebook
-      await loginWithFacebook();
+      // Login with Facebook and keep auth response for token (to fetch profile image)
+      const loginResponse = await loginWithFacebook();
       const fbUser = await getFacebookUserInfo();
+      const accessToken = loginResponse.authResponse?.accessToken;
 
       // Check if user already exists
       let existingCreator = await getCreatorByFacebookId(fbUser.id);
@@ -89,9 +90,15 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
 
       // Store Facebook ID temporarily to use when submitting
       sessionStorage.setItem('pendingFacebookId', fbUser.id);
-      if (fbUser.picture?.data?.url) {
-        sessionStorage.setItem('pendingFacebookPicture', fbUser.picture.data.url);
+      // Re-host profile image to our storage so it doesn't 404 (Facebook blocks direct <img> use)
+      let pictureUrl: string | null = null;
+      if (accessToken) {
+        pictureUrl = await fetchAndUploadFacebookProfileImage(accessToken, fbUser.id);
       }
+      sessionStorage.setItem(
+        'pendingFacebookPicture',
+        pictureUrl || `https://graph.facebook.com/${fbUser.id}/picture?type=large`
+      );
     } catch (err) {
       console.error('Facebook registration error:', err);
       if (err instanceof Error && err.message.includes('cancelled')) {

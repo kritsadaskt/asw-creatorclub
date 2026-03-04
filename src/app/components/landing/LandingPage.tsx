@@ -6,15 +6,16 @@ import Footer from './Footer';
 
 interface LandingPageProps {
   onLogin: (id: string, role: 'creator' | 'admin') => void;
+  isLoggedIn?: boolean;
 }
 
-export function LandingPage({ onLogin }: LandingPageProps) {
+export function LandingPage({ onLogin, isLoggedIn }: LandingPageProps) {
   return (
     <div className="min-h-screen">
       <Header onLogin={onLogin} />
       <HeroBanner />
       <IntroSection />
-      <RegisterSection onLogin={onLogin} />
+      {!isLoggedIn && <RegisterSection onLogin={onLogin} />}
       <Footer />
     </div>
   );

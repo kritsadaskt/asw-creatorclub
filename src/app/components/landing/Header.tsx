@@ -3,6 +3,7 @@ import { LogIn, LogOut } from 'lucide-react';
 import { LoginModal } from './LoginModal';
 import { getCreatorById, logout } from '../../utils/storage';
 import { getSession, clearSession } from '../../utils/auth';
+import { getProfileImageUrl } from '../../utils/profileImage';
 
 interface HeaderProps {
   onLogin: (id: string, role: 'creator' | 'admin') => void;
@@ -36,7 +37,7 @@ export function Header({ onLogin }: HeaderProps) {
           const creator = await getCreatorById(session.id);
           if (creator) {
             setDisplayName(creator.name || null);
-            setAvatarUrl(creator.profileImage || null);
+            setAvatarUrl(getProfileImageUrl(creator) ?? null);
           }
         } catch (error) {
           console.warn('Failed to load creator profile for header:', error);
@@ -96,6 +97,7 @@ export function Header({ onLogin }: HeaderProps) {
                     src={avatarUrl}
                     alt={displayName || 'Profile'}
                     className="w-9 h-9 rounded-full object-cover border border-border"
+                    onError={() => setAvatarUrl(null)}
                   />
                 ) : (
                   <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-medium">
