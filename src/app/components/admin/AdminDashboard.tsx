@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { Button } from '../shared/Button';
 import { CreatorProfile } from '../../types';
 import { getCreators } from '../../utils/storage';
+import { getProfileImageUrl } from '../../utils/profileImage';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { LayoutGrid, Table } from 'lucide-react';
 
@@ -233,9 +234,9 @@ export function AdminDashboard() {
               >
                 {/* Profile Image */}
                 <div className="flex justify-center mb-4">
-                  {creator.profileImage ? (
+                  {getProfileImageUrl(creator) ? (
                     <ImageWithFallback
-                      src={creator.profileImage}
+                      src={getProfileImageUrl(creator)!}
                       alt={creator.name}
                       className="w-20 h-20 rounded-full object-cover border-2 border-border"
                     />
@@ -301,9 +302,9 @@ export function AdminDashboard() {
                 {filteredCreators.map((creator) => (
                   <tr key={creator.id} className="border-b border-border hover:bg-input-background/30 transition-colors">
                     <td className="py-3 px-4">
-                      {creator.profileImage ? (
+                      {getProfileImageUrl(creator) ? (
                         <ImageWithFallback
-                          src={creator.profileImage}
+                          src={getProfileImageUrl(creator)!}
                           alt={creator.name}
                           className="w-12 h-12 rounded-full object-cover border-2 border-border"
                         />
@@ -360,9 +361,9 @@ export function AdminDashboard() {
 
             {/* Profile Image in Modal */}
             <div className="flex justify-center mb-6">
-              {selectedCreator.profileImage ? (
+              {getProfileImageUrl(selectedCreator) ? (
                 <ImageWithFallback
-                  src={selectedCreator.profileImage}
+                  src={getProfileImageUrl(selectedCreator)!}
                   alt={selectedCreator.name}
                   className="w-32 h-32 rounded-full object-cover border-4 border-primary/20"
                 />

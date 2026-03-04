@@ -1,6 +1,9 @@
 import type { FacebookLoginResponse, FacebookUser } from '../types/facebook.d.ts';
+import { supabase } from './supabase';
 
 const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID;
+const FACEBOOK_GRAPH_PICTURE_BASE = 'https://graph.facebook.com';
+const PROFILE_IMAGES_BUCKET = 'profile-images';
 
 /**
  * Initialize Facebook SDK
@@ -112,3 +115,43 @@ export const checkFacebookLoginStatus = (): Promise<boolean> => {
     });
   });
 };
+
+/**
+ * Fetch the user's Facebook profile image (using access token) and upload to Supabase Storage.
+ * Returns the public URL of the uploaded image, or null on failure.
+ * Use this at registration/login so we store our own URL instead of Facebook's (which 404s in <img>).
+ *
+ * Requires a Supabase Storage bucket named "profile-images" with public read access:
+ * - In Supabase Dashboard: Storage → New bucket → name "profile-images" → set Public bucket ON.
+ */
+export async function fetchAndUploadFacebookProfileImage(
+  accessToken: string,
+  facebookId: string
+): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `${FACEBOOK_GRAPH_PICTURE_BASE}/${facebookId}/picture?type=large`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    const contentType = blob.type || 'image/jpeg';
+    const ext = contentType.includes('png') ? 'png' : 'jpg';
+    const path = `${facebookId}.${ext}`;
+
+    const { error } = await supabase.storage
+      .from(PROFILE_IMAGES_BUCKET)
+      .upload(path, blob, { contentType, upsert: true });
+
+    if (error) {
+      console.warn('Supabase profile image upload failed:', error);
+      return null;
+    }
+
+    const { data } = supabase.storage.from(PROFILE_IMAGES_BUCKET).getPublicUrl(path);
+    return data.publicUrl;
+  } catch (err) {
+    console.warn('Failed to fetch/upload Facebook profile image:', err);
+    return null;
+  }
+}

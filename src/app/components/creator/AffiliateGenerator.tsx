@@ -8,9 +8,10 @@ import { Building2, Home, Megaphone, Link2, Plus } from 'lucide-react';
 
 interface AffiliateGeneratorProps {
   creatorId: string;
+  showBackButton?: boolean;
 }
 
-export function AffiliateGenerator({ creatorId }: AffiliateGeneratorProps) {
+export function AffiliateGenerator({ creatorId, showBackButton = true }: AffiliateGeneratorProps) {
   const [campaignName, setCampaignName] = useState('');
   const [baseUrl, setBaseUrl] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState('');
@@ -61,9 +62,11 @@ export function AffiliateGenerator({ creatorId }: AffiliateGeneratorProps) {
     <div className="max-w-4xl mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h2>สร้าง Affiliate Link</h2>
-        <Button onClick={() => navigate('../profile')} variant="outline">
-          กลับไปโปรไฟล์
-        </Button>
+        {showBackButton && (
+          <Button onClick={() => navigate('..')} variant="outline">
+            กลับไปโปรไฟล์
+          </Button>
+        )}
       </div>
 
       {/* Generator Form */}
