@@ -12,7 +12,7 @@ export function CampaignLayout({ onLogin, children }: CampaignLayoutProps) {
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-primary/5 to-primary/10">
       <Header onLogin={onLogin ?? (() => {})} />
       <main className="flex-1 pt-6 pb-10">
-        <div className="container mx-auto px-6">
+        <div className="container mx-auto px-4 md:px-6">
           {children}
         </div>
       </main>

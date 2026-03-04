@@ -499,9 +499,21 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
 
             {/* Status */}
             <div className="space-y-4 pt-4 border-t border-border">
-              <h3 className="font-semibold text-primary">สถานะ</h3>
+              <h3 className="font-semibold text-primary">คุณเป็นลูกบ้านแอสเซทไวส์หรือไม่</h3>
               
-              <div className="space-y-3">
+              <div className="flex gap-3">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="status"
+                    value="resident"
+                    checked={status === 'resident'}
+                    onChange={(e) => setStatus(e.target.value as 'resident')}
+                    className="w-4 h-4 text-primary"
+                  />
+                  <span>ใช่</span>
+                </label>
+
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="radio"
@@ -514,20 +526,10 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                     }}
                     className="w-4 h-4 text-primary"
                   />
-                  <span>บุคคลทั่วไป</span>
+                  <span>ไม่ใช่</span>
                 </label>
 
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="status"
-                    value="resident"
-                    checked={status === 'resident'}
-                    onChange={(e) => setStatus(e.target.value as 'resident')}
-                    className="w-4 h-4 text-primary"
-                  />
-                  <span>ลูกบ้านแอสเซทไวส์</span>
-                </label>
+                
               </div>
 
               {status === 'resident' && (
