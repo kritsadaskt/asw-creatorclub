@@ -83,9 +83,9 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
         <h2>โปรไฟล์ของฉัน</h2>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-border p-6 flex gap-8">
+      <div className="bg-white rounded-xl shadow-sm border border-border p-4 md:p-6 flex flex-col md:flex-row gap-8">
         {/* Sidebar */}
-        <aside className="w-64 border-r border-border pr-6 flex flex-col items-center gap-6">
+        <aside className="w-full md:w-64 md:border-r border-border md:pr-6 flex md:flex-col items-center gap-6">
           {getProfileImageUrl(profile) && !profileImageError ? (
             <img
               src={getProfileImageUrl(profile)}
