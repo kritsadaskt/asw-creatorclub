@@ -108,7 +108,7 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-4xl mx-auto px-0 py-4 md:p-6">
       <div className="flex justify-between items-center mb-6">
         <h2>สร้าง Affiliate Link</h2>
         {showBackButton && (
@@ -119,7 +119,7 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
       </div>
 
       {/* Generator Form */}
-      <div className="bg-white rounded-xl shadow-sm border border-border p-6 mb-6">
+      <div className="bg-white rounded-xl shadow-sm border border-border px-4 py-4 md:p-6 mb-6">
         <h3 className="text-primary mb-4">สร้างลิงค์ใหม่</h3>
         
         <div className="space-y-4">

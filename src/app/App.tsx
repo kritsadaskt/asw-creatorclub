@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Toaster } from 'sonner';
-import { Routes, Route, Navigate, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet, useNavigate } from 'react-router-dom';
+import { Header } from './components/landing/Header';
 import { LandingPage } from './components/landing/LandingPage';
 import { CreatorProfile } from './components/creator/CreatorProfile';
 import { AffiliateGenerator } from './components/creator/AffiliateGenerator';
@@ -81,7 +82,7 @@ export default function App() {
           path="profile/*"
           element={
             <RequireAuth requiredRole="creator">
-              <CreatorLayout onLogout={handleLogout} />
+              <CreatorLayout onLogin={handleLogin} onLogout={handleLogout} />
             </RequireAuth>
           }
         >
@@ -96,7 +97,7 @@ export default function App() {
           path="admin/*"
           element={
             <RequireAuth requiredRole="admin">
-              <AdminLayout onLogout={handleLogout} />
+              <AdminLayout onLogin={handleLogin} onLogout={handleLogout} />
             </RequireAuth>
           }
         >
@@ -112,112 +113,23 @@ export default function App() {
 }
 
 interface LayoutProps {
+  onLogin: (id: string, role: 'creator' | 'admin') => void;
   onLogout: () => void;
 }
 
-function CreatorLayout({ onLogout }: LayoutProps) {
+function CreatorLayout({ onLogin, onLogout }: LayoutProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 to-primary/10">
-      <header className="bg-white border-b border-border shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <img
-              src="https://assetwise.co.th/wp-content/themes/seed-spring/img/asw-logo_horizontal.svg"
-              alt="AssetWise Logo"
-              className="h-5"
-            />
-          </div>
-          <div className="flex gap-4 items-center">
-            <NavLink
-              to=""
-              end
-              className={({ isActive }) =>
-                `transition-colors ${
-                  isActive
-                    ? 'text-primary'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`
-              }
-            >
-              โปรไฟล์
-            </NavLink>
-            <NavLink
-              to="affiliate"
-              className={({ isActive }) =>
-                `transition-colors ${
-                  isActive
-                    ? 'text-primary'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`
-              }
-            >
-              Affiliate Links
-            </NavLink>
-            <button
-              onClick={onLogout}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              ออกจากระบบ
-            </button>
-          </div>
-        </div>
-      </header>
-
+      <Header onLogin={onLogin} onLogout={onLogout} />
       <Outlet />
     </div>
   );
 }
 
-function AdminLayout({ onLogout }: LayoutProps) {
+function AdminLayout({ onLogin, onLogout }: LayoutProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 to-primary/10">
-      <header className="bg-white border-b border-border shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center gap-3">
-              <img
-                src="https://assetwise.co.th/wp-content/themes/seed-spring/img/asw-logo_horizontal.svg"
-                alt="AssetWise Logo"
-                className="h-5"
-              />
-            </div>
-            <button
-              onClick={onLogout}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              ออกจากระบบ
-            </button>
-          </div>
-          <div className="flex gap-4">
-            <NavLink
-              to="/creatorclub/admin/dashboard"
-              end
-              className={({ isActive }) =>
-                `pb-2 transition-colors border-b-2 ${
-                  isActive
-                    ? 'text-primary border-primary'
-                    : 'text-muted-foreground border-transparent hover:text-foreground'
-                }`
-              }
-            >
-              จัดการ Creators
-            </NavLink>
-            <NavLink
-              to="/creatorclub/admin/projects"
-              className={({ isActive }) =>
-                `pb-2 transition-colors border-b-2 ${
-                  isActive
-                    ? 'text-primary border-primary'
-                    : 'text-muted-foreground border-transparent hover:text-foreground'
-                }`
-              }
-            >
-              จัดการโครงการ
-            </NavLink>
-          </div>
-        </div>
-      </header>
-
+      <Header onLogin={onLogin} onLogout={onLogout} />
       <Outlet />
     </div>
   );
