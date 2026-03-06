@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Toaster } from 'sonner';
-import { Routes, Route, Navigate, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { LandingPage } from './components/landing/LandingPage';
 import { CreatorProfile } from './components/creator/CreatorProfile';
 import { AffiliateGenerator } from './components/creator/AffiliateGenerator';
@@ -14,7 +14,7 @@ import { initFacebookSDK } from './utils/facebook';
 import { UserRole } from './types';
 import { clearSession, getSession, setSession } from './utils/auth';
 import { RequireAuth } from './components/auth/RequireAuth';
-import { LogOut } from 'lucide-react';
+import { Header } from './components/landing/Header';
 
 export default function App() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -71,11 +71,7 @@ export default function App() {
         <Route
           path="/"
           element={
-            userRole === 'admin' ? (
-              <Navigate to="admin" replace />
-            ) : (
-              <LandingPage onLogin={handleLogin} isLoggedIn={!!currentUserId} />
-            )
+            <LandingPage onLogin={handleLogin} isLoggedIn={!!currentUserId} />
           }
         />
 
@@ -122,51 +118,14 @@ interface LayoutProps {
 function CreatorLayout({ onLogout }: LayoutProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 to-primary/10">
-      <header className="bg-white border-b border-border shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <a href="/creatorclub" className="cursor-pointer" title='Creator Club'>
-              <img
-                src="https://assetwise.co.th/wp-content/themes/seed-spring/img/asw-logo_horizontal.svg" alt="AssetWise Logo" className="h-5"
-              />
-            </a>
-          </div>
-          <div className="flex gap-4 items-center">
-            <NavLink
-              to=""
-              end
-              className={({ isActive }) =>
-                `transition-colors ${
-                  isActive
-                    ? 'text-primary'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`
-              }
-            >
-              โปรไฟล์
-            </NavLink>
-            <NavLink
-              to="affiliate"
-              className={({ isActive }) =>
-                `transition-colors ${
-                  isActive
-                    ? 'text-primary'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`
-              }
-            >
-              Affiliate Links
-            </NavLink>
-            <button
-              onClick={onLogout}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              ออกจากระบบ
-            </button>
-          </div>
-        </div>
-      </header>
-
+      <Header
+        fixed={false}
+        onLogout={onLogout}
+        navLinks={[
+          { label: 'โปรไฟล์', to: '/creatorclub/profile', end: true },
+          { label: 'Affiliate Links', to: '/creatorclub/profile/affiliate' },
+        ]}
+      />
       <Outlet />
     </div>
   );
@@ -175,52 +134,14 @@ function CreatorLayout({ onLogout }: LayoutProps) {
 function AdminLayout({ onLogout }: LayoutProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 to-primary/10">
-      <header className="bg-white border-b border-border shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 pt-4">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center gap-3">
-              <a href="/creatorclub" className="cursor-pointer" title='Creator Club'>
-                <img src="https://assetwise.co.th/wp-content/themes/seed-spring/img/asw-logo_horizontal.svg" alt="AssetWise Logo" className="h-5" />
-              </a>
-            </div>
-            <button
-              onClick={onLogout}
-              className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer flex items-center gap-2"
-            >
-              ออกจากระบบ
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="flex gap-4">
-            <NavLink
-              to="/creatorclub/admin/dashboard"
-              end
-              className={({ isActive }) =>
-                `pb-2 transition-colors border-b-2 ${
-                  isActive
-                    ? 'text-primary border-primary'
-                    : 'text-muted-foreground border-transparent hover:text-foreground'
-                }`
-              }
-            >
-              จัดการ Creators
-            </NavLink>
-            <NavLink
-              to="/creatorclub/admin/projects"
-              className={({ isActive }) =>
-                `pb-2 transition-colors border-b-2 ${
-                  isActive
-                    ? 'text-primary border-primary'
-                    : 'text-muted-foreground border-transparent hover:text-foreground'
-                }`
-              }
-            >
-              จัดการโครงการ
-            </NavLink>
-          </div>
-        </div>
-      </header>
-
+      <Header
+        fixed={false}
+        onLogout={onLogout}
+        navTabs={[
+          { label: 'จัดการ Creators', to: '/creatorclub/admin/dashboard', end: true },
+          { label: 'จัดการโครงการ', to: '/creatorclub/admin/projects' },
+        ]}
+      />
       <Outlet />
     </div>
   );

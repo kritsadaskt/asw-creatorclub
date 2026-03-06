@@ -1,17 +1,48 @@
 import { useCallback, useEffect, useState } from 'react';
-import { LogIn, LogOut } from 'lucide-react';
+import { LayoutDashboard, LogIn, LogOut } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
 import { LoginModal } from './LoginModal';
 import { getCreatorById, logout } from '../../utils/storage';
 import { getSession, clearSession } from '../../utils/auth';
 import { getProfileImageUrl } from '../../utils/profileImage';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
 
-interface HeaderProps {
-  onLogin: (id: string, role: 'creator' | 'admin') => void;
-  /** When this changes (e.g. after login), header re-reads session so it can show name/logout without refresh. */
-  isLoggedInFromParent?: boolean;
+export interface NavLinkItem {
+  label: string;
+  to: string;
+  end?: boolean;
 }
 
-export function Header({ onLogin, isLoggedInFromParent }: HeaderProps) {
+interface HeaderProps {
+  /** Provide to enable the login modal on public pages. */
+  onLogin?: (id: string, role: 'creator' | 'admin') => void;
+  /** Override the default logout behaviour. Called after internal cleanup + redirect. */
+  onLogout?: () => void;
+  /** When this flips the header re-reads the session (use after login on the same page). */
+  isLoggedInFromParent?: boolean;
+  /** Nav links rendered inline in the header bar (creator-style). */
+  navLinks?: NavLinkItem[];
+  /** Nav tabs rendered in a second row below the top bar (admin-style). */
+  navTabs?: NavLinkItem[];
+  /** Fix the header to the top of the viewport. Defaults to true. */
+  fixed?: boolean;
+}
+
+export function Header({
+  onLogin,
+  onLogout: onLogoutProp,
+  isLoggedInFromParent,
+  navLinks,
+  navTabs,
+  fixed = true,
+}: HeaderProps) {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -69,87 +100,170 @@ export function Header({ onLogin, isLoggedInFromParent }: HeaderProps) {
     setDisplayName(null);
     setAvatarUrl(null);
     setRole(null);
+    onLogoutProp?.();
     window.location.href = '/creatorclub';
   };
 
-  const handleLoginFromModal = (id: string, role: 'creator' | 'admin') => {
-    // Refresh header state from the latest session and then delegate
+  const handleLoginFromModal = (id: string, loginRole: 'creator' | 'admin') => {
     void loadFromSession();
-    onLogin(id, role);
+    onLogin?.(id, loginRole);
   };
+
+  const hasNavTabs = navTabs && navTabs.length > 0;
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 bg-white border-b border-border shadow-sm z-50">
-        <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <a href="/creatorclub" className="cursor-pointer" title='Creator Club'>
-              <img src="https://assetwise.co.th/wp-content/themes/seed-spring/img/asw-logo_horizontal.svg" alt="AssetWise Logo" className="h-5"
-              />
-            </a>
-          </div>
-          <div className="flex gap-4 items-center">
-            {isLoadingProfile ? (
-              <>
+      <header
+        className={`bg-white border-b border-border shadow-sm z-50 ${
+          fixed ? 'fixed top-0 left-0 right-0' : 'sticky top-0'
+        }`}
+      >
+        <div className={`max-w-7xl mx-auto px-6 ${hasNavTabs ? 'pt-4' : 'py-4'}`}>
+          {/* Top row: logo · [inline navLinks] · profile */}
+          <div className={`flex justify-between items-center ${hasNavTabs ? 'mb-4' : ''}`}>
+            {/* Logo */}
+            <div className="flex items-center gap-3">
+              <a href="/creatorclub" className="cursor-pointer" title="Creator Club">
+                <img
+                  src="https://assetwise.co.th/wp-content/themes/seed-spring/img/asw-logo_horizontal.svg"
+                  alt="AssetWise Logo"
+                  className="h-5"
+                />
+              </a>
+            </div>
+
+            {/* Right section */}
+            <div className="flex gap-4 items-center">
+              {/* Inline nav links (creator-style) */}
+              {navLinks?.map((link) => (
+                <NavLink
+                  key={link.to}
+                  to={link.to}
+                  end={link.end}
+                  className={({ isActive }) =>
+                    `transition-colors ${
+                      isActive
+                        ? 'text-primary'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`
+                  }
+                >
+                  {link.label}
+                </NavLink>
+              ))}
+
+              {/* Profile area */}
+              {isLoadingProfile ? (
                 <div className="w-9 h-9 rounded-full bg-muted animate-pulse" />
-                <div className="flex flex-col gap-1">
-                  <div className="h-3 w-24 bg-muted rounded animate-pulse" />
-                  <div className="h-3 w-16 bg-muted rounded animate-pulse" />
-                </div>
-              </>
-            ) : isLoggedIn ? (
-              <>
-                {avatarUrl ? (
-                  <img
-                    src={avatarUrl}
-                    alt={displayName || 'Profile'}
-                    className="w-9 h-9 rounded-full object-cover border border-border"
-                    onError={() => setAvatarUrl(null)}
-                  />
-                ) : (
-                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-medium">
-                    {displayName ? displayName.charAt(0).toUpperCase() : 'C'}
-                  </div>
-                )}
-                <div className="flex flex-col items-start">
-                  {displayName && (
-                    <span className="text-sm font-medium text-foreground">
-                      {displayName}
-                    </span>
-                  )}
+              ) : isLoggedIn ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="focus:outline-none hover:ring-2 hover:ring-primary/30 rounded-full transition-all cursor-pointer"
+                      aria-label="User menu"
+                    >
+                      {avatarUrl ? (
+                        <img
+                          src={avatarUrl}
+                          alt={displayName || 'Profile'}
+                          className="w-9 h-9 rounded-full object-cover border border-border"
+                          onError={() => setAvatarUrl(null)}
+                        />
+                      ) : (
+                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-medium">
+                          {displayName ? displayName.charAt(0).toUpperCase() : 'U'}
+                        </div>
+                      )}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-52">
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs text-muted-foreground">
+                          {role === 'admin' ? 'เข้าสู่ระบบในฐานะ' : 'ยินดีต้อนรับ'}
+                        </span>
+                        <span className="font-semibold text-foreground truncate">
+                          {displayName ?? 'User'}
+                        </span>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {role === 'admin' && (
+                      <DropdownMenuItem
+                        onClick={() => { window.location.href = '/creatorclub/admin/dashboard'; }}
+                        className="cursor-pointer"
+                      >
+                        <LayoutDashboard className="w-4 h-4 mr-2" />
+                        Dashboard
+                      </DropdownMenuItem>
+                    )}
+                    {role === 'creator' && (
+                      <DropdownMenuItem
+                        onClick={() => { window.location.href = '/creatorclub/profile'; }}
+                        className="cursor-pointer"
+                      >
+                        โปรไฟล์ของฉัน
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={handleLogout}
+                      className="cursor-pointer text-destructive focus:text-destructive"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      ออกจากระบบ
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : onLogin ? (
+                <>
                   <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={scrollToRegister}
+                    className="text-muted-foreground hover:text-accent transition-colors hidden md:block"
                   >
-                    <LogOut className="w-4 h-4" />
-                    <span>ออกจากระบบ</span>
+                    ลงทะเบียน
                   </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={scrollToRegister}
-                  className="text-muted-foreground hover:text-accent transition-colors hidden md:block"
-                >
-                  ลงทะเบียน
-                </button>
-                <button
-                  onClick={() => setShowLoginModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-                >
-                  <LogIn className="w-4 h-4" />
-                  เข้าสู่ระบบ
-                </button>
-              </>
-            )}
+                  <button
+                    onClick={() => setShowLoginModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    เข้าสู่ระบบ
+                  </button>
+                </>
+              ) : null}
+            </div>
           </div>
+
+          {/* Second row: nav tabs (admin-style) */}
+          {hasNavTabs && (
+            <div className="flex gap-4">
+              {navTabs!.map((tab) => (
+                <NavLink
+                  key={tab.to}
+                  to={tab.to}
+                  end={tab.end}
+                  className={({ isActive }) =>
+                    `pb-2 transition-colors border-b-2 ${
+                      isActive
+                        ? 'text-primary border-primary'
+                        : 'text-muted-foreground border-transparent hover:text-foreground'
+                    }`
+                  }
+                >
+                  {tab.label}
+                </NavLink>
+              ))}
+            </div>
+          )}
         </div>
       </header>
-      <div className="h-16"></div>
 
-      {showLoginModal && (
+      {/* Spacer so fixed header doesn't overlap content */}
+      {fixed && <div className="h-16" />}
+
+      {showLoginModal && onLogin && (
         <LoginModal
           onClose={() => setShowLoginModal(false)}
           onLogin={handleLoginFromModal}
