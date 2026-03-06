@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { LogIn, LogOut } from 'lucide-react';
 import { LoginModal } from './LoginModal';
 import { getCreatorById, logout } from '../../utils/storage';
@@ -7,9 +7,11 @@ import { getProfileImageUrl } from '../../utils/profileImage';
 
 interface HeaderProps {
   onLogin: (id: string, role: 'creator' | 'admin') => void;
+  /** When this changes (e.g. after login), header re-reads session so it can show name/logout without refresh. */
+  isLoggedInFromParent?: boolean;
 }
 
-export function Header({ onLogin }: HeaderProps) {
+export function Header({ onLogin, isLoggedInFromParent }: HeaderProps) {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -18,41 +20,41 @@ export function Header({ onLogin }: HeaderProps) {
 
   const isLoggedIn = !!role;
 
-  useEffect(() => {
-    const loadFromSession = async () => {
-      const session = getSession();
-      if (!session) {
-        setDisplayName(null);
-        setAvatarUrl(null);
-        setRole(null);
-        setIsLoadingProfile(false);
-        return;
-      }
+  const loadFromSession = useCallback(async () => {
+    const session = getSession();
+    if (!session) {
+      setDisplayName(null);
+      setAvatarUrl(null);
+      setRole(null);
+      setIsLoadingProfile(false);
+      return;
+    }
 
-      setRole(session.role);
+    setRole(session.role);
 
-      if (session.role === 'creator') {
-        try {
-          setIsLoadingProfile(true);
-          const creator = await getCreatorById(session.id);
-          if (creator) {
-            setDisplayName(creator.name || null);
-            setAvatarUrl(getProfileImageUrl(creator) ?? null);
-          }
-        } catch (error) {
-          console.warn('Failed to load creator profile for header:', error);
-        } finally {
-          setIsLoadingProfile(false);
+    if (session.role === 'creator') {
+      try {
+        setIsLoadingProfile(true);
+        const creator = await getCreatorById(session.id);
+        if (creator) {
+          setDisplayName(creator.name || null);
+          setAvatarUrl(getProfileImageUrl(creator) ?? null);
         }
-      } else {
-        setDisplayName('Admin');
-        setAvatarUrl(null);
+      } catch (error) {
+        console.warn('Failed to load creator profile for header:', error);
+      } finally {
         setIsLoadingProfile(false);
       }
-    };
-
-    void loadFromSession();
+    } else {
+      setDisplayName('Admin');
+      setAvatarUrl(null);
+      setIsLoadingProfile(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadFromSession();
+  }, [loadFromSession, isLoggedInFromParent]);
 
   const scrollToRegister = () => {
     const registerSection = document.getElementById('register-section');
@@ -68,6 +70,12 @@ export function Header({ onLogin }: HeaderProps) {
     setAvatarUrl(null);
     setRole(null);
     window.location.href = '/creatorclub';
+  };
+
+  const handleLoginFromModal = (id: string, role: 'creator' | 'admin') => {
+    // Refresh header state from the latest session and then delegate
+    void loadFromSession();
+    onLogin(id, role);
   };
 
   return (
@@ -144,7 +152,7 @@ export function Header({ onLogin }: HeaderProps) {
       {showLoginModal && (
         <LoginModal
           onClose={() => setShowLoginModal(false)}
-          onLogin={onLogin}
+          onLogin={handleLoginFromModal}
         />
       )}
     </>

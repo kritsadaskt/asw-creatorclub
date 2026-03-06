@@ -12,7 +12,7 @@ interface LandingPageProps {
 export function LandingPage({ onLogin, isLoggedIn }: LandingPageProps) {
   return (
     <div className="min-h-screen">
-      <Header onLogin={onLogin} />
+      <Header onLogin={onLogin} isLoggedInFromParent={isLoggedIn} />
       <HeroBanner />
       <IntroSection />
       {!isLoggedIn && <RegisterSection onLogin={onLogin} />}
