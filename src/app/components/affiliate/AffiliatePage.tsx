@@ -27,6 +27,19 @@ function AffiliateProjectList() {
   const [selectedProject, setSelectedProject] = useState<AffiliateProject | null>(null);
   const [isMaterialsOpen, setIsMaterialsOpen] = useState(false);
 
+  const getStatusLabel = (status?: 1 | 2 | 3): string | null => {
+    switch (status) {
+      case 1:
+        return 'RTM';
+      case 2:
+        return 'New';
+      case 3:
+        return 'Pre-Sale';
+      default:
+        return null;
+    }
+  };
+
   useEffect(() => {
     const loadProjects = async () => {
       try {
@@ -117,6 +130,13 @@ function AffiliateProjectList() {
                           <div className="font-medium text-foreground">
                             {project.name}
                           </div>
+                          {getStatusLabel(project.projectStatus) && (
+                            <div className="mt-1">
+                              <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                                {getStatusLabel(project.projectStatus)}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -188,6 +208,14 @@ function AffiliateProjectList() {
                   <p className="text-sm font-medium text-foreground">
                     {selectedProject.name}
                   </p>
+                    {getStatusLabel(selectedProject.projectStatus) && (
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        สถานะโครงการ:{' '}
+                        <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5">
+                          {getStatusLabel(selectedProject.projectStatus)}
+                        </span>
+                      </p>
+                    )}
                   <p className="text-xs text-muted-foreground">
                     {selectedProject.commission || 'จะประกาศคอมมิชชั่นเร็ว ๆ นี้'}
                   </p>
@@ -201,15 +229,36 @@ function AffiliateProjectList() {
                 <p className="text-xs text-muted-foreground">
                   ตัวอย่าง: รูปภาพ วิดีโอ และข้อความตัวอย่างสำหรับโพสต์จะถูกแสดงในส่วนนี้เชื่อมต่อจากหลังบ้าน
                 </p>
-                <div className="mt-2 space-y-1 text-xs text-primary">
-                  <a
-                    href={selectedProject.materialsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center rounded-md border border-primary px-3 py-1.5 text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
-                  >
-                    เปิดหน้า Landing Page ของโครงการ
-                  </a>
+                <div className="mt-2 space-y-2 text-xs">
+                  <div className="space-y-1 text-primary">
+                    <a
+                      href={selectedProject.materialsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center rounded-md border border-primary px-3 py-1.5 text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
+                    >
+                      เปิดหน้า Landing Page ของโครงการ
+                    </a>
+                  </div>
+
+                  {selectedProject.googleDriveUrl && (
+                    <div className="space-y-1">
+                      <a
+                        href={selectedProject.googleDriveUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center rounded-md border border-primary px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+                      >
+                        เปิดโฟลเดอร์ Google Drive
+                      </a>
+                      <p className="text-[11px] text-muted-foreground">
+                        Password:{' '}
+                        <code className="px-1 py-0.5 rounded bg-muted text-foreground">
+                          {selectedProject.googleDrivePassword || 'creatorclub'}
+                        </code>
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

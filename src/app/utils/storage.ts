@@ -7,6 +7,40 @@ export const generateUUID = (): string => {
   return crypto.randomUUID();
 };
 
+// ===== Project Image Upload Operations =====
+
+export const uploadProjectImage = async (file: File, projectId: string): Promise<string> => {
+  const bucket = 'uploads';
+
+  const extension = file.name.split('.').pop() || 'jpg';
+  const safeExtension = extension.toLowerCase();
+  const path = `projects/${projectId}-${Date.now()}.${safeExtension}`;
+
+  const { error: uploadError } = await supabase
+    .storage
+    .from(bucket)
+    .upload(path, file, {
+      upsert: true,
+      contentType: file.type || `image/${safeExtension}`,
+    });
+
+  if (uploadError) {
+    console.error('Error uploading project image:', uploadError);
+    throw uploadError;
+  }
+
+  const { data } = supabase
+    .storage
+    .from(bucket)
+    .getPublicUrl(path);
+
+  if (!data || !data.publicUrl) {
+    throw new Error('Failed to get public URL for project image');
+  }
+
+  return data.publicUrl;
+};
+
 // ===== Creator Profile Operations =====
 
 export const saveCreator = async (creator: CreatorProfile): Promise<void> => {
@@ -208,6 +242,12 @@ export const saveProject = async (project: Project): Promise<void> => {
       type: project.type,
       location: project.location,
       description: project.description,
+      image_url: project.imageUrl,
+      google_drive_url: project.googleDriveUrl,
+      google_drive_password: project.googleDrivePassword,
+      project_status: project.projectStatus,
+      start_comm: project.startComm,
+      max_comm: project.maxComm,
       base_url: project.baseUrl,
       created_at: project.createdAt
     }, { onConflict: 'id' });
@@ -267,6 +307,12 @@ const mapDbToProject = (row: any): Project => ({
   type: row.type || 'condo',
   location: row.location || '',
   description: row.description,
+  imageUrl: row.image_url || undefined,
+  googleDriveUrl: row.google_drive_url || undefined,
+  googleDrivePassword: row.google_drive_password || undefined,
+  projectStatus: row.project_status ?? undefined,
+  startComm: row.start_comm || undefined,
+  maxComm: row.max_comm || undefined,
   baseUrl: row.base_url || '',
   createdAt: row.created_at || new Date().toISOString()
 });
