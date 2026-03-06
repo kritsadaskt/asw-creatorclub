@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Header } from '../landing/Header';
 import { HeroBanner } from '../landing/HeroBanner';
 import { IntroSection } from '../landing/IntroSection';
@@ -13,13 +13,23 @@ interface FriendGetFriendPageProps {
 }
 
 export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
-  const session = getSession();
-  const isLoggedIn = !!session;
+  const navigate = useNavigate();
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => !!getSession());
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [interestedProject, setInterestedProject] = useState('');
+
+  const handleLogin = (id: string, role: 'creator' | 'admin') => {
+    setIsLoggedIn(true);
+
+    if (role === 'admin') {
+      navigate('/creatorclub/admin');
+    } else {
+      navigate('/creatorclub/profile');
+    }
+  };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -36,7 +46,7 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
 
   return (
     <div className="min-h-screen">
-      <Header onLogin={onLogin ?? (() => {})} />
+      <Header onLogin={onLogin ?? handleLogin} isLoggedInFromParent={isLoggedIn} />
       <HeroBanner />
       <IntroSection />
 

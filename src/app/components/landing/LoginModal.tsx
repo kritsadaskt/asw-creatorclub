@@ -12,6 +12,7 @@ import {
 } from '../../utils/storage';
 import { loginWithFacebook, getFacebookUserInfo, fetchAndUploadFacebookProfileImage } from '../../utils/facebook';
 import { isFacebookProfileImageUrl } from '../../utils/profileImage';
+import { setSession } from '../../utils/auth';
 
 interface LoginModalProps {
   onClose: () => void;
@@ -54,10 +55,12 @@ export function LoginModal({ onClose, onLogin }: LoginModalProps) {
           }
         }
         setCurrentUser(creator.id, 'creator');
+        setSession({ id: creator.id, role: 'creator' });
         toast.success('เข้าสู่ระบบสำเร็จ!', {
           description: `ยินดีต้อนรับ ${creator.name}`,
         });
         onLogin(creator.id, 'creator');
+        onClose();
       } else {
         setError('ไม่พบบัญชีผู้ใช้ กรุณาลงทะเบียนก่อน');
       }
@@ -83,10 +86,12 @@ export function LoginModal({ onClose, onLogin }: LoginModalProps) {
       // Admin login shortcut
       if (email === 'admin@creatorsclub.com' && password === 'admin') {
         setCurrentUser('admin', 'admin');
+        setSession({ id: 'admin', role: 'admin' });
         toast.success('เข้าสู่ระบบสำเร็จ!', {
           description: 'ยินดีต้อนรับผู้ดูแลระบบ',
         });
         onLogin('admin', 'admin');
+        onClose();
         return;
       }
 
@@ -94,10 +99,12 @@ export function LoginModal({ onClose, onLogin }: LoginModalProps) {
       const creator = await authenticateCreator(email, password);
       if (creator) {
         setCurrentUser(creator.id, 'creator');
+        setSession({ id: creator.id, role: 'creator' });
         toast.success('เข้าสู่ระบบสำเร็จ!', {
           description: `ยินดีต้อนรับ ${creator.name}`,
         });
         onLogin(creator.id, 'creator');
+        onClose();
       } else {
         // Check if user exists but registered via Facebook
         const existingCreator = await getCreatorByEmail(email);
