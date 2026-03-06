@@ -43,6 +43,13 @@ export interface Project {
   type: 'condo' | 'house';
   location: string;
   description?: string;
+  imageUrl?: string;
+  googleDriveUrl?: string;
+  googleDrivePassword?: string;
+  // 1 = RTM, 2 = New, 3 = Pre-Sale
+  projectStatus?: 1 | 2 | 3;
+  startComm?: string;
+  maxComm?: string;
   baseUrl: string;
   createdAt: string;
 }

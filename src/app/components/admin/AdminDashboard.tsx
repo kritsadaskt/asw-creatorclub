@@ -5,7 +5,7 @@ import { CreatorProfile } from '../../types';
 import { getCreators } from '../../utils/storage';
 import { getProfileImageUrl } from '../../utils/profileImage';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
-import { LayoutGrid, Table } from 'lucide-react';
+import { LayoutGrid, Loader2, Table } from 'lucide-react';
 
 const CATEGORIES = [
   'ทั้งหมด',
@@ -186,7 +186,7 @@ export function AdminDashboard() {
       <div className="bg-white rounded-xl shadow-sm border border-border p-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-primary">
-            Creator ทั้งหมด ({filteredCreators.length})
+            ครีเอเตอร์ทั้งหมด ({filteredCreators.length})
           </h3>
           
           {/* View Toggle */}
@@ -217,8 +217,9 @@ export function AdminDashboard() {
         </div>
 
         {loading ? (
-          <p className="text-muted-foreground text-center py-8">
-            กำลังโหลดข้อมูล...
+          <p className="text-muted-foreground text-center py-8 flex items-center gap-2 justify-center">
+            <Loader2 className="w-8 h-8 animate-spin" />
+            กำลังโหลดข้อมูล
           </p>
         ) : filteredCreators.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">

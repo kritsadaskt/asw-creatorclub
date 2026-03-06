@@ -14,6 +14,7 @@ import { initFacebookSDK } from './utils/facebook';
 import { UserRole } from './types';
 import { clearSession, getSession, setSession } from './utils/auth';
 import { RequireAuth } from './components/auth/RequireAuth';
+import { LogOut } from 'lucide-react';
 
 export default function App() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -124,11 +125,11 @@ function CreatorLayout({ onLogout }: LayoutProps) {
       <header className="bg-white border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <img
-              src="https://assetwise.co.th/wp-content/themes/seed-spring/img/asw-logo_horizontal.svg"
-              alt="AssetWise Logo"
-              className="h-5"
-            />
+            <a href="/creatorclub" className="cursor-pointer" title='Creator Club'>
+              <img
+                src="https://assetwise.co.th/wp-content/themes/seed-spring/img/asw-logo_horizontal.svg" alt="AssetWise Logo" className="h-5"
+              />
+            </a>
           </div>
           <div className="flex gap-4 items-center">
             <NavLink
@@ -175,20 +176,19 @@ function AdminLayout({ onLogout }: LayoutProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 to-primary/10">
       <header className="bg-white border-b border-border shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-6 pt-4">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-3">
-              <img
-                src="https://assetwise.co.th/wp-content/themes/seed-spring/img/asw-logo_horizontal.svg"
-                alt="AssetWise Logo"
-                className="h-5"
-              />
+              <a href="/creatorclub" className="cursor-pointer" title='Creator Club'>
+                <img src="https://assetwise.co.th/wp-content/themes/seed-spring/img/asw-logo_horizontal.svg" alt="AssetWise Logo" className="h-5" />
+              </a>
             </div>
             <button
               onClick={onLogout}
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer flex items-center gap-2"
             >
               ออกจากระบบ
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
           <div className="flex gap-4">

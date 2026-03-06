@@ -75,11 +75,10 @@ export function Header({ onLogin }: HeaderProps) {
       <header className="fixed top-0 left-0 right-0 bg-white border-b border-border shadow-sm z-50">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <img
-              src="https://assetwise.co.th/wp-content/themes/seed-spring/img/asw-logo_horizontal.svg"
-              alt="AssetWise Logo"
-              className="h-5"
-            />
+            <a href="/creatorclub" className="cursor-pointer" title='Creator Club'>
+              <img src="https://assetwise.co.th/wp-content/themes/seed-spring/img/asw-logo_horizontal.svg" alt="AssetWise Logo" className="h-5"
+              />
+            </a>
           </div>
           <div className="flex gap-4 items-center">
             {isLoadingProfile ? (
