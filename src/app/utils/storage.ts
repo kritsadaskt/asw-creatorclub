@@ -1,6 +1,7 @@
 import { CreatorProfile, AffiliateLink, Project, Campaign } from '../types';
 import { supabase } from './supabase';
 import { verifyPassword } from './password';
+import { getSession, setSession, clearSession } from './auth';
 
 // Helper function to generate UUID
 export const generateUUID = (): string => {
@@ -423,18 +424,15 @@ const mapDbToCampaign = (row: any): Campaign => ({
 // ===== Current User Operations (still use localStorage for session) =====
 
 export const setCurrentUser = (id: string, role: 'creator' | 'admin'): void => {
-  localStorage.setItem('current_user', id);
-  localStorage.setItem('user_role', role);
+  setSession({ id, role });
 };
 
 export const getCurrentUser = (): { id: string; role: 'creator' | 'admin' } | null => {
-  const id = localStorage.getItem('current_user');
-  const role = localStorage.getItem('user_role') as 'creator' | 'admin';
-  
-  return id && role ? { id, role } : null;
+  const session = getSession();
+  return session ? { id: session.id, role: session.role } : null;
 };
 
 export const logout = (): void => {
-  localStorage.removeItem('current_user');
-  localStorage.removeItem('user_role');
+  clearSession();
 };
+

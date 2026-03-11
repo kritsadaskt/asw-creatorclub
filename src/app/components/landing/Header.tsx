@@ -101,7 +101,7 @@ export function Header({
     setAvatarUrl(null);
     setRole(null);
     onLogoutProp?.();
-    window.location.href = '/creatorclub';
+    window.location.href = '/creatorclub/';
   };
 
   const handleLoginFromModal = (id: string, loginRole: 'creator' | 'admin') => {
@@ -118,7 +118,7 @@ export function Header({
           fixed ? 'fixed top-0 left-0 right-0' : 'sticky top-0'
         }`}
       >
-        <div className={`max-w-7xl mx-auto px-6 ${hasNavTabs ? 'pt-4' : 'py-4'}`}>
+        <div className={`container mx-auto px-6 ${hasNavTabs ? 'pt-4' : 'py-4'}`}>
           {/* Top row: logo · [inline navLinks] · profile */}
           <div className={`flex justify-between items-center ${hasNavTabs ? 'mb-4' : ''}`}>
             {/* Logo */}

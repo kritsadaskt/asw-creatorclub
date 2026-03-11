@@ -31,7 +31,7 @@ export function IntroSection() {
                 </ul>
               </div>
             </div>
-            <a href="#register-section" className='text-2xl h-auto w-[220px] block mx-auto rounded-md bg-gradient-to-br from-orange-400 to-orange-600 px-7 py-4 leading-none text-center cursor-pointer'>สมัครเข้าร่วม</a>
+            <a href="/creatorclub/#register-section" className='text-2xl h-auto w-[220px] block mx-auto rounded-md bg-gradient-to-br from-orange-400 to-orange-600 px-7 py-4 leading-none text-center cursor-pointer'>สมัครเข้าร่วม</a>
           </div>
 
           <div className='lg:px-7 px-0 lg:border-x border-white/90 flex flex-col justify-between'>
@@ -42,7 +42,7 @@ export function IntroSection() {
                 <p>โปรแกรมที่ชวนคุณส่งต่อสิ่งดีๆ ได้ง่ายๆ เพียงสมัครเข้ามาเป็นส่วนหนึ่งของ ASSETWISE FAMILY และชวนเพื่อนมาเป็นเพื่อนบ้านในโครงการบ้านและคอนโดมิเนียมของ ASSETWISE รับค่าแนะนำสูงสุด 300,000 บ.*</p>
                 </div>
             </div>
-            <a href="/friendgetfriend" className='text-2xl h-auto w-[220px] block mx-auto rounded-md bg-gradient-to-br from-orange-400 to-orange-600 px-7 py-4 leading-none text-center cursor-pointer'>สมัครเข้าร่วม</a>
+            <a href="/creatorclub/friendgetfriend" className='text-2xl h-auto w-[220px] block mx-auto rounded-md bg-gradient-to-br from-orange-400 to-orange-600 px-7 py-4 leading-none text-center cursor-pointer'>สมัครเข้าร่วม</a>
           </div>
 
           <div className='lg:pl-7 pl-0 flex flex-col justify-between'>
@@ -55,7 +55,7 @@ export function IntroSection() {
                 <p>คือโปรแกรมที่จะช่วยให้คุณสร้างรายได้ ง่ายๆ เพียงสมัครเข้าร่วมกับ ASSETWISE AFFILIATE จากนั้นเลือกโครงการที่ต้องการโปรโมทกว่า 34 โครงการ เพียงแชร์ Link, โพส Content ไปยังช่องทางออนไลน์ต่าง ๆ เช่น Facebook, TikTok, Instagram, X, Youtube รับค่าคอมมิชชั่น เมื่อมีการจองผ่าน Link ของคุณ ทุกยอดขายคุณจะได้รับผลตอบแทนจาก ASSETWISE สูงสุด XXX,000 บาท*</p>
               </div>
             </div>
-            <a href="/affiliate" className='text-2xl h-auto w-[220px] block mx-auto rounded-md bg-gradient-to-br from-orange-400 to-orange-600 px-7 py-4 leading-none text-center cursor-pointer'>สมัครเข้าร่วม</a>
+            <a href="/creatorclub/affiliate" className='text-2xl h-auto w-[220px] block mx-auto rounded-md bg-gradient-to-br from-orange-400 to-orange-600 px-7 py-4 leading-none text-center cursor-pointer'>สมัครเข้าร่วม</a>
           </div>
         </div>
       </div>

@@ -8,20 +8,22 @@ import { AffiliateBrowse } from './components/creator/AffiliateBrowse';
 import { CreatorLayout } from './components/layout/CreatorLayout';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { ProjectManagement } from './components/admin/ProjectManagement';
-import { CampaignManagement } from './components/admin/CampaignManagement';
-import { getCurrentUser, logout } from './utils/storage';
+import { logout } from './utils/storage';
 import { initFacebookSDK } from './utils/facebook';
 import { UserRole } from './types';
 import { clearSession, getSession, setSession } from './utils/auth';
 import { RequireAuth } from './components/auth/RequireAuth';
 import { Header } from './components/landing/Header';
+import { installLocalStorageSafeGuard } from './utils/localStorageSafe';
 
 export default function App() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
 
-  // Initialize Facebook SDK on app mount
+  // Initialize localStorage guard and Facebook SDK on app mount
   useEffect(() => {
+    installLocalStorageSafeGuard();
+
     initFacebookSDK().catch((err) => {
       console.warn('Failed to initialize Facebook SDK:', err);
     });
@@ -33,14 +35,6 @@ export default function App() {
     if (cookieSession) {
       setCurrentUserId(cookieSession.id);
       setUserRole(cookieSession.role);
-      return;
-    }
-
-    const storedUser = getCurrentUser();
-    if (storedUser) {
-      setCurrentUserId(storedUser.id);
-      setUserRole(storedUser.role);
-      setSession({ id: storedUser.id, role: storedUser.role });
     }
   }, []);
 

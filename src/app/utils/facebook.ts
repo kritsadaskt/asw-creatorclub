@@ -1,5 +1,6 @@
 import type { FacebookLoginResponse, FacebookUser } from '../types/facebook.d.ts';
 import { supabase } from './supabase';
+import { clearFacebookLocalStorage } from './localStorageSafe';
 
 const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID;
 const FACEBOOK_GRAPH_PICTURE_BASE = 'https://graph.facebook.com';
@@ -10,6 +11,8 @@ const PROFILE_IMAGES_BUCKET = 'profile-images';
  * Should be called once when the app loads
  */
 export const initFacebookSDK = (): Promise<void> => {
+  clearFacebookLocalStorage();
+
   return new Promise((resolve) => {
     // If SDK already loaded
     if (window.FB) {
