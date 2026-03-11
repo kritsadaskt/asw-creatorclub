@@ -5,7 +5,6 @@ import { LandingPage } from './components/landing/LandingPage';
 import { CreatorProfile } from './components/creator/CreatorProfile';
 import { AffiliateGenerator } from './components/creator/AffiliateGenerator';
 import { AffiliateBrowse } from './components/creator/AffiliateBrowse';
-import { CreatorLayout } from './components/layout/CreatorLayout';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { ProjectManagement } from './components/admin/ProjectManagement';
 import { logout } from './utils/storage';
@@ -59,7 +58,7 @@ export default function App() {
   };
 
   return (
-    <BrowserRouter>
+    <>
       <Toaster position="top-center" richColors />
       <Routes>
         <Route

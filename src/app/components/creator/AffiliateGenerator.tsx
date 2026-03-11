@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '../shared/Button';
+import { Input } from '../shared/Input';
 import { AffiliateLink, Project, Campaign } from '../../types';
-import { getAffiliateLinksByCreator, getProjects, getCampaigns } from '../../utils/storage';
-import { Building2, Home, Megaphone, Link2, Plus } from 'lucide-react';
+import { getAffiliateLinksByCreator, getProjects, getCampaigns, saveAffiliateLink, generateUUID } from '../../utils/storage';
+import { Building2, Home, Megaphone, Link2, Plus, Loader2 } from 'lucide-react';
 
 interface AffiliateGeneratorProps {
   creatorId: string;
@@ -21,6 +22,8 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
   const [loading, setLoading] = useState(true);
   // Cache project and campaign data for display
   const [projectCache, setProjectCache] = useState<Record<string, Project>>({});
+  const [campaignCache, setCampaignCache] = useState<Record<string, Campaign>>({});
+  const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -36,6 +39,7 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
         getCampaigns()
       ]);
       setLinks(creatorLinks);
+      setProjects(allProjects);
       // Build project cache
       const pCache: Record<string, Project> = {};
       allProjects.forEach(p => { pCache[p.id] = p; });
@@ -49,6 +53,52 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
       toast.error('ไม่สามารถโหลดข้อมูลได้');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleProjectSelect = (projectId: string) => {
+    setSelectedProjectId(projectId);
+    const project = projects.find((p) => p.id === projectId);
+    if (project?.baseUrl) {
+      setBaseUrl(project.baseUrl);
+    } else if (!projectId) {
+      setBaseUrl('');
+    }
+  };
+
+  const generateLink = async () => {
+    if (!campaignName.trim()) {
+      toast.error('กรุณากรอกชื่อแคมเปญ');
+      return;
+    }
+    if (!baseUrl.trim()) {
+      toast.error('กรุณากรอก URL ปลายทาง');
+      return;
+    }
+    try {
+      setSaving(true);
+      const affiliateCode = `${creatorId}_${Date.now()}`;
+      const separator = baseUrl.includes('?') ? '&' : '?';
+      const generatedUrl = `${baseUrl}${separator}ref=${affiliateCode}`;
+      const newLink: AffiliateLink = {
+        id: generateUUID(),
+        creatorId,
+        campaignName: campaignName.trim(),
+        projectId: selectedProjectId || undefined,
+        url: generatedUrl,
+        createdAt: new Date().toISOString()
+      };
+      await saveAffiliateLink(newLink);
+      await loadData();
+      setCampaignName('');
+      setBaseUrl('');
+      setSelectedProjectId('');
+      toast.success('สร้างลิงค์สำเร็จ!');
+    } catch (error) {
+      console.error('Error generating link:', error);
+      toast.error('ไม่สามารถสร้างลิงค์ได้');
+    } finally {
+      setSaving(false);
     }
   };
 
