@@ -1,3 +1,27 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
+
+.project-status-badge {
+  @apply pt-2;
+  span {
+    @apply inline-flex items-center rounded-full bg-muted px-4 py-1;
+  }
+}
+.project-status-badge.ready {
+  span {
+    @apply bg-blue-500 text-white;
+  }
+}
+
+.project-status-badge.new {
+  span {
+    @apply bg-green-500 text-white;
+  }
+}
+
+.project-status-badge.sold_out {
+  span {
+    @apply bg-muted text-muted-foreground;
+  }
+}

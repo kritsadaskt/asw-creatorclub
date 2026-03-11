@@ -24,7 +24,7 @@ export function ProjectManagement() {
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [googleDriveUrl, setGoogleDriveUrl] = useState('');
   const [googleDrivePassword, setGoogleDrivePassword] = useState('creatorclub');
-  const [projectStatus, setProjectStatus] = useState<1 | 2 | 3 | undefined>(undefined);
+  const [projectStatus, setProjectStatus] = useState<string | undefined>(undefined);
   const [startComm, setStartComm] = useState('');
   const [maxComm, setMaxComm] = useState('');
 
@@ -73,7 +73,7 @@ export function ProjectManagement() {
     setImageUrl(project.imageUrl || '');
     setGoogleDriveUrl(project.googleDriveUrl || '');
     setGoogleDrivePassword(project.googleDrivePassword || 'creatorclub');
-    setProjectStatus(project.projectStatus);
+    setProjectStatus(project.projectStatus || '');
     setStartComm(project.startComm || '');
     setMaxComm(project.maxComm || '');
     setImageFile(null);
@@ -180,7 +180,7 @@ export function ProjectManagement() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
+    <div className="container mx-auto p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
@@ -267,9 +267,9 @@ export function ProjectManagement() {
                     <input
                       type="radio"
                       name="projectStatus"
-                      value="1"
-                      checked={projectStatus === 1}
-                      onChange={() => setProjectStatus(1)}
+                      value="ready"
+                      checked={projectStatus === 'ready'}
+                      onChange={() => setProjectStatus('ready')}
                       className="w-4 h-4 text-primary"
                     />
                     <span>พร้อมอยู่</span>
@@ -278,9 +278,9 @@ export function ProjectManagement() {
                     <input
                       type="radio"
                       name="projectStatus"
-                      value="2"
-                      checked={projectStatus === 2}
-                      onChange={() => setProjectStatus(2)}
+                      value="new"
+                      checked={projectStatus === 'new'}
+                      onChange={() => setProjectStatus('new')}
                       className="w-4 h-4 text-primary"
                     />
                     <span>โครงการใหม่</span>
@@ -289,9 +289,9 @@ export function ProjectManagement() {
                     <input
                       type="radio"
                       name="projectStatus"
-                      value="3"
-                      checked={projectStatus === 3}
-                      onChange={() => setProjectStatus(3)}
+                      value="sold_out"
+                      checked={projectStatus === 'sold_out'}
+                      onChange={() => setProjectStatus('sold_out')}
                       className="w-4 h-4 text-primary"
                     />
                     <span>Pre-sale</span>

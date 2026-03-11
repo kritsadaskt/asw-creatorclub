@@ -46,8 +46,8 @@ export interface Project {
   imageUrl?: string;
   googleDriveUrl?: string;
   googleDrivePassword?: string;
-  // 1 = RTM, 2 = New, 3 = Pre-Sale
-  projectStatus?: 1 | 2 | 3;
+  // Text status from DB: 'ready' | 'new' | 'sold_out'
+  projectStatus?: string;
   startComm?: string;
   maxComm?: string;
   baseUrl: string;

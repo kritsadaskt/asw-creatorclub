@@ -78,7 +78,7 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-6 py-7 md:py-12">
+    <div className="container mx-auto px-4 md:px-6 py-7 md:py-12">
       <div className="mb-6">
         <h2>โปรไฟล์ของฉัน</h2>
       </div>

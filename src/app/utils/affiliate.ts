@@ -21,9 +21,9 @@ export interface AffiliateProject {
    */
   googleDrivePassword?: string;
   /**
-   * Optional project status: 1 = RTM, 2 = New, 3 = Pre-Sale.
+   * Optional project status from DB: 'ready' | 'new' | 'sold_out'.
    */
-  projectStatus?: 1 | 2 | 3;
+  projectStatus?: string;
   /**
    * Optional commission range fields.
    */
@@ -48,6 +48,7 @@ export const fetchAffiliateProjects = async (): Promise<AffiliateProject[]> => {
     id: project.id,
     name: project.name,
     imageUrl: project.imageUrl,
+    projectStatus: project.projectStatus ?? '',
     // Prefer structured commission range; fall back to description.
     commission:
       project.startComm && project.maxComm
@@ -59,7 +60,6 @@ export const fetchAffiliateProjects = async (): Promise<AffiliateProject[]> => {
             : null,
     googleDriveUrl: project.googleDriveUrl,
     googleDrivePassword: project.googleDrivePassword,
-    projectStatus: project.projectStatus,
     startComm: project.startComm,
     maxComm: project.maxComm,
     materialsUrl: project.baseUrl,
