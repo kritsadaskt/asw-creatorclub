@@ -158,14 +158,11 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
             required
           />
 
-          <Button onClick={generateLink} fullWidth disabled={saving}>
-            {saving ? 'กำลังสร้าง...' : 'สร้างลิงค์'}
+          <Button onClick={generateLink} fullWidth disabled={saving} className="flex items-center justify-center cursor-pointer">
+            <Plus className="w-4 h-4 mr-2" />
+            {saving ? 'Generating...' : 'Create Link'}
           </Button>
         </div>
-        <Button onClick={() => navigate('/affiliate')} className="flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          สร้างลิงค์ใหม่
-        </Button>
       </div>
 
       {/* Links List */}
