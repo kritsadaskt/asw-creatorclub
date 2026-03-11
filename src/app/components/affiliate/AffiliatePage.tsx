@@ -9,8 +9,10 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerDescription,
-  DrawerClose
+  DrawerClose,
 } from '../ui/drawer';
+import { FaGoogleDrive, FaLink } from "react-icons/fa";
+import { Loader2 } from 'lucide-react';
 
 export function AffiliatePage() {
   return (
@@ -81,7 +83,10 @@ function AffiliateProjectList() {
 
         {isLoading ? (
           <div className="py-16 text-center text-muted-foreground">
-            กำลังโหลดข้อมูลโครงการ...
+            <div className="flex items-center justify-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>กำลังโหลดข้อมูลโครงการ...</span>
+            </div>
           </div>
         ) : error ? (
           <div className="py-8 px-4 bg-destructive/5 border border-destructive/40 rounded-xl text-destructive text-center">
@@ -93,16 +98,16 @@ function AffiliateProjectList() {
           </div>
         ) : (
           <div className="overflow-x-auto -mx-4 md:mx-0">
-            <table className="min-w-full text-sm">
+            <table className="min-w-full">
               <thead className="bg-muted/40">
                 <tr>
-                  <th className="px-4 md:px-6 py-3 text-left font-medium text-foreground">
+                  <th className="px-4 w-3/5 md:px-6 py-3 text-left font-medium text-foreground">
                     โครงการ
                   </th>
-                  <th className="px-4 md:px-6 py-3 text-left font-medium text-foreground">
+                  <th className="px-4 w-1/5 md:px-6 py-3 text-center font-medium text-foreground">
                     ค่าแนะนำ
                   </th>
-                  <th className="px-4 md:px-6 py-3 text-right font-medium text-foreground">
+                  <th className="px-4 w-1/5 md:px-6 py-3 text-center font-medium text-foreground">
                     View Materials
                   </th>
                 </tr>
@@ -111,8 +116,8 @@ function AffiliateProjectList() {
                 {projects.map((project) => (
                   <tr key={project.id} className="hover:bg-muted/30">
                     <td className="px-4 md:px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-40 h-40 rounded-lg bg-muted overflow-hidden flex items-center justify-center text-xs text-muted-foreground">
+                      <div className="flex items-center gap-7">
+                        <div className="w-50 h-auto rounded-lg bg-muted overflow-hidden flex items-center justify-center text-xs text-muted-foreground aspect-square flex-shrink-0">
                           {project.imageUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
@@ -127,9 +132,12 @@ function AffiliateProjectList() {
                           )}
                         </div>
                         <div>
-                          <div className="font-medium text-foreground">
+                          <h4 className="text-xl mb-2 font-medium text-foreground">
                             {project.name}
-                          </div>
+                          </h4>
+                          <p className="text-neutral-500">
+                            {project.description}
+                          </p>
                           {getStatusLabel(project.projectStatus) && (
                             <div className="mt-1">
                               <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
@@ -140,20 +148,20 @@ function AffiliateProjectList() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 md:px-6 py-4 align-top">
-                      <div className="text-muted-foreground max-w-xs">
+                    <td className="px-4 md:px-6 py-4 align-center">
+                      <div className="text-muted-foreground max-w-xs text-center">
                         {project.commission || 'จะประกาศคอมมิชชั่นเร็ว ๆ นี้'}
                       </div>
                     </td>
-                    <td className="px-4 md:px-6 py-4 align-top">
-                      <div className="flex justify-end">
+                    <td className="px-4 md:px-6 py-4 align-center">
+                      <div className="flex justify-center">
                         <button
                           type="button"
                           onClick={() => {
                             setSelectedProject(project);
                             setIsMaterialsOpen(true);
                           }}
-                          className="inline-flex items-center justify-center rounded-lg border border-primary px-3 py-1.5 text-xs md:text-sm font-medium text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+                          className="inline-flex items-center justify-center rounded-lg border border-primary px-3 py-1.5 font-medium text-primary hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
                         >
                           View Materials
                         </button>
@@ -178,7 +186,7 @@ function AffiliateProjectList() {
         }}
       >
         <DrawerContent>
-          <DrawerHeader>
+          <DrawerHeader className='p-7'>
             <DrawerTitle>
               วัสดุสำหรับโปรโมต
             </DrawerTitle>
@@ -188,9 +196,9 @@ function AffiliateProjectList() {
           </DrawerHeader>
 
           {selectedProject && (
-            <div className="px-4 pb-4 space-y-4">
+            <div className="px-7 pb-7 space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-16 h-16 rounded-lg bg-muted overflow-hidden flex items-center justify-center text-xs text-muted-foreground">
+                <div className="w-30 h-auto rounded-lg bg-muted overflow-hidden flex items-center justify-center text-xs text-muted-foreground aspect-square flex-shrink-0">
                   {selectedProject.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -204,68 +212,63 @@ function AffiliateProjectList() {
                     </span>
                   )}
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">
+                <div className="space-y-2">
+                  <h4 className="text-xl mb-2 font-medium text-foreground">
                     {selectedProject.name}
+                  </h4>
+                  <p className="text-neutral-500">
+                    {selectedProject.description}
                   </p>
-                    {getStatusLabel(selectedProject.projectStatus) && (
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
-                        สถานะโครงการ:{' '}
-                        <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5">
-                          {getStatusLabel(selectedProject.projectStatus)}
-                        </span>
-                      </p>
-                    )}
-                  <p className="text-xs text-muted-foreground">
+                  {getStatusLabel(selectedProject.projectStatus) && (
+                    <p className="text-muted-foreground mt-0.5">
+                      สถานะโครงการ:{' '}
+                      <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5">
+                        {getStatusLabel(selectedProject.projectStatus)}
+                      </span>
+                    </p>
+                  )}
+                  <p className="text-xl font-medium text-green-700">
                     {selectedProject.commission || 'จะประกาศคอมมิชชั่นเร็ว ๆ นี้'}
                   </p>
                 </div>
               </div>
 
-              <div className="rounded-lg border border-dashed border-border p-4 space-y-2">
-                <p className="text-sm font-medium text-foreground">
+              <div className="rounded-lg border border-dashed border-neutral-400 px-4 py-5 space-y-4">
+                <p className="font-medium text-foreground">
                   ไฟล์สำหรับดาวน์โหลด
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  ตัวอย่าง: รูปภาพ วิดีโอ และข้อความตัวอย่างสำหรับโพสต์จะถูกแสดงในส่วนนี้เชื่อมต่อจากหลังบ้าน
-                </p>
-                <div className="mt-2 space-y-2 text-xs">
-                  <div className="space-y-1 text-primary">
-                    <a
-                      href={selectedProject.materialsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center rounded-md border border-primary px-3 py-1.5 text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
-                    >
-                      เปิดหน้า Landing Page ของโครงการ
-                    </a>
-                  </div>
-
+                <div className="space-y-4">
                   {selectedProject.googleDriveUrl && (
                     <div className="space-y-1">
                       <a
                         href={selectedProject.googleDriveUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center rounded-md border border-primary px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+                        className="inline-flex items-center justify-center rounded-md border border-primary px-3 py-1.5 text-primary hover:bg-primary hover:text-primary-foreground transition-colors gap-2"
                       >
+                        <FaGoogleDrive className="w-4 h-4" />
                         เปิดโฟลเดอร์ Google Drive
                       </a>
-                      <p className="text-[11px] text-muted-foreground">
-                        Password:{' '}
-                        <code className="px-1 py-0.5 rounded bg-muted text-foreground">
-                          {selectedProject.googleDrivePassword || 'creatorclub'}
-                        </code>
-                      </p>
                     </div>
                   )}
+                  <div className="space-y-1 text-primary">
+                    <a
+                      href={selectedProject.materialsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center rounded-md border border-primary px-3 py-1.5 text-primary hover:bg-primary hover:text-primary-foreground transition-colors gap-2"
+                    >
+                      <FaLink className="w-4 h-4" />
+                      เปิดหน้า Landing Page ของโครงการ
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
           <DrawerFooter>
-            <DrawerClose className="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors">
+            <DrawerClose className="items-center justify-center rounded-md border border-destructive text-destructive p-3 inline-block font-medium hover:bg-destructive hover:text-white transition-colors cursor-pointer w-fit min-w-30 mx-auto">
               ปิด
             </DrawerClose>
           </DrawerFooter>

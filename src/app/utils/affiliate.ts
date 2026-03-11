@@ -33,6 +33,7 @@ export interface AffiliateProject {
    * Base URL for materials or landing page related to this project.
    */
   materialsUrl: string;
+  description?: string;
 }
 
 /**
@@ -55,13 +56,14 @@ export const fetchAffiliateProjects = async (): Promise<AffiliateProject[]> => {
           ? `ค่าแนะนำ: ${project.startComm}`
           : project.maxComm
             ? `ค่าแนะนำสูงสุด: ${project.maxComm}`
-            : project.description,
+            : null,
     googleDriveUrl: project.googleDriveUrl,
     googleDrivePassword: project.googleDrivePassword,
     projectStatus: project.projectStatus,
     startComm: project.startComm,
     maxComm: project.maxComm,
     materialsUrl: project.baseUrl,
+    description: project.description,
   }));
 };
 

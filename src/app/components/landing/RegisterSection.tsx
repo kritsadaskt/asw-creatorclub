@@ -245,7 +245,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
             <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <UserPlus className="w-8 h-8 text-accent" />
             </div>
-            <h2 className="text-primary mb-2">เข้าร่วมกับเรา</h2>
+            <h2 className="text-black mb-2">เข้าร่วมกับเรา</h2>
             <p className="text-muted-foreground">
               สร้างโปรไฟล์และเริ่มต้นเส้นทางสู่ความสำเร็จในวันนี้
             </p>
@@ -283,8 +283,6 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Basic Information */}
             <div className="space-y-4">
-              <h3 className="font-semibold text-primary">ข้อมูลพื้นฐาน</h3>
-              
               <Input
                 label="ชื่อ-นามสกุล"
                 value={name}
@@ -472,10 +470,10 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
               <div className="grid md:grid-cols-3 gap-4">
                 <div className="md:col-span-2">
                   <Input
-                    label="Twitter (X) URL"
+                    label="X (Twitter) URL"
                     value={twitterUrl}
                     onChange={setTwitterUrl}
-                    placeholder="https://twitter.com/..."
+                    placeholder="https://x.com/..."
                   />
                 </div>
                 <div>
@@ -500,7 +498,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                   onChange={setBudget}
                   placeholder="0"
                 />
-                ต่อโพสต์
+                <span className="self-end">บาท/โพสต์</span>
               </div>
             </div>
 
@@ -565,7 +563,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                   const loginButton = document.querySelector('header button[class*="bg-primary"]') as HTMLButtonElement;
                   loginButton?.click();
                 }}
-                className="text-primary hover:underline ml-1"
+                className="text-primary hover:underline ml-1 cursor-pointer"
               >
                 เข้าสู่ระบบที่นี่
               </button>
