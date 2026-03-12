@@ -25,9 +25,9 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
     setIsLoggedIn(true);
 
     if (role === 'admin') {
-      navigate('/creatorclub/admin');
+      navigate('/admin');
     } else {
-      navigate('/creatorclub/profile');
+      navigate('/profile');
     }
   };
 
@@ -67,7 +67,7 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
               </p>
               <div className="mt-3">
                 <Link
-                  to="/creatorclub"
+                  to="/"
                   title="กลับสู่หน้า Creator Club"
                   className="inline-flex text-primary hover:underline"
                 >

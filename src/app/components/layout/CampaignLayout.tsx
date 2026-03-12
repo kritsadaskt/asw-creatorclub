@@ -15,9 +15,9 @@ export function CampaignLayout({ children }: CampaignLayoutProps) {
     setIsLoggedIn(true);
 
     if (role === 'admin') {
-      navigate('/creatorclub/admin');
+      navigate('/admin');
     } else {
-      navigate('/creatorclub/profile');
+      navigate('/profile');
     }
   };
 

@@ -14,7 +14,7 @@ export function RequireAuth({ requiredRole, children }: RequireAuthProps) {
   if (!session) {
     return (
       <Navigate
-        to="/creatorclub"
+        to="/"
         replace
         state={{ from: location }}
       />
@@ -22,7 +22,7 @@ export function RequireAuth({ requiredRole, children }: RequireAuthProps) {
   }
 
   if (requiredRole && session.role !== requiredRole) {
-    return <Navigate to="/creatorclub" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return children;

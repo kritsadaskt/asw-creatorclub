@@ -129,7 +129,7 @@ function AffiliateProjectList() {
             </p>
           </div>
           <Link
-            to="/creatorclub"
+            to="/"
             title="Back to Creator Club"
             className="text-primary hover:underline text-sm md:text-base"
           >

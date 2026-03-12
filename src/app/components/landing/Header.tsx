@@ -94,9 +94,6 @@ export function Header({
     }
   };
 
-  // const { pathname } = useLocation();
-  // const profileBase = pathname.startsWith('/creatorclub') ? '/creatorclub' : '/creatorclub';
-
   const handleLogout = () => {
     //onLogout?.();
     logout();
@@ -105,7 +102,7 @@ export function Header({
     setAvatarUrl(null);
     setRole(null);
     onLogoutProp?.();
-    window.location.href = '/creatorclub/';
+    window.location.href = '/';
   };
 
   const handleLoginFromModal = (id: string, loginRole: 'creator' | 'admin') => {
@@ -127,7 +124,7 @@ export function Header({
           <div className={`flex justify-between items-center ${hasNavTabs ? 'mb-4' : ''}`}>
             {/* Logo */}
             <div className="flex items-center gap-3">
-              <a href="/creatorclub" className="cursor-pointer" title="Creator Club">
+              <a href="/" className="cursor-pointer" title="Creator Club">
                 <img
                   src="https://assetwise.co.th/wp-content/themes/seed-spring/img/asw-logo_horizontal.svg"
                   alt="AssetWise Logo"
@@ -195,7 +192,7 @@ export function Header({
                     <DropdownMenuSeparator />
                     {role === 'admin' && (
                       <DropdownMenuItem
-                        onClick={() => { window.location.href = '/creatorclub/admin/dashboard'; }}
+                        onClick={() => { window.location.href = '/admin/dashboard'; }}
                         className="cursor-pointer"
                       >
                         <LayoutDashboard className="w-4 h-4 mr-2" />
@@ -204,7 +201,7 @@ export function Header({
                     )}
                     {role === 'creator' && (
                       <DropdownMenuItem
-                        onClick={() => { window.location.href = '/creatorclub/profile'; }}
+                        onClick={() => { window.location.href = '/profile'; }}
                         className="cursor-pointer"
                       >
                         โปรไฟล์ของฉัน
@@ -262,68 +259,6 @@ export function Header({
             </div>
           )}
         </div>
-        {/* {hasSecondaryNav && (
-          <div className="container mx-auto px-6 border-t border-border bg-white">
-            {isOnCreatorProfile && (
-              <div className="flex gap-6 py-3">
-                <NavLink
-                  to="/creatorclub/profile"
-                  end
-                  className={({ isActive }) =>
-                    `text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'text-primary'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`
-                  }
-                >
-                  โปรไฟล์
-                </NavLink>
-                <NavLink
-                  to="/creatorclub/profile/affiliate"
-                  className={({ isActive }) =>
-                    `text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'text-primary'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`
-                  }
-                >
-                  Affiliate Links
-                </NavLink>
-              </div>
-            )}
-            {isOnAdmin && (
-              <div className="flex gap-6 py-3">
-                <NavLink
-                  to="/creatorclub/admin/dashboard"
-                  end
-                  className={({ isActive }) =>
-                    `text-sm font-medium pb-2 border-b-2 transition-colors ${
-                      isActive
-                        ? 'text-primary border-primary'
-                        : 'text-muted-foreground border-transparent hover:text-foreground'
-                    }`
-                  }
-                >
-                  จัดการ Creators
-                </NavLink>
-                <NavLink
-                  to="/creatorclub/admin/projects"
-                  className={({ isActive }) =>
-                    `text-sm font-medium pb-2 border-b-2 transition-colors ${
-                      isActive
-                        ? 'text-primary border-primary'
-                        : 'text-muted-foreground border-transparent hover:text-foreground'
-                    }`
-                  }
-                >
-                  จัดการโครงการ
-                </NavLink>
-              </div>
-            )}
-          </div>
-        )} */}
       </header>
 
       {/* Spacer so fixed header doesn't overlap content */}
