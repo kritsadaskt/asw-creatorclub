@@ -8,6 +8,7 @@ import { loginWithFacebook, getFacebookUserInfo, fetchAndUploadFacebookProfileIm
 import { hashPassword, validatePassword, validatePasswordConfirm } from '../../utils/password';
 import { UserPlus } from 'lucide-react';
 import { Dropdown } from 'react-day-picker';
+import Select from 'react-select';
 
 interface RegisterSectionProps {
   onLogin: (id: string, role: 'creator' | 'admin') => void;
@@ -48,7 +49,42 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
   
   // Budget fields
   const [budget, setBudget] = useState('');
-  
+
+  // Creator Category
+  const [creatorCategory, setCreatorCategory] = useState<{ value: string; label: string }[]>([]);
+  const CREATOR_CATEGORIES = [
+    { value: 'personal_blog', label: 'Personal Blog' },
+    { value: 'travel', label: 'Travel Blog' },
+    { value: 'pet', label: 'Pet' },
+    { value: 'food', label: 'Food' },
+    { value: 'fashion', label: 'Fashion' },
+    { value: 'beauty', label: 'Beauty' },
+    { value: 'health', label: 'Health' },
+    { value: 'fitness', label: 'Fitness' },
+    { value: 'technology', label: 'Technology' },
+    { value: 'science', label: 'Science' },
+    { value: 'education', label: 'Education' },
+    { value: 'entertainment', label: 'Entertainment' },
+    { value: 'news', label: 'News' },
+    { value: 'sports', label: 'Sports' },
+    { value: 'gaming', label: 'Gaming' },
+    { value: 'music', label: 'Music' },
+    { value: 'art', label: 'Art' },
+    { value: 'design', label: 'Design' },
+    { value: 'architecture', label: 'Architecture' },
+    { value: 'other', label: 'Other' },
+  ];
+
+
+  const PARTNERS_TYPE = [
+    { value: 'MUT', label: 'MUT' },
+    { value: 'MI_THAILAND', label: 'MI Thailand' },
+    { value: 'MISS_THAILAND', label: 'นางสาวไทย' },
+    { value: 'MISTER_AND_MISS_GLOBAL_THAILAND', label: 'Mister and Miss Global Thailand' },
+    { value: 'MISS_WORLD', label: 'Miss World' },
+    { value: 'other', label: 'Other' },
+  ];
+
   // Status fields
   const [status, setStatus] = useState<'general' | 'resident' | 'partner'>('general');
   const [projectName, setProjectName] = useState('');
@@ -379,6 +415,19 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
               )}
             </div>
 
+            {/* Creator Category */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-primary">ระบุหมวดหมู่เนื้อหาของคุณ</h3>
+              <Select<{ value: string; label: string }, true>
+                options={CREATOR_CATEGORIES}
+                isMulti
+                value={creatorCategory}
+                onChange={(selected) =>
+                  setCreatorCategory(selected ? [...selected] : [])
+                }
+              />
+            </div>
+
             {/* Social Media Accounts */}
             <div className="space-y-4 pt-4 border-t border-border">
               <h3 className="font-semibold text-primary">Social Media</h3>
@@ -557,9 +606,12 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                 />
               )}
 
-              
+              {status === 'partner' && (
+                <Select 
+                  options={PARTNERS_TYPE} 
+                />
+              )}
             </div>
-
             <Button type="submit" fullWidth variant="accent" disabled={loading}>
               {loading ? 'กำลังดำเนินการ...' : 'ลงทะเบียน'}
             </Button>

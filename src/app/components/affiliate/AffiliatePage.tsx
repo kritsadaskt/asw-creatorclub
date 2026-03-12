@@ -31,6 +31,7 @@ import {
 } from '../ui/pagination';
 import { FaGoogleDrive, FaLink } from "react-icons/fa";
 import { Loader2 } from 'lucide-react';
+import { HeroBanner } from '../landing/HeroBanner';
 
 const DEFAULT_ITEMS_PER_PAGE = 10;
 const STATUS_FILTER_ALL = 'all';
@@ -117,25 +118,15 @@ function AffiliateProjectList() {
   }, []);
 
   return (
-    <div className="py-7 md:py-12">
+    <div id="affiliate_page">
+      <div id="aff_intro_box" className='py-10'>
+        <h2 className="text-center text-2xl font-bold text-primary mb-7">
+          <span className='text-5xl'>เลือกโครงการที่ใช่</span><br/>
+          <span className='text-3xl font-bold'>แล้วรับค่าแนะนำสูงสุด <span className='text-4xl'>50,000</span> บาท*</span>
+        </h2>
+        <a href='' title='ข้อกำหนดและเงื่อนไข' className='text-white bg-gradient-to-br from-orange-400 to-orange-600 px-7 py-4 rounded-full block w-fit mx-auto leading-none'>ข้อกำหนดและเงื่อนไข</a>
+      </div>
       <div className="bg-white rounded-2xl shadow-xl border border-border p-6 md:p-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-3xl font-semibold mb-2 text-primary">
-              Affiliate Properties
-            </h1>
-            <p className="text-muted-foreground max-w-2xl">
-              เลือกโครงการที่คุณต้องการโปรโมต ดูคอมมิชชั่น และเข้าถึงสื่อสำหรับใช้ทำคอนเทนต์ได้ที่นี่
-            </p>
-          </div>
-          <Link
-            to="/"
-            title="Back to Creator Club"
-            className="text-primary hover:underline text-sm md:text-base"
-          >
-            กลับไปหน้า Creator Club
-          </Link>
-        </div>
 
         {isLoading ? (
           <div className="py-16 text-center text-muted-foreground">
