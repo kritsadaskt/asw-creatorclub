@@ -94,7 +94,11 @@ export function Header({
     }
   };
 
+  // const { pathname } = useLocation();
+  // const profileBase = pathname.startsWith('/creatorclub') ? '/creatorclub' : '/creatorclub';
+
   const handleLogout = () => {
+    //onLogout?.();
     logout();
     clearSession();
     setDisplayName(null);
@@ -258,6 +262,68 @@ export function Header({
             </div>
           )}
         </div>
+        {/* {hasSecondaryNav && (
+          <div className="container mx-auto px-6 border-t border-border bg-white">
+            {isOnCreatorProfile && (
+              <div className="flex gap-6 py-3">
+                <NavLink
+                  to="/creatorclub/profile"
+                  end
+                  className={({ isActive }) =>
+                    `text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'text-primary'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`
+                  }
+                >
+                  โปรไฟล์
+                </NavLink>
+                <NavLink
+                  to="/creatorclub/profile/affiliate"
+                  className={({ isActive }) =>
+                    `text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'text-primary'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`
+                  }
+                >
+                  Affiliate Links
+                </NavLink>
+              </div>
+            )}
+            {isOnAdmin && (
+              <div className="flex gap-6 py-3">
+                <NavLink
+                  to="/creatorclub/admin/dashboard"
+                  end
+                  className={({ isActive }) =>
+                    `text-sm font-medium pb-2 border-b-2 transition-colors ${
+                      isActive
+                        ? 'text-primary border-primary'
+                        : 'text-muted-foreground border-transparent hover:text-foreground'
+                    }`
+                  }
+                >
+                  จัดการ Creators
+                </NavLink>
+                <NavLink
+                  to="/creatorclub/admin/projects"
+                  className={({ isActive }) =>
+                    `text-sm font-medium pb-2 border-b-2 transition-colors ${
+                      isActive
+                        ? 'text-primary border-primary'
+                        : 'text-muted-foreground border-transparent hover:text-foreground'
+                    }`
+                  }
+                >
+                  จัดการโครงการ
+                </NavLink>
+              </div>
+            )}
+          </div>
+        )} */}
       </header>
 
       {/* Spacer so fixed header doesn't overlap content */}
