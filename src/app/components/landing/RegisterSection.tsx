@@ -49,7 +49,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
   const [budget, setBudget] = useState('');
   
   // Status fields
-  const [status, setStatus] = useState<'general' | 'resident'>('general');
+  const [status, setStatus] = useState<'general' | 'resident' | 'partner'>('general');
   const [projectName, setProjectName] = useState('');
 
   const handleFacebookRegister = async () => {
@@ -504,21 +504,9 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
 
             {/* Status */}
             <div className="space-y-4 pt-4 border-t border-border">
-              <h3 className="font-semibold text-primary">คุณเป็นลูกบ้านแอสเซทไวส์หรือไม่</h3>
+              <h3 className="font-semibold text-primary">ประเภทผู้สมัคร</h3>
               
               <div className="flex gap-3">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="status"
-                    value="resident"
-                    checked={status === 'resident'}
-                    onChange={(e) => setStatus(e.target.value as 'resident')}
-                    className="w-4 h-4 text-primary"
-                  />
-                  <span>ใช่</span>
-                </label>
-
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="radio"
@@ -531,10 +519,30 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                     }}
                     className="w-4 h-4 text-primary"
                   />
-                  <span>ไม่ใช่</span>
+                  <span>บุคคลทั่วไป</span>
                 </label>
-
-                
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="status"
+                    value="resident"
+                    checked={status === 'resident'}
+                    onChange={(e) => setStatus(e.target.value as 'resident')}
+                    className="w-4 h-4 text-primary"
+                  />
+                  <span>ลูกบ้านแอสเซทไวส์</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="status"
+                    value="partner"
+                    checked={status === 'partner'}
+                    onChange={(e) => setStatus(e.target.value as 'partner')}
+                    className="w-4 h-4 text-primary"
+                  />
+                  <span>แอสเซทไวส์ พาร์ทเนอร์</span>
+                </label>
               </div>
 
               {status === 'resident' && (

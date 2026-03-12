@@ -29,7 +29,7 @@ export interface CreatorProfile {
     youtube?: number;
     twitter?: number;
   };
-  status: 'general' | 'resident'; // บุคคลทั่วไป or ลูกบ้านแอสเซทไวส์
+  status: 'general' | 'resident' | 'partner'; // บุคคลทั่วไป or ลูกบ้านแอสเซทไวส์ or แอสเซทไวส์ พาร์ทเนอร์
   projectName?: string; // For when status is 'resident'
   createdAt: string;
   // Authentication fields
