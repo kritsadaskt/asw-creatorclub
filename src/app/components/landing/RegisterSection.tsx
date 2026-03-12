@@ -7,6 +7,7 @@ import { saveCreator, getCreatorByEmail, getCreatorByFacebookId, setCurrentUser,
 import { loginWithFacebook, getFacebookUserInfo, fetchAndUploadFacebookProfileImage } from '../../utils/facebook';
 import { hashPassword, validatePassword, validatePasswordConfirm } from '../../utils/password';
 import { UserPlus } from 'lucide-react';
+import { Dropdown } from 'react-day-picker';
 
 interface RegisterSectionProps {
   onLogin: (id: string, role: 'creator' | 'admin') => void;
@@ -51,7 +52,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
   // Status fields
   const [status, setStatus] = useState<'general' | 'resident' | 'partner'>('general');
   const [projectName, setProjectName] = useState('');
-
+  const [partnerType, setPartnerType] = useState<'MUT' | 'MIT' | 'other'>('MUT');
   const handleFacebookRegister = async () => {
     setError('');
     setFacebookLoading(true);
@@ -281,6 +282,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+
             {/* Basic Information */}
             <div className="space-y-4">
               <Input
@@ -503,7 +505,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
             </div>
 
             {/* Status */}
-            <div className="space-y-4 pt-4 border-t border-border">
+            <div className="space-y-4">
               <h3 className="font-semibold text-primary">ประเภทผู้สมัคร</h3>
               
               <div className="flex gap-3">
@@ -547,13 +549,15 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
 
               {status === 'resident' && (
                 <Input
-                  label="ชื่อโครงการ"
+                  label="กรุณากรอกชื่อโครงการ"
                   value={projectName}
                   onChange={setProjectName}
                   placeholder="กรอกชื่อโครงการที่อยู่อาศัย"
                   required
                 />
               )}
+
+              
             </div>
 
             <Button type="submit" fullWidth variant="accent" disabled={loading}>
