@@ -46,8 +46,8 @@ export interface Project {
   imageUrl?: string;
   googleDriveUrl?: string;
   googleDrivePassword?: string;
-  // 1 = RTM, 2 = New, 3 = Pre-Sale
-  projectStatus?: 1 | 2 | 3;
+  // Text status from DB: 'ready' | 'new' | 'sold_out'
+  projectStatus?: string;
   startComm?: string;
   maxComm?: string;
   baseUrl: string;
@@ -59,7 +59,24 @@ export interface AffiliateLink {
   creatorId: string;
   campaignName: string;
   projectId?: string;
+  campaignId?: string;
   url: string;
+  createdAt: string;
+}
+
+export interface Campaign {
+  id: string;
+  name: string;
+  detail: string;
+  promotionImg?: string;
+  leadTarget: string;
+  budget: number;
+  utmSource: string;
+  utmMedium: string;
+  utmId: string;
+  utmCampaign: string;
+  landingUrl: string;
+  projectIds: string[];
   createdAt: string;
 }
 

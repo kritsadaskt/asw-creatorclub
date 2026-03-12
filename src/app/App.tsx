@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Toaster } from 'sonner';
 import { Routes, Route, Navigate, Outlet, useNavigate } from 'react-router-dom';
-import { Header } from './components/landing/Header';
 import { LandingPage } from './components/landing/LandingPage';
 import { CreatorProfile } from './components/creator/CreatorProfile';
 import { AffiliateGenerator } from './components/creator/AffiliateGenerator';
+import { AffiliateBrowse } from './components/creator/AffiliateBrowse';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { ProjectManagement } from './components/admin/ProjectManagement';
 import { logout } from './utils/storage';
@@ -12,6 +12,7 @@ import { initFacebookSDK } from './utils/facebook';
 import { UserRole } from './types';
 import { clearSession, getSession, setSession } from './utils/auth';
 import { RequireAuth } from './components/auth/RequireAuth';
+import { Header } from './components/landing/Header';
 import { installLocalStorageSafeGuard } from './utils/localStorageSafe';
 
 export default function App() {
@@ -73,7 +74,7 @@ export default function App() {
           path="profile/*"
           element={
             <RequireAuth requiredRole="creator">
-              <CreatorLayout onLogin={handleLogin} onLogout={handleLogout} />
+              <CreatorLayout onLogout={handleLogout} />
             </RequireAuth>
           }
         >
@@ -88,7 +89,7 @@ export default function App() {
           path="admin/*"
           element={
             <RequireAuth requiredRole="admin">
-              <AdminLayout onLogin={handleLogin} onLogout={handleLogout} />
+              <AdminLayout onLogout={handleLogout} />
             </RequireAuth>
           }
         >
@@ -104,11 +105,10 @@ export default function App() {
 }
 
 interface LayoutProps {
-  onLogin: (id: string, role: 'creator' | 'admin') => void;
   onLogout: () => void;
 }
 
-function CreatorLayout({ onLogin, onLogout }: LayoutProps) {
+function CreatorLayout({ onLogout }: LayoutProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 to-primary/10">
       <Header
@@ -124,7 +124,7 @@ function CreatorLayout({ onLogin, onLogout }: LayoutProps) {
   );
 }
 
-function AdminLayout({ onLogin, onLogout }: LayoutProps) {
+function AdminLayout({ onLogout }: LayoutProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 to-primary/10">
       <Header
