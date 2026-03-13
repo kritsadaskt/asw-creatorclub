@@ -115,8 +115,8 @@ function CreatorLayout({ onLogout }: LayoutProps) {
         fixed={false}
         onLogout={onLogout}
         navLinks={[
-          { label: 'โปรไฟล์', to: '/creatorclub/profile', end: true },
-          { label: 'Affiliate Links', to: '/creatorclub/profile/affiliate' },
+          { label: 'โปรไฟล์', to: '/profile', end: true },
+          { label: 'Affiliate Links', to: '/profile/affiliate' },
         ]}
       />
       <Outlet />
