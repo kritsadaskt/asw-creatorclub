@@ -5,10 +5,10 @@ import { AffiliatePage } from '../components/affiliate/AffiliatePage';
 
 export function AppRouter() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/creatorclub">
       <Routes>
-        <Route path="/creatorclub/friendgetfriend/*" element={<FriendGetFriendPage />} />
-        <Route path="/creatorclub/affiliate/*" element={<AffiliatePage />} />
+        <Route path="/friendgetfriend/*" element={<FriendGetFriendPage />} />
+        <Route path="/affiliate/*" element={<AffiliatePage />} />
         <Route path="/*" element={<App />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
