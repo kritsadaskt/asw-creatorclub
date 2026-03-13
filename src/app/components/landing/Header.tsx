@@ -192,7 +192,7 @@ export function Header({
                     <DropdownMenuSeparator />
                     {role === 'admin' && (
                       <DropdownMenuItem
-                        onClick={() => { window.location.href = '/admin/dashboard'; }}
+                        onClick={() => { window.location.href = '/creatorclub/admin/dashboard'; }}
                         className="cursor-pointer"
                       >
                         <LayoutDashboard className="w-4 h-4 mr-2" />
@@ -201,7 +201,7 @@ export function Header({
                     )}
                     {role === 'creator' && (
                       <DropdownMenuItem
-                        onClick={() => { window.location.href = '/profile'; }}
+                        onClick={() => { window.location.href = '/creatorclub/profile'; }}
                         className="cursor-pointer"
                       >
                         โปรไฟล์ของฉัน

@@ -115,8 +115,8 @@ function CreatorLayout({ onLogout }: LayoutProps) {
         fixed={false}
         onLogout={onLogout}
         navLinks={[
-          { label: 'โปรไฟล์', to: '/profile', end: true },
-          { label: 'Affiliate Links', to: '/profile/affiliate' },
+          { label: 'โปรไฟล์', to: '/creatorclub/profile', end: true },
+          { label: 'Affiliate Links', to: '/creatorclub/profile/affiliate' },
         ]}
       />
       <Outlet />
@@ -131,8 +131,8 @@ function AdminLayout({ onLogout }: LayoutProps) {
         fixed={false}
         onLogout={onLogout}
         navTabs={[
-          { label: 'จัดการ Creators', to: '/admin/dashboard', end: true },
-          { label: 'จัดการโครงการ', to: '/admin/projects' },
+          { label: 'จัดการ Creators', to: '/creatorclub/admin/dashboard', end: true },
+          { label: 'จัดการโครงการ', to: '/creatorclub/admin/projects' },
         ]}
       />
       <Outlet />
