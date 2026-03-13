@@ -67,9 +67,9 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
               </p>
               <div className="mt-3">
                 <Link
-                  to="/"
+                  to="/creatorclub/"
                   title="กลับสู่หน้า Creator Club"
-                  className="inline-flex text-primary hover:underline"
+                  className="inline-flex text-primary hover:underline cursor-pointer"
                 >
                   กลับสู่หน้า Creator Club
                 </Link>

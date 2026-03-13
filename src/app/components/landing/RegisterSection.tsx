@@ -381,27 +381,41 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                 <label className="block text-sm font-medium mb-2">
                   จังหวัดที่คุณอยู่ปัจจุบัน <span className="text-destructive">*</span>
                 </label>
-                <select
-                  value={baseLocation}
-                  onChange={(e) => {
-                    setBaseLocation(e.target.value);
-                    if (e.target.value !== 'ต่างจังหวัด') {
+                <Select
+                  options={[
+                    {
+                      label: 'กรุงเทพฯ และปริมณฑล',
+                      options: BANGKOK_PROVINCES.map((prov) => ({
+                        value: prov,
+                        label: prov,
+                      })),
+                    },
+                    {
+                      label: '',
+                      options: [
+                        { value: 'ต่างจังหวัด', label: 'ต่างจังหวัด' },
+                      ],
+                    },
+                  ]}
+                  value={
+                    baseLocation
+                      ? BANGKOK_PROVINCES.includes(baseLocation)
+                        ? { value: baseLocation, label: baseLocation }
+                        : { value: 'ต่างจังหวัด', label: 'ต่างจังหวัด' }
+                      : null
+                  }
+                  onChange={option => {
+                    const value = option ? (Array.isArray(option) ? option[0].value : option.value) : '';
+                    setBaseLocation(value);
+                    if (value !== 'ต่างจังหวัด') {
                       setProvince('');
                     }
                   }}
-                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="เลือกจังหวัด"
+                  classNamePrefix="react-select"
+                  isSearchable
                   required
-                >
-                  <option value="">เลือกจังหวัด</option>
-                  <optgroup label="กรุงเทพฯ และปริมณฑล">
-                    {BANGKOK_PROVINCES.map((prov) => (
-                      <option key={prov} value={prov}>
-                        {prov}
-                      </option>
-                    ))}
-                  </optgroup>
-                  <option value="ต่างจังหวัด">ต่างจังหวัด</option>
-                </select>
+                />
               </div>
 
               {baseLocation === 'ต่างจังหวัด' && (
@@ -541,6 +555,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
 
             {/* Budget per Post */}
             <div className="space-y-4 pt-4 border-t border-border">
+              <h3 className="font-semibold text-primary">Budget</h3>
               <div className="flex items-center gap-4">
                 <Input
                   label="Budgets"

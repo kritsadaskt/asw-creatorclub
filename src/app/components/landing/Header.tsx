@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { LayoutDashboard, LogIn, LogOut } from 'lucide-react';
+import { LayoutDashboard, LogIn, LogOut, User } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { LoginModal } from './LoginModal';
 import { getCreatorById, logout } from '../../utils/storage';
@@ -181,9 +181,6 @@ export function Header({
                   <DropdownMenuContent align="end" className="w-52">
                     <DropdownMenuLabel className="font-normal">
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-xs text-muted-foreground">
-                          {role === 'admin' ? 'เข้าสู่ระบบในฐานะ' : 'ยินดีต้อนรับ'}
-                        </span>
                         <span className="font-semibold text-foreground truncate">
                           {displayName ?? 'User'}
                         </span>
@@ -193,27 +190,28 @@ export function Header({
                     {role === 'admin' && (
                       <DropdownMenuItem
                         onClick={() => { window.location.href = '/creatorclub/admin/dashboard'; }}
-                        className="cursor-pointer"
+                        className="cursor-pointer group"
                       >
-                        <LayoutDashboard className="w-4 h-4 mr-2" />
+                        <LayoutDashboard className="w-4 h-4 mr-2 group-hover:stroke-white" />
                         Dashboard
                       </DropdownMenuItem>
                     )}
                     {role === 'creator' && (
                       <DropdownMenuItem
                         onClick={() => { window.location.href = '/creatorclub/profile'; }}
-                        className="cursor-pointer"
+                        className="cursor-pointer group"
                       >
+                        <User className="w-4 h-4 mr-2 group-hover:stroke-white" />
                         โปรไฟล์ของฉัน
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={handleLogout}
-                      className="cursor-pointer text-destructive focus:text-destructive"
+                      className="cursor-pointer text-destructive focus:text-destructive group"
                     >
-                      <LogOut className="w-4 h-4 mr-2" />
-                      ออกจากระบบ
+                      <LogOut className="w-4 h-4 mr-2 group-hover:stroke-white" />
+                      <span className="group-hover:text-white">ออกจากระบบ</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -227,7 +225,7 @@ export function Header({
                   </button>
                   <button
                     onClick={() => setShowLoginModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors cursor-pointer"
                   >
                     <LogIn className="w-4 h-4" />
                     เข้าสู่ระบบ

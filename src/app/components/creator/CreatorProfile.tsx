@@ -6,6 +6,7 @@ import { CreatorProfile as CreatorProfileType } from '../../types';
 import { getCreatorById, saveCreator } from '../../utils/storage';
 import { getProfileImageUrl } from '../../utils/profileImage';
 import { AffiliateGenerator } from './AffiliateGenerator';
+import Select from 'react-select';
 
 interface CreatorProfileProps {
   creatorId: string;
@@ -159,85 +160,136 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                   required
                 />
 
-                <div className="flex flex-col gap-1.5">
-                  <label>
-                    หมวดหมู่ <span className="text-destructive">*</span>
-                  </label>
-                  <select
-                    value={profile.category}
-                    onChange={(e) => setProfile({ ...profile, category: e.target.value })}
-                    className="px-4 py-2.5 bg-input-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  >
-                    <option value="">เลือกหมวดหมู่</option>
-                    {CATEGORIES.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-2 gap-7">
+                  <div className="flex flex-col gap-1.5">
+                    <h3 className="text-primary">
+                      หมวดหมู่ <span className="text-destructive">*</span>
+                    </h3>
+                    <Select
+                      options={CATEGORIES.map((cat) => ({
+                        value: cat,
+                        label: cat,
+                      }))}
+                      value={
+                        profile.category
+                          ? { value: profile.category, label: profile.category }
+                          : null
+                      }
+                      onChange={(selected) =>
+                        setProfile({
+                          ...profile,
+                          category: selected ? (selected as { value: string }).value : '',
+                        })
+                      }
+                      placeholder="เลือกหมวดหมู่"
+                      classNamePrefix="react-select"
+                    />
+                  </div>
                 </div>
-
-                <Input
-                  label="จำนวนผู้ติดตาม (รวมทุกช่องทาง)"
-                  type="number"
-                  value={profile.followers.toString()}
-                  onChange={(value) => setProfile({ ...profile, followers: parseInt(value) || 0 })}
-                  placeholder="กรอกจำนวนผู้ติดตาม"
-                  required
-                />
               </div>
 
               {/* Social Accounts */}
               <div className="space-y-4 pt-6 border-t border-border">
                 <h3 className="text-primary">บัญชีโซเชียลมีเดีย</h3>
+                
+                <div className="grid grid-cols-2 gap-7">
+                  <Input
+                    label="Facebook"
+                    value={profile.socialAccounts.facebook || ''}
+                    onChange={(value) => setProfile({
+                      ...profile,
+                      socialAccounts: { ...profile.socialAccounts, facebook: value }
+                    })}
+                    placeholder="https://facebook.com/username"
+                  />
+                  <Input
+                    label="จำนวนผู้ติดตาม"
+                    type="number"
+                    value={profile.followerCounts.facebook?.toString() || ''}
+                    onChange={(value) => setProfile({ ...profile, followerCounts: { ...profile.followerCounts, facebook: parseInt(value) || 0 } })}
+                    placeholder="กรอกจำนวนผู้ติดตาม"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-7">
+                  <Input
+                    label="Instagram"
+                    value={profile.socialAccounts.instagram || ''}
+                    onChange={(value) => setProfile({
+                      ...profile,
+                      socialAccounts: { ...profile.socialAccounts, instagram: value }
+                    })}
+                    placeholder="https://instagram.com/username"
+                  />
+                  <Input
+                    label="จำนวนผู้ติดตาม"
+                    type="number"
+                    value={profile.followerCounts.instagram?.toString() || ''}
+                    onChange={(value) => setProfile({ ...profile, followerCounts: { ...profile.followerCounts, instagram: parseInt(value) || 0 } })}
+                    placeholder="กรอกจำนวนผู้ติดตาม"
+                    required
+                  />
+                </div>
 
-                <Input
-                  label="Facebook"
-                  value={profile.socialAccounts.facebook || ''}
-                  onChange={(value) => setProfile({
-                    ...profile,
-                    socialAccounts: { ...profile.socialAccounts, facebook: value }
-                  })}
-                  placeholder="https://facebook.com/username"
-                />
+                <div className="grid grid-cols-2 gap-7">
+                  <Input
+                    label="TikTok"
+                    value={profile.socialAccounts.tiktok || ''}
+                    onChange={(value) => setProfile({
+                      ...profile,
+                      socialAccounts: { ...profile.socialAccounts, tiktok: value }
+                    })}
+                    placeholder="https://tiktok.com/@username"
+                  />
+                  <Input
+                    label="จำนวนผู้ติดตาม"
+                    type="number"
+                    value={profile.followerCounts.tiktok?.toString() || ''}
+                    onChange={(value) => setProfile({ ...profile, followerCounts: { ...profile.followerCounts, tiktok: parseInt(value) || 0 } })}
+                    placeholder="กรอกจำนวนผู้ติดตาม"
+                    required
+                  />
+                </div>
 
-                <Input
-                  label="Instagram"
-                  value={profile.socialAccounts.instagram || ''}
-                  onChange={(value) => setProfile({
-                    ...profile,
-                    socialAccounts: { ...profile.socialAccounts, instagram: value }
-                  })}
-                  placeholder="https://instagram.com/username"
-                />
+                <div className="grid grid-cols-2 gap-7">
+                  <Input
+                    label="YouTube"
+                    value={profile.socialAccounts.youtube || ''}
+                    onChange={(value) => setProfile({
+                      ...profile,
+                      socialAccounts: { ...profile.socialAccounts, youtube: value }
+                    })}
+                    placeholder="https://youtube.com/@username"
+                  />
+                  <Input
+                    label="จำนวนผู้ติดตาม"
+                    type="number"
+                    value={profile.followerCounts.youtube?.toString() || ''}
+                    onChange={(value) => setProfile({ ...profile, followerCounts: { ...profile.followerCounts, youtube: parseInt(value) || 0 } })}
+                    placeholder="กรอกจำนวนผู้ติดตาม"
+                    required
+                  />
+                </div>
 
-                <Input
-                  label="TikTok"
-                  value={profile.socialAccounts.tiktok || ''}
-                  onChange={(value) => setProfile({
-                    ...profile,
-                    socialAccounts: { ...profile.socialAccounts, tiktok: value }
-                  })}
-                  placeholder="https://tiktok.com/@username"
-                />
-
-                <Input
-                  label="YouTube"
-                  value={profile.socialAccounts.youtube || ''}
-                  onChange={(value) => setProfile({
-                    ...profile,
-                    socialAccounts: { ...profile.socialAccounts, youtube: value }
-                  })}
-                  placeholder="https://youtube.com/@username"
-                />
-
-                <Input
-                  label="Twitter (X)"
-                  value={profile.socialAccounts.twitter || ''}
-                  onChange={(value) => setProfile({
-                    ...profile,
-                    socialAccounts: { ...profile.socialAccounts, twitter: value }
-                  })}
-                  placeholder="https://twitter.com/username"
-                />
+                <div className="grid grid-cols-2 gap-7">
+                  <Input
+                    label="Twitter (X)"
+                    value={profile.socialAccounts.twitter || ''}
+                    onChange={(value) => setProfile({
+                      ...profile,
+                      socialAccounts: { ...profile.socialAccounts, twitter: value }
+                    })}
+                    placeholder="https://twitter.com/username"
+                  />
+                  <Input
+                    label="จำนวนผู้ติดตาม"
+                    type="number"
+                    value={profile.followerCounts.twitter?.toString() || ''}
+                    onChange={(value) => setProfile({ ...profile, followerCounts: { ...profile.followerCounts, twitter: parseInt(value) || 0 } })}
+                    placeholder="กรอกจำนวนผู้ติดตาม"
+                    required
+                  />
+                </div>
               </div>
 
               <div className="flex gap-3 pt-4">

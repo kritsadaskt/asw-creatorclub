@@ -25,7 +25,7 @@ export function Button({
     lg: 'px-8 py-3 text-lg'
   };
   
-  const baseStyles = 'rounded-lg transition-colors';
+  const baseStyles = 'rounded-lg transition-colors cursor-pointer';
   
   const variantStyles = {
     primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
