@@ -11,7 +11,7 @@ export function CreatorLayout({ onLogout }: CreatorLayoutProps) {
   const handleLogout = () => {
     logout();
     onLogout();
-    navigate('/');
+    navigate('/creatorclub/');
   };
 
   return (

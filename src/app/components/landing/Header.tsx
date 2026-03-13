@@ -102,7 +102,7 @@ export function Header({
     setAvatarUrl(null);
     setRole(null);
     onLogoutProp?.();
-    window.location.href = '/';
+    window.location.href = '/creatorclub/';
   };
 
   const handleLoginFromModal = (id: string, loginRole: 'creator' | 'admin') => {
@@ -124,7 +124,7 @@ export function Header({
           <div className={`flex justify-between items-center ${hasNavTabs ? 'mb-4' : ''}`}>
             {/* Logo */}
             <div className="flex items-center gap-3">
-              <a href="/" className="cursor-pointer" title="Creator Club">
+              <a href="/creatorclub/" className="cursor-pointer" title="Creator Club">
                 <img
                   src="https://assetwise.co.th/wp-content/themes/seed-spring/img/asw-logo_horizontal.svg"
                   alt="AssetWise Logo"
