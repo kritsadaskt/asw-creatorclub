@@ -25,9 +25,9 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
     setIsLoggedIn(true);
 
     if (role === 'admin') {
-      navigate('/admin');
+      navigate('/creatorclub/admin');
     } else {
-      navigate('/profile');
+      navigate('/creatorclub/profile');
     }
   };
 
