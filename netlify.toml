@@ -1,3 +1,10 @@
+# กฎข้อ 1: ปล่อยให้ไฟล์ JS และ CSS ในโฟลเดอร์ assets โหลดได้ตามปกติ
+[[redirects]]
+  from = "/creatorclub/assets/*"
+  to = "/assets/:splat"
+  status = 200
+
+# กฎข้อ 2: SPA Fallback สำหรับการเปลี่ยนหน้า React Router (ถ้าหาหน้าไม่เจอ ให้ส่ง index.html ไป)
 [[redirects]]
   from = "/*"
   to = "/index.html"
