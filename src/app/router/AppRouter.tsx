@@ -7,8 +7,8 @@ export function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/friendgetfriend/*" element={<FriendGetFriendPage />} />
-        <Route path="/affiliate/*" element={<AffiliatePage />} />
+        <Route path="/creatorclub/friendgetfriend/*" element={<FriendGetFriendPage />} />
+        <Route path="/creatorclub/affiliate/*" element={<AffiliatePage />} />
         <Route path="/*" element={<App />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
