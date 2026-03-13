@@ -131,8 +131,8 @@ function AdminLayout({ onLogout }: LayoutProps) {
         fixed={false}
         onLogout={onLogout}
         navTabs={[
-          { label: 'จัดการ Creators', to: '/creatorclub/admin/dashboard', end: true },
-          { label: 'จัดการโครงการ', to: '/creatorclub/admin/projects' },
+          { label: 'จัดการ Creators', to: '/admin/dashboard', end: true },
+          { label: 'จัดการโครงการ', to: '/admin/projects' },
         ]}
       />
       <Outlet />
