@@ -1,13 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
 import { CreatorProfile } from '../../types';
-import { saveCreator, getCreatorByEmail, getCreatorByFacebookId, setCurrentUser, generateUUID } from '../../utils/storage';
+import { saveCreator, getCreatorByEmail, getCreatorByFacebookId, setCurrentUser, generateUUID, getProjects } from '../../utils/storage';
 import { loginWithFacebook, getFacebookUserInfo, fetchAndUploadFacebookProfileImage } from '../../utils/facebook';
 import { hashPassword, validatePassword, validatePasswordConfirm } from '../../utils/password';
 import { UserPlus } from 'lucide-react';
-import { Dropdown } from 'react-day-picker';
+import { FaFacebook, FaInstagram, FaTiktok, FaYoutube, FaXTwitter } from 'react-icons/fa6';
 import Select from 'react-select';
 
 interface RegisterSectionProps {
@@ -23,9 +23,18 @@ const BANGKOK_PROVINCES = [
   'นครปฐม'
 ];
 
+const fetchProjectOptions = async () => {
+  const projectOptions = await getProjects();
+  return projectOptions.map((project) => ({
+    value: project.id,
+    label: project.name,
+  }));
+};
+
 export function RegisterSection({ onLogin }: RegisterSectionProps) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -33,6 +42,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
   const [province, setProvince] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [projectOptions, setProjectOptions] = useState<{ value: string; label: string }[]>([]);
   const [facebookLoading, setFacebookLoading] = useState(false);
   
   // Social media fields
@@ -89,6 +99,22 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
   const [status, setStatus] = useState<'general' | 'resident' | 'partner'>('general');
   const [projectName, setProjectName] = useState('');
   const [partnerType, setPartnerType] = useState<'MUT' | 'MIT' | 'other'>('MUT');
+
+  useEffect(() => {
+    fetchProjectOptions()
+      .then(setProjectOptions)
+      .catch((err) => {
+        console.error('Failed to load project options', err);
+        setProjectOptions([]);
+      });
+  }, []);
+
+  useEffect(() => {
+    fetchProjectOptions().then(setProjectOptions).catch((err) => {
+      console.error('Failed to load project options', err);
+      setProjectOptions([]);
+    });
+  }, []);
   const handleFacebookRegister = async () => {
     setError('');
     setFacebookLoading(true);
@@ -321,31 +347,49 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
 
             {/* Basic Information */}
             <div className="space-y-4">
-              <Input
-                label="ชื่อ-นามสกุล"
-                value={name}
-                onChange={setName}
-                placeholder="กรอกชื่อ-นามสกุล"
-                required
-              />
+              <div className="flex gap-5">
+                <div className="w-1/2">
+                  <Input
+                    label="ชื่อ"
+                    value={name}
+                    onChange={setName}
+                    placeholder="ชื่อ"
+                    required
+                  />
+                </div>
+                <div className="w-1/2">
+                  <Input
+                    label="นามสกุล"
+                    value={lastName}
+                    onChange={setLastName}
+                    placeholder="นามสกุล"
+                    required
+                  />
+                </div>
+              </div>
 
-              <Input
-                label="เบอร์โทรศัพท์"
-                type="tel"
-                value={phone}
-                onChange={setPhone}
-                placeholder="กรอกเบอร์โทรศัพท์"
-                required
-              />
-
-              <Input
-                label="อีเมล"
-                type="email"
-                value={email}
-                onChange={setEmail}
-                placeholder="กรอกอีเมล"
-                required
-              />
+              <div className="flex gap-5">
+                <div className="w-1/2">
+                  <Input
+                    label="เบอร์โทรศัพท์"
+                    type="tel"
+                    value={phone}
+                    onChange={setPhone}
+                    placeholder="กรอกเบอร์โทรศัพท์"
+                    required
+                  />
+                </div>
+                <div className="w-1/2">
+                  <Input
+                    label="อีเมล"
+                    type="email"
+                    value={email}
+                    onChange={setEmail}
+                    placeholder="กรอกอีเมล"
+                    required
+                  />
+                </div>
+              </div>
 
               {/* Password fields - only show if not using Facebook */}
               {!hasPendingFacebook && (
@@ -376,11 +420,13 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                 </div>
               )}
 
+              <div className="h-5"></div>
+
               {/* Base Location */}
-              <div>
-                <label className="block text-sm font-medium mb-2">
+              <div className="space-y-3">
+                <h3 className="font-semibold text-primary">
                   จังหวัดที่คุณอยู่ปัจจุบัน <span className="text-destructive">*</span>
-                </label>
+                </h3>
                 <Select
                   options={[
                     {
@@ -430,8 +476,8 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
             </div>
 
             {/* Creator Category */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-primary">ระบุหมวดหมู่เนื้อหาของคุณ</h3>
+            <div className="space-y-3">
+              <h3 className="font-semibold text-primary">คุณเป็นครีเอเตอร์สายไหน ?</h3>
               <Select<{ value: string; label: string }, true>
                 options={CREATOR_CATEGORIES}
                 isMulti
@@ -452,6 +498,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                 <div className="md:col-span-2">
                   <Input
                     label="Facebook URL"
+                    icon={<FaFacebook className="h-5 w-5 text-[#1877F2]" />}
                     value={facebookUrl}
                     onChange={setFacebookUrl}
                     placeholder="https://facebook.com/..."
@@ -473,6 +520,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                 <div className="md:col-span-2">
                   <Input
                     label="Instagram URL"
+                    icon={<FaInstagram className="h-5 w-5 text-pink-500" />}
                     value={instagramUrl}
                     onChange={setInstagramUrl}
                     placeholder="https://instagram.com/..."
@@ -494,6 +542,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                 <div className="md:col-span-2">
                   <Input
                     label="TikTok URL"
+                    icon={<FaTiktok className="h-5 w-5 text-black" />}
                     value={tiktokUrl}
                     onChange={setTiktokUrl}
                     placeholder="https://tiktok.com/@..."
@@ -515,6 +564,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                 <div className="md:col-span-2">
                   <Input
                     label="YouTube URL"
+                    icon={<FaYoutube className="h-5 w-5 text-red-600" />}
                     value={youtubeUrl}
                     onChange={setYoutubeUrl}
                     placeholder="https://youtube.com/..."
@@ -536,6 +586,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                 <div className="md:col-span-2">
                   <Input
                     label="X (Twitter) URL"
+                    icon={<FaXTwitter className="h-5 w-5 text-black" />}
                     value={twitterUrl}
                     onChange={setTwitterUrl}
                     placeholder="https://x.com/..."
@@ -554,8 +605,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
             </div>
 
             {/* Budget per Post */}
-            <div className="space-y-4 pt-4 border-t border-border">
-              <h3 className="font-semibold text-primary">Budget</h3>
+            <div className="space-y-4">
               <div className="flex items-center gap-4">
                 <Input
                   label="Budgets"
@@ -612,12 +662,15 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
               </div>
 
               {status === 'resident' && (
-                <Input
-                  label="กรุณากรอกชื่อโครงการ"
-                  value={projectName}
-                  onChange={setProjectName}
-                  placeholder="กรอกชื่อโครงการที่อยู่อาศัย"
-                  required
+                <Select<{ value: string; label: string }>
+                  options={projectOptions}
+                  value={
+                    projectName
+                      ? projectOptions.find((option) => option.value === projectName) ?? null
+                      : null
+                  }
+                  onChange={(option) => setProjectName(option ? option.value : '')}
+                  placeholder="เลือกโครงการที่อยู่อาศัย"
                 />
               )}
 
