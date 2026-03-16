@@ -217,12 +217,12 @@ export function Header({
                 </DropdownMenu>
               ) : onLogin ? (
                 <>
-                  <button
-                    onClick={scrollToRegister}
-                    className="text-muted-foreground hover:text-accent transition-colors hidden md:block"
+                  <a href="/creatorclub/#register-section"
+                    className="text-muted-foreground hover:text-accent transition-colors hidden md:block cursor-pointer"
+                    title="ลงทะเบียน"
                   >
                     ลงทะเบียน
-                  </button>
+                  </a>
                   <button
                     onClick={() => setShowLoginModal(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors cursor-pointer"

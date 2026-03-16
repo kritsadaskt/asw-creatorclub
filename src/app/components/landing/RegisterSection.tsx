@@ -23,6 +23,8 @@ const BANGKOK_PROVINCES = [
   'นครปฐม'
 ];
 
+type SelectOption = { value: string; label: string };
+
 const fetchProjectOptions = async () => {
   const projectOptions = await getProjects();
   return projectOptions.map((project) => ({
@@ -42,7 +44,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
   const [province, setProvince] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [projectOptions, setProjectOptions] = useState<{ value: string; label: string }[]>([]);
+  const [projectOptions, setProjectOptions] = useState<SelectOption[]>([]);
   const [facebookLoading, setFacebookLoading] = useState(false);
   
   // Social media fields
@@ -61,7 +63,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
   const [budget, setBudget] = useState('');
 
   // Creator Category
-  const [creatorCategory, setCreatorCategory] = useState<{ value: string; label: string }[]>([]);
+  const [creatorCategory, setCreatorCategory] = useState<SelectOption[]>([]);
   const CREATOR_CATEGORIES = [
     { value: 'personal_blog', label: 'Personal Blog' },
     { value: 'travel', label: 'Travel Blog' },
@@ -98,7 +100,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
   // Status fields
   const [status, setStatus] = useState<'general' | 'resident' | 'partner'>('general');
   const [projectName, setProjectName] = useState('');
-  const [partnerType, setPartnerType] = useState<'MUT' | 'MIT' | 'other'>('MUT');
+  const [partnerType, setPartnerType] = useState<string>('MUT');
 
   useEffect(() => {
     fetchProjectOptions()
@@ -478,7 +480,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
             {/* Creator Category */}
             <div className="space-y-3">
               <h3 className="font-semibold text-primary">คุณเป็นครีเอเตอร์สายไหน ?</h3>
-              <Select<{ value: string; label: string }, true>
+              <Select
                 options={CREATOR_CATEGORIES}
                 isMulti
                 value={creatorCategory}
@@ -679,10 +681,13 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                   options={PARTNERS_TYPE} 
                 />
               )}
+              
             </div>
+            
             <Button type="submit" fullWidth variant="accent" disabled={loading}>
               {loading ? 'กำลังดำเนินการ...' : 'ลงทะเบียน'}
             </Button>
+
           </form>
 
           <div className="mt-6 text-center">
