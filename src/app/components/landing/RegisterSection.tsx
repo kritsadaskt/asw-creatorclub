@@ -141,6 +141,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [showSocialErrors, setShowSocialErrors] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -251,6 +252,17 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
 
     if (!acceptedTerms) {
       newErrors.acceptedTerms = 'กรุณายอมรับข้อกำหนดและนโยบายความเป็นส่วนตัว';
+    }
+
+    if (!socialData.isValid) {
+      setShowSocialErrors(true);
+      if (socialData.socialError) {
+        newErrors.social = socialData.socialError;
+      } else {
+        newErrors.social = 'กรุณากรอกข้อมูล Social Media อย่างน้อย 1 แพลตฟอร์ม';
+      }
+    } else {
+      setShowSocialErrors(false);
     }
 
     setFieldErrors(newErrors);
@@ -795,6 +807,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
               initialSocialAccounts={socialData.socialAccounts}
               initialFollowerCounts={socialData.followerCounts}
               requireAtLeastOne={true}
+              showErrors={showSocialErrors}
               onChange={(data) => setSocialData(data)}
             />
 

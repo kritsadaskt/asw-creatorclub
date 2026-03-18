@@ -25,6 +25,7 @@ type SocialAccountsProps = {
   initialSocialAccounts?: SocialAccountsMap;
   initialFollowerCounts?: FollowerCountsMap;
   requireAtLeastOne?: boolean;
+  showErrors?: boolean;
   label?: string;
   description?: string;
   onChange?: (data: {
@@ -42,6 +43,7 @@ export default function SocialAccounts({
   initialSocialAccounts,
   initialFollowerCounts,
   requireAtLeastOne = true,
+  showErrors = false,
   label = "Social Media",
   description = "กรอกข้อมูลอย่างน้อย 1 แพลตฟอร์ม",
   onChange,
@@ -56,11 +58,8 @@ export default function SocialAccounts({
   const [socialError, setSocialError] = useState("");
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
-  const validate = (
-    accounts: SocialAccountsMap,
-    currentTouched: Record<string, boolean>
-  ) => {
-    const newErrors: Record<string, string> = {};
+  const validate = (accounts: SocialAccountsMap) => {
+    const allErrors: Record<string, string> = {};
 
     const hasAnySocial =
       !!accounts.facebook ||
@@ -71,13 +70,13 @@ export default function SocialAccounts({
       !!accounts.lemon8;
 
     if (requireAtLeastOne && !hasAnySocial) {
-      newErrors.social = "กรุณากรอกข้อมูล Social Media อย่างน้อย 1 แพลตฟอร์ม";
+      allErrors.social = "กรุณากรอกข้อมูล Social Media อย่างน้อย 1 แพลตฟอร์ม";
     }
 
     const validateSocialUrl = (key: keyof SocialAccountsMap, label: string) => {
       const value = accounts[key];
       if (value && !urlRegex.test(value.trim())) {
-        newErrors[`${key}Url`] = `กรุณากรอก ${label} ให้เป็นลิงก์ที่ขึ้นต้นด้วย https://`;
+        allErrors[`${key}Url`] = `กรุณากรอก ${label} ให้เป็นลิงก์ที่ขึ้นต้นด้วย https://`;
       }
     };
 
@@ -88,36 +87,51 @@ export default function SocialAccounts({
     validateSocialUrl("twitter", "X (Twitter) URL");
     // Lemon8 currently has no strict URL validation requirement in existing code
 
-    const filteredErrors: Record<string, string> = {};
-    Object.entries(newErrors).forEach(([key, value]) => {
-      if (key === "social" || currentTouched[key.replace("Url", "Url")] || !key.endsWith("Url")) {
-        filteredErrors[key] = value;
+    const isValid = Object.keys(allErrors).length === 0;
+
+    // Control what is shown (UX) vs what is validated (logic)
+    const visibleErrors: Record<string, string> = {};
+    Object.entries(allErrors).forEach(([key, value]) => {
+      if (key === "social") {
+        if (showErrors) {
+          visibleErrors[key] = value;
+        }
+        return;
       }
+
+      // URL field errors should show only after user blur OR after parent requests showErrors
+      if (key.endsWith("Url")) {
+        const touchedKey = key; // facebookUrl, instagramUrl, ...
+        if (showErrors || touched[touchedKey]) {
+          visibleErrors[key] = value;
+        }
+        return;
+      }
+
+      visibleErrors[key] = value;
     });
 
-    setErrors(filteredErrors);
-    setSocialError(filteredErrors.social || "");
-
-    const isValid = Object.keys(filteredErrors).length === 0;
+    setErrors(visibleErrors);
+    setSocialError(visibleErrors.social || "");
 
     onChange?.({
       socialAccounts: accounts,
       followerCounts,
       isValid,
-      errors: filteredErrors,
-      socialError: filteredErrors.social || "",
+      errors: allErrors,
+      socialError: allErrors.social || "",
     });
   };
 
   useEffect(() => {
-    validate(socialAccounts, touched);
+    validate(socialAccounts);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requireAtLeastOne]);
+  }, [requireAtLeastOne, showErrors]);
 
   const handleUrlChange = (key: keyof SocialAccountsMap, value: string) => {
     const next = { ...socialAccounts, [key]: value };
     setSocialAccounts(next);
-    validate(next, touched);
+    validate(next);
   };
 
   const handleFollowersChange = (key: keyof FollowerCountsMap, value: string) => {
@@ -136,7 +150,8 @@ export default function SocialAccounts({
   const handleBlur = (fieldKey: string) => {
     const nextTouched = { ...touched, [fieldKey]: true };
     setTouched(nextTouched);
-    validate(socialAccounts, nextTouched);
+    // keep touched for display; validation state doesn't depend on touched
+    validate(socialAccounts);
   };
 
   return (
