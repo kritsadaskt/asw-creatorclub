@@ -7,6 +7,7 @@ import { supabase } from '../../utils/supabase';
 import { getProfileImageUrl } from '../../utils/profileImage';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { LayoutGrid, Loader2, MailIcon, Table } from 'lucide-react';
+import { FaPhone } from 'react-icons/fa6';
 
 const CATEGORIES = [
   'ทั้งหมด',
@@ -582,14 +583,10 @@ export function AdminDashboard() {
                 <div>
                   <label className="text-muted-foreground">หมวดหมู่</label>
                   <p className="text-foreground">
-                    {selectedCreator.categories && selectedCreator.categories.length > 0
+                    {selectedCreator.categories && selectedCreator.categories.length > 1
                       ? selectedCreator.categories.join(', ')
                       : '-'}
                   </p>
-                </div>
-                <div>
-                  <label className="text-muted-foreground">ผู้ติดตาม</label>
-                  <p className="text-foreground">{selectedCreator.followers.toLocaleString()}</p>
                 </div>
               </div>
 
@@ -631,17 +628,12 @@ export function AdminDashboard() {
 
             <div className="mt-6 flex gap-3">
               <Button
-                onClick={() => window.location.href = `mailto:${selectedCreator.email}`}
-                fullWidth
-              >
-                ส่งอีเมล
-              </Button>
-              <Button
                 onClick={() => window.location.href = `tel:${selectedCreator.phone}`}
                 variant="outline"
-                fullWidth
+                center
               >
-                โทรออก
+                <FaPhone className="w-5 h-5" />
+                ติดต่อ
               </Button>
             </div>
           </div>

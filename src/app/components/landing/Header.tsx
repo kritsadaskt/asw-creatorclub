@@ -119,7 +119,7 @@ export function Header({
           fixed ? 'fixed top-0 left-0 right-0' : 'sticky top-0'
         }`}
       >
-        <div className={`container mx-auto px-6 ${hasNavTabs ? 'pt-4' : 'py-4'}`}>
+        <div className={`container mx-auto px-4 md:px-6 ${hasNavTabs ? 'pt-4' : 'py-3 md:py-4'}`}>
           {/* Top row: logo · [inline navLinks] · profile */}
           <div className={`flex justify-between items-center ${hasNavTabs ? 'mb-4' : ''}`}>
             {/* Logo */}
@@ -128,7 +128,7 @@ export function Header({
                 <img
                   src="https://assetwise.co.th/wp-content/themes/seed-spring/img/asw-logo_horizontal.svg"
                   alt="AssetWise Logo"
-                  className="h-5"
+                  className="h-4 md:h-5"
                 />
               </a>
             </div>

@@ -8,6 +8,7 @@ interface ButtonProps {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   center?: boolean;
+  width?: string;
 }
 
 export function Button({ 
