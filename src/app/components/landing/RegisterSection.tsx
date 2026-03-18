@@ -9,6 +9,7 @@ import { hashPassword, validatePassword, validatePasswordConfirm } from '../../u
 import { UserPlus } from 'lucide-react';
 import { FaFacebook, FaInstagram, FaTiktok, FaYoutube, FaXTwitter } from 'react-icons/fa6';
 import Select from 'react-select';
+import { Lemon8Icon } from '../../utils/svg';
 
 interface RegisterSectionProps {
   onLogin: (id: string, role: 'creator' | 'admin') => void;
@@ -58,33 +59,36 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
   const [youtubeFollowers, setYoutubeFollowers] = useState('');
   const [twitterUrl, setTwitterUrl] = useState('');
   const [twitterFollowers, setTwitterFollowers] = useState('');
-  
+  const [lemon8Url, setLemon8Url] = useState('');
+  const [lemon8Followers, setLemon8Followers] = useState('');
+
   // Budget fields
   const [budget, setBudget] = useState('');
 
   // Creator Category
   const [creatorCategory, setCreatorCategory] = useState<SelectOption[]>([]);
   const CREATOR_CATEGORIES = [
-    { value: 'personal_blog', label: 'Personal Blog' },
-    { value: 'travel', label: 'Travel Blog' },
-    { value: 'pet', label: 'Pet' },
-    { value: 'food', label: 'Food' },
-    { value: 'fashion', label: 'Fashion' },
-    { value: 'beauty', label: 'Beauty' },
-    { value: 'health', label: 'Health' },
-    { value: 'fitness', label: 'Fitness' },
-    { value: 'technology', label: 'Technology' },
-    { value: 'science', label: 'Science' },
-    { value: 'education', label: 'Education' },
-    { value: 'entertainment', label: 'Entertainment' },
-    { value: 'news', label: 'News' },
-    { value: 'sports', label: 'Sports' },
-    { value: 'gaming', label: 'Gaming' },
-    { value: 'music', label: 'Music' },
-    { value: 'art', label: 'Art' },
-    { value: 'design', label: 'Design' },
-    { value: 'architecture', label: 'Architecture' },
-    { value: 'other', label: 'Other' },
+    { value: 'lifestyle', label: 'Lifestyle - ไลฟส์สไตล์ / การใช้ชีวิต' },
+    { value: 'food', label: 'Food - อาหาร' },
+    { value: 'travel', label: 'Travel - ท่องเที่ยว' },
+    { value: 'beauty', label: 'Beauty - ความงาม' },
+    { value: 'fashion', label: 'Fashion - แฟชั่น' },
+    { value: 'entertainment', label: 'Entertainment - ความบันเทิง' },
+    { value: 'sports', label: 'Sports - กีฬา' },
+    { value: 'music', label: 'Music - เพลง' },
+    { value: 'art', label: 'Art - ศิลปะ' },
+    { value: 'gaming', label: 'Gaming - เกม' },
+    { value: 'fitness', label: 'Fitness - การออกกำลังกาย' },
+    { value: 'family', label: 'Family - ครอบครัว' },
+    { value: 'technology', label: 'Technology - เทคโนโลยี' },
+    { value: 'health', label: 'Health - สุขภาพ' },
+    { value: 'education', label: 'Education - การศึกษา' },
+    { value: 'news', label: 'News - ข่าว' },
+    { value: 'pet', label: 'Pet - สัตว์เลี้ยง' },
+    { value: 'science', label: 'Science - วิทยาศาสตร์' },
+    { value: 'design', label: 'Design - การออกแบบ' },
+    { value: 'architecture', label: 'Architecture - การออกแบบ' },
+    { value: 'other', label: 'Other - อื่นๆ' },
   ];
 
 
@@ -604,6 +608,29 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                   />
                 </div>
               </div>
+
+              {/* Twitter */}
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="md:col-span-2">
+                  <Input
+                    label="Lemon8"
+                    icon={<Lemon8Icon className="w-5 h-5 text-yellow-500" />}
+                    value={lemon8Url}
+                    onChange={setLemon8Url}
+                    placeholder="https://lemon8.com/..."
+                  />
+                </div>
+                <div>
+                  <Input
+                    label="จำนวนผู้ติดตาม"
+                    type="number"
+                    value={lemon8Followers}
+                    onChange={setLemon8Followers}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
             </div>
 
             {/* Budget per Post */}
