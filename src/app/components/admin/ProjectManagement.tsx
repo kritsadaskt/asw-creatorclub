@@ -1,12 +1,12 @@
 import { useState, useEffect, type ChangeEvent } from 'react';
 import { toast } from 'sonner';
-import { Plus, Building2, Home, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Building2, Home, Pencil, Trash2, File } from 'lucide-react';
 import Select from 'react-select';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
 import { Project } from '../../types';
 import { saveProject, getProjects, deleteProject, generateUUID, uploadProjectImage } from '../../utils/storage';
-
+import { FaGoogleDrive } from 'react-icons/fa';
 export function ProjectManagement() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -405,17 +405,8 @@ export function ProjectManagement() {
               value={googleDriveUrl}
               onChange={setGoogleDriveUrl}
               placeholder="https://drive.google.com/..."
+              icon={<FaGoogleDrive className="w-4 h-4" />}
             />
-
-            <Input
-              label="Google Drive password"
-              value={googleDrivePassword}
-              onChange={setGoogleDrivePassword}
-              placeholder="creatorclub"
-            />
-            <p className="text-xs text-muted-foreground">
-              ค่าเริ่มต้น: <code>creatorclub</code> (สามารถแก้ไขได้)
-            </p>
 
             <div>
               <label className="block text-sm mb-2 text-foreground">

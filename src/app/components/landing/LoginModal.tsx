@@ -133,12 +133,9 @@ export function LoginModal({ onClose, onLogin }: LoginModalProps) {
           <X className="w-5 h-5" />
         </button>
 
-        <div className="text-center mb-8">
-          <h2 className="text-primary mb-2">เข้าสู่ระบบ</h2>
-          <p className="text-muted-foreground">
-            ยินดีต้อนรับกลับสู่ AssetWise Creators Club
-          </p>
-        </div>
+        <h3 className="text-primary text-center mb-4 text-2xl font-bold pt-7">
+          เข้าสู่ระบบ Creators Club
+        </h3>
 
         {error && (
           <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">

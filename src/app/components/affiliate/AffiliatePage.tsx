@@ -379,7 +379,7 @@ function AffiliateProjectList() {
         <DrawerContent>
           <DrawerHeader className='p-7'>
             <DrawerTitle>
-              วัสดุสำหรับโปรโมต
+              สื่อสำหรับโปรโมต
             </DrawerTitle>
             <DrawerDescription>
               ดาวน์โหลดสื่อสำหรับใช้ทำคอนเทนต์ของคุณสำหรับโครงการนี้
