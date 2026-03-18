@@ -3,9 +3,10 @@ import { toast } from 'sonner';
 import { Button } from '../shared/Button';
 import { CreatorProfile } from '../../types';
 import { getCreators } from '../../utils/storage';
+import { supabase } from '../../utils/supabase';
 import { getProfileImageUrl } from '../../utils/profileImage';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
-import { LayoutGrid, Loader2, Table } from 'lucide-react';
+import { LayoutGrid, Loader2, MailIcon, Table } from 'lucide-react';
 
 const CATEGORIES = [
   'ทั้งหมด',
@@ -23,6 +24,7 @@ const CATEGORIES = [
 export function AdminDashboard() {
   const [creators, setCreators] = useState<CreatorProfile[]>([]);
   const [filteredCreators, setFilteredCreators] = useState<CreatorProfile[]>([]);
+  const [approvalFilter, setApprovalFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'inactive'>('all');
   const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
   const [searchQuery, setSearchQuery] = useState('');
   const [minFollowers, setMinFollowers] = useState('');
@@ -95,7 +97,72 @@ export function AdminDashboard() {
       }
     }
 
+    // Approval status filter
+    if (approvalFilter === 'pending') {
+      filtered = filtered.filter((creator) => creator.approvalStatus === 3);
+    } else if (approvalFilter === 'approved') {
+      filtered = filtered.filter((creator) => creator.approvalStatus === 1);
+    } else if (approvalFilter === 'rejected') {
+      filtered = filtered.filter((creator) => creator.approvalStatus === 0);
+    } else if (approvalFilter === 'inactive') {
+      filtered = filtered.filter((creator) => creator.approvalStatus === 2);
+    }
+
     setFilteredCreators(filtered);
+  };
+
+  const approvalStatusBadge = (creator: CreatorProfile) => {
+    const status = creator.approvalStatus;
+    if (status === 1) {
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">อนุมัติแล้ว</span>;
+    }
+    if (status === 0) {
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700">ถูกปฏิเสธ</span>;
+    }
+    if (status === 2) {
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">ไม่ใช้งาน</span>;
+    }
+    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700">รอการอนุมัติ</span>;
+  };
+
+  const updateApprovalStatus = async (creator: CreatorProfile, status: 0 | 1 | 2 | 3) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ approval_status: status })
+        .eq('id', creator.id);
+
+      if (error) {
+        console.error('Update approval status error:', error);
+        toast.error('ไม่สามารถอัปเดตสถานะได้');
+        return;
+      }
+
+      toast.success('อัปเดตสถานะสำเร็จ');
+      // Refresh list locally
+      setCreators((prev) =>
+        prev.map((c) => (c.id === creator.id ? { ...c, approvalStatus: status } : c)),
+      );
+    } catch (error) {
+      console.error('Update approval status error:', error);
+      toast.error('ไม่สามารถอัปเดตสถานะได้');
+    }
+  };
+
+  const sendApprovalEmail = (creator: CreatorProfile) => {
+    const subject = encodeURIComponent('AssetWise Creators Club - อนุมัติการเข้าร่วม');
+    const body = encodeURIComponent(
+      `สวัสดีคุณ ${creator.name},\n\nคำขอเข้าร่วมของคุณได้รับการอนุมัติเรียบร้อยแล้ว คุณสามารถเริ่มต้นใช้งานแพลตฟอร์มสำหรับ Creators ของเราได้ทันที\n\nขอบคุณที่เข้าร่วมเป็นส่วนหนึ่งของ AssetWise Creators Club`
+    );
+    window.location.href = `mailto:${creator.email}?subject=${subject}&body=${body}`;
+  };
+
+  const sendRejectionEmail = (creator: CreatorProfile) => {
+    const subject = encodeURIComponent('AssetWise Creators Club - ผลการพิจารณา');
+    const body = encodeURIComponent(
+      `สวัสดีคุณ ${creator.name},\n\nหลังจากการตรวจสอบคำขอของคุณ ทีมงานขอแจ้งให้ทราบว่าไม่สามารถอนุมัติคำขอเข้าร่วมได้ในขณะนี้\n\nคุณสามารถติดต่อทีมงานเพื่อสอบถามข้อมูลเพิ่มเติม หรือลองสมัครใหม่อีกครั้งในอนาคตได้เช่นกัน\n\nขอบคุณที่ให้ความสนใจใน AssetWise Creators Club`
+    );
+    window.location.href = `mailto:${creator.email}?subject=${subject}&body=${body}`;
   };
 
   const getSocialLinks = (creator: CreatorProfile) => {
@@ -126,6 +193,21 @@ export function AdminDashboard() {
               placeholder="ค้นหา..."
               className="px-4 py-2.5 bg-input-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label>สถานะการอนุมัติ</label>
+            <select
+              value={approvalFilter}
+              onChange={(e) => setApprovalFilter(e.target.value as typeof approvalFilter)}
+              className="px-4 py-2.5 bg-input-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
+            >
+              <option value="all">ทั้งหมด</option>
+              <option value="pending">คำขอเข้าร่วม (รอการอนุมัติ)</option>
+              <option value="approved">อนุมัติแล้ว</option>
+              <option value="rejected">ถูกปฏิเสธ</option>
+              <option value="inactive">ไม่ใช้งาน</option>
+            </select>
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -254,6 +336,9 @@ export function AdminDashboard() {
                 <div className="text-center mb-4">
                   <h4 className="text-foreground mb-1">{creator.name}</h4>
                   <p className="text-sm text-muted-foreground truncate">{creator.email}</p>
+                  <div className="mt-2 flex justify-center">
+                    {approvalStatusBadge(creator)}
+                  </div>
                 </div>
 
                 {/* Stats */}
@@ -272,14 +357,56 @@ export function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* Button */}
-                <Button
-                  onClick={() => setSelectedCreator(creator)}
-                  variant="outline"
-                  fullWidth
-                >
-                  ดูรายละเอียด
-                </Button>
+                {/* Actions */}
+                <div className="mt-2 space-y-2">
+                  <Button
+                    onClick={() => setSelectedCreator(creator)}
+                    variant="outline"
+                    fullWidth
+                  >
+                    ดูรายละเอียด
+                  </Button>
+                  {creator.approvalStatus === 3 && (
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => updateApprovalStatus(creator, 1)}
+                        fullWidth
+                        variant='success'
+                      >
+                        อนุมัติ
+                      </Button>
+                      <Button
+                        onClick={() => updateApprovalStatus(creator, 0)}
+                        fullWidth
+                        variant='error'
+                      >
+                        ปฏิเสธ
+                      </Button>
+                    </div>
+                  )}
+                  {creator.approvalStatus === 1 && (
+                    <Button
+                      onClick={() => sendApprovalEmail(creator)}
+                      fullWidth
+                      variant='successTransparent'
+                      center
+                    >
+                      <MailIcon className="w-5 h-5" />
+                      ส่งอีเมลแจ้งอนุมัติ
+                    </Button>
+                  )}
+                  {creator.approvalStatus === 0 && (
+                    <Button
+                      onClick={() => sendRejectionEmail(creator)}
+                      fullWidth
+                      variant='errorTransparent'
+                      center
+                    >
+                      <MailIcon className="w-5 h-5" />
+                      ส่งอีเมลแจ้งปฏิเสธ
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -296,6 +423,7 @@ export function AdminDashboard() {
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">ผู้ติดตาม</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">โทรศัพท์</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">โซเชียล</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">สถานะ</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">การดำเนินการ</th>
                 </tr>
               </thead>
@@ -324,13 +452,60 @@ export function AdminDashboard() {
                     <td className="py-3 px-4 text-sm text-foreground">{creator.phone || '-'}</td>
                     <td className="py-3 px-4 text-sm text-foreground">{getSocialLinks(creator).length} ช่องทาง</td>
                     <td className="py-3 px-4">
+                      {approvalStatusBadge(creator)}
+                    </td>
+                    <td className="py-3 px-4 space-y-1">
                       <Button
                         onClick={() => setSelectedCreator(creator)}
                         variant="outline"
                         size="sm"
+                        fullWidth
                       >
                         ดูรายละเอียด
                       </Button>
+                      {creator.approvalStatus === 3 && (
+                        <div className="flex gap-2 mt-1">
+                          <Button
+                            onClick={() => updateApprovalStatus(creator, 1)}
+                            size="sm"
+                            fullWidth
+                          >
+                            อนุมัติ
+                          </Button>
+                          <Button
+                            onClick={() => updateApprovalStatus(creator, 0)}
+                            variant="outline"
+                            size="sm"
+                            fullWidth
+                          >
+                            ปฏิเสธ
+                          </Button>
+                        </div>
+                      )}
+                      {creator.approvalStatus === 1 && (
+                        <Button
+                          onClick={() => sendApprovalEmail(creator)}
+                          size="sm"
+                          fullWidth
+                          variant='successTransparent'
+                          center
+                        >
+                          <MailIcon className="w-5 h-5" />
+                          ส่งอีเมลแจ้งอนุมัติ
+                        </Button>
+                      )}
+                      {creator.approvalStatus === 0 && (
+                        <Button
+                          onClick={() => sendRejectionEmail(creator)}
+                          size="sm"
+                          fullWidth
+                          variant='errorTransparent'
+                          center
+                        >
+                          <MailIcon className="w-5 h-5" />
+                          ส่งอีเมลแจ้งปฏิเสธ
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 ))}

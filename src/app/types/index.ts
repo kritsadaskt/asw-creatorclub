@@ -30,6 +30,9 @@ export interface CreatorProfile {
     youtube?: number;
     twitter?: number;
   };
+  // Approval status for admin workflow:
+  // 0 = rejected, 1 = approved, 2 = inactive, 3 = pending
+  approvalStatus: 0 | 1 | 2 | 3;
   status: 'general' | 'resident' | 'partner'; // บุคคลทั่วไป or ลูกบ้านแอสเซทไวส์ or แอสเซทไวส์ พาร์ทเนอร์
   projectName?: string; // For when status is 'resident'
   createdAt: string;

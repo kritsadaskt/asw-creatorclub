@@ -44,7 +44,7 @@ const fetchProjectOptions = async (): Promise<ProjectGroup[]> => {
   });
 
   return Object.entries(groupsByType).map(([type, options]) => ({
-    label: type,
+    label: type === 'condo' ? 'คอนโดมิเนียม' : type === 'house' ? 'บ้านและทาวน์โฮม' : type === 'other' ? 'อื่นๆ' : type,
     options,
   }));
 };
@@ -113,6 +113,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
     { value: 'MISS_THAILAND', label: 'นางสาวไทย' },
     { value: 'MISTER_AND_MISS_GLOBAL_THAILAND', label: 'Mister and Miss Global Thailand' },
     { value: 'MISS_WORLD', label: 'Miss World' },
+    { value: 'ASW', lable: 'พนักงานแอสเซทไวส์ และบริษัทในเครือ'},
     { value: 'other', label: 'Other' },
   ];
 
@@ -427,6 +428,8 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
         budgets: {
           facebook: budget ? parseInt(budget) : undefined,
         },
+        // 3 = pending approval by admin
+        approvalStatus: 3,
         status,
         projectName: status === 'resident' ? projectName : undefined,
         createdAt: new Date().toISOString(),
