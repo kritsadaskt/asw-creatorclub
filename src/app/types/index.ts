@@ -6,7 +6,12 @@ export interface CreatorProfile {
   phone: string;
   baseLocation: string;
   province?: string; // For when baseLocation is 'ต่างจังหวัด'
-  category: string;
+  /**
+   * Multiple categories per creator.
+   * Stored in Supabase `profiles.categories` (text[]).
+   * Old data may still have single `category` string in the DB; we map it to this array in storage utils.
+   */
+  categories: string[];
   followers: number;
   profileImage?: string;
   socialAccounts: {
@@ -15,6 +20,7 @@ export interface CreatorProfile {
     tiktok?: string;
     youtube?: string;
     twitter?: string;
+    lemon8?: string;
   };
   followerCounts: {
     facebook?: number;
@@ -22,6 +28,7 @@ export interface CreatorProfile {
     tiktok?: number;
     youtube?: number;
     twitter?: number;
+    lemon8?: number;
   };
   budgets: {
     facebook?: number;

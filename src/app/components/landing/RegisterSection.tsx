@@ -7,9 +7,10 @@ import { saveCreator, getCreatorByEmail, getCreatorByFacebookId, setCurrentUser,
 import { loginWithFacebook, getFacebookUserInfo, fetchAndUploadFacebookProfileImage } from '../../utils/facebook';
 import { hashPassword, validatePassword, validatePasswordConfirm } from '../../utils/password';
 import { UserPlus, Eye, EyeOff } from 'lucide-react';
-import { FaFacebook, FaInstagram, FaTiktok, FaYoutube, FaXTwitter } from 'react-icons/fa6';
+import { FaFacebook } from 'react-icons/fa6';
 import Select from 'react-select';
 import { Lemon8Icon } from '../../utils/svg';
+import SocialAccounts from '../layout/SocialAccounts';
 
 interface RegisterSectionProps {
   onLogin: (id: string, role: 'creator' | 'admin') => void;
@@ -63,19 +64,34 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
   const [projectOptions, setProjectOptions] = useState<ProjectGroup[]>([]);
   const [facebookLoading, setFacebookLoading] = useState(false);
   
-  // Social media fields
-  const [facebookUrl, setFacebookUrl] = useState('');
-  const [facebookFollowers, setFacebookFollowers] = useState('');
-  const [instagramUrl, setInstagramUrl] = useState('');
-  const [instagramFollowers, setInstagramFollowers] = useState('');
-  const [tiktokUrl, setTiktokUrl] = useState('');
-  const [tiktokFollowers, setTiktokFollowers] = useState('');
-  const [youtubeUrl, setYoutubeUrl] = useState('');
-  const [youtubeFollowers, setYoutubeFollowers] = useState('');
-  const [twitterUrl, setTwitterUrl] = useState('');
-  const [twitterFollowers, setTwitterFollowers] = useState('');
-  const [lemon8Url, setLemon8Url] = useState('');
-  const [lemon8Followers, setLemon8Followers] = useState('');
+  // Social media fields (managed via SocialAccounts component)
+  const [socialData, setSocialData] = useState<{
+    socialAccounts: {
+      facebook?: string;
+      instagram?: string;
+      tiktok?: string;
+      youtube?: string;
+      twitter?: string;
+      lemon8?: string;
+    };
+    followerCounts: {
+      facebook?: number;
+      instagram?: number;
+      tiktok?: number;
+      youtube?: number;
+      twitter?: number;
+      lemon8?: number;
+    };
+    isValid: boolean;
+    errors: Record<string, string>;
+    socialError: string;
+  }>({
+    socialAccounts: {},
+    followerCounts: {},
+    isValid: false,
+    errors: {},
+    socialError: '',
+  });
 
   // Budget fields
   const [budget, setBudget] = useState('');
@@ -124,7 +140,6 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
 
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [socialError, setSocialError] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
@@ -160,8 +175,6 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const phoneRegex = /^0[0-9]{9}$/;
-  const urlRegex = /^https:\/\/.+/;
-
   const validateField = (fieldKey: string, value: string): string => {
     switch (fieldKey) {
       case 'name':
@@ -236,35 +249,18 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
       addError('projectName', validateField('projectName', projectName));
     }
 
-    const hasAnySocial =
-      !!facebookUrl || !!instagramUrl || !!tiktokUrl || !!youtubeUrl || !!twitterUrl;
-    if (!hasAnySocial) {
-      newErrors.social = 'กรุณากรอกข้อมูล Social Media อย่างน้อย 1 แพลตฟอร์ม';
-    } else {
-      const validateSocialUrl = (url: string, label: string) =>
-        url && !urlRegex.test(url.trim())
-          ? `กรุณากรอก ${label} ให้เป็นลิงก์ที่ขึ้นต้นด้วย https://`
-          : '';
-
-      const facebookError = validateSocialUrl(facebookUrl, 'Facebook URL');
-      const instagramError = validateSocialUrl(instagramUrl, 'Instagram URL');
-      const tiktokError = validateSocialUrl(tiktokUrl, 'TikTok URL');
-      const youtubeError = validateSocialUrl(youtubeUrl, 'YouTube URL');
-      const twitterError = validateSocialUrl(twitterUrl, 'X (Twitter) URL');
-
-      if (facebookError) newErrors.facebookUrl = facebookError;
-      if (instagramError) newErrors.instagramUrl = instagramError;
-      if (tiktokError) newErrors.tiktokUrl = tiktokError;
-      if (youtubeError) newErrors.youtubeUrl = youtubeError;
-      if (twitterError) newErrors.twitterUrl = twitterError;
-    }
-
     if (!acceptedTerms) {
       newErrors.acceptedTerms = 'กรุณายอมรับข้อกำหนดและนโยบายความเป็นส่วนตัว';
     }
 
     setFieldErrors(newErrors);
-    setSocialError(newErrors.social || '');
+    if (!socialData.isValid) {
+      if (socialData.socialError) {
+        newErrors.social = socialData.socialError;
+      } else {
+        newErrors.social = 'กรุณากรอกข้อมูล Social Media อย่างน้อย 1 แพลตฟอร์ม';
+      }
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setTouchedFields((prev) => {
@@ -281,7 +277,6 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
   };
   const handleFacebookRegister = async () => {
     setError('');
-    setSocialError('');
     setFacebookLoading(true);
 
     try {
@@ -408,22 +403,24 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
         phone,
         baseLocation,
         province: baseLocation === 'ต่างจังหวัด' ? province : undefined,
-        category: '',
+        categories: creatorCategory.map((c) => c.label),
         followers: 0,
         profileImage: pendingFacebookPicture || undefined,
         socialAccounts: {
-          facebook: facebookUrl || undefined,
-          instagram: instagramUrl || undefined,
-          tiktok: tiktokUrl || undefined,
-          youtube: youtubeUrl || undefined,
-          twitter: twitterUrl || undefined,
+          facebook: socialData.socialAccounts.facebook || undefined,
+          instagram: socialData.socialAccounts.instagram || undefined,
+          tiktok: socialData.socialAccounts.tiktok || undefined,
+          youtube: socialData.socialAccounts.youtube || undefined,
+          twitter: socialData.socialAccounts.twitter || undefined,
+          lemon8: socialData.socialAccounts.lemon8 || undefined,
         },
         followerCounts: {
-          facebook: facebookFollowers ? parseInt(facebookFollowers) : undefined,
-          instagram: instagramFollowers ? parseInt(instagramFollowers) : undefined,
-          tiktok: tiktokFollowers ? parseInt(tiktokFollowers) : undefined,
-          youtube: youtubeFollowers ? parseInt(youtubeFollowers) : undefined,
-          twitter: twitterFollowers ? parseInt(twitterFollowers) : undefined,
+          facebook: socialData.followerCounts.facebook,
+          instagram: socialData.followerCounts.instagram,
+          tiktok: socialData.followerCounts.tiktok,
+          youtube: socialData.followerCounts.youtube,
+          twitter: socialData.followerCounts.twitter,
+          lemon8: socialData.followerCounts.lemon8,
         },
         budgets: {
           facebook: budget ? parseInt(budget) : undefined,
@@ -794,209 +791,12 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
               />
             </div>
 
-            {/* Social Media Accounts */}
-            <div className="space-y-4 pt-4 border-t border-border">
-              <h3 className="font-semibold text-primary">Social Media</h3>
-              <p className="text-sm text-muted-foreground -mt-2">กรอกข้อมูลอย่างน้อย 1 แพลตฟอร์ม</p>
-              {socialError && (
-                <p className="mt-1 text-xs text-destructive">
-                  {socialError}
-                </p>
-              )}
-
-              {/* Facebook */}
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="md:col-span-2">
-                  <Input
-                    label="Facebook URL"
-                    icon={<FaFacebook className="h-5 w-5 text-[#1877F2]" />}
-                    value={facebookUrl}
-                    onChange={(value) => {
-                      setFacebookUrl(value);
-                      if (touchedFields.facebookUrl) {
-                        setFieldErrors((prev) => ({
-                          ...prev,
-                          facebookUrl: '',
-                        }));
-                      }
-                    }}
-                    placeholder="https://facebook.com/..."
-                    onBlur={() => {
-                      setTouchedFields((prev) => ({ ...prev, facebookUrl: true }));
-                    }}
-                    error={fieldErrors.facebookUrl}
-                  />
-                </div>
-                <div>
-                  <Input
-                    label="จำนวนผู้ติดตาม"
-                    type="number"
-                    value={facebookFollowers}
-                    onChange={setFacebookFollowers}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-
-              {/* Instagram */}
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="md:col-span-2">
-                  <Input
-                    label="Instagram URL"
-                    icon={<FaInstagram className="h-5 w-5 text-pink-500" />}
-                    value={instagramUrl}
-                    onChange={(value) => {
-                      setInstagramUrl(value);
-                      if (touchedFields.instagramUrl) {
-                        setFieldErrors((prev) => ({
-                          ...prev,
-                          instagramUrl: '',
-                        }));
-                      }
-                    }}
-                    placeholder="https://instagram.com/..."
-                    onBlur={() => {
-                      setTouchedFields((prev) => ({ ...prev, instagramUrl: true }));
-                    }}
-                    error={fieldErrors.instagramUrl}
-                  />
-                </div>
-                <div>
-                  <Input
-                    label="จำนวนผู้ติดตาม"
-                    type="number"
-                    value={instagramFollowers}
-                    onChange={setInstagramFollowers}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-
-              {/* TikTok */}
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="md:col-span-2">
-                  <Input
-                    label="TikTok URL"
-                    icon={<FaTiktok className="h-5 w-5 text-black" />}
-                    value={tiktokUrl}
-                    onChange={(value) => {
-                      setTiktokUrl(value);
-                      if (touchedFields.tiktokUrl) {
-                        setFieldErrors((prev) => ({
-                          ...prev,
-                          tiktokUrl: '',
-                        }));
-                      }
-                    }}
-                    placeholder="https://tiktok.com/@..."
-                    onBlur={() => {
-                      setTouchedFields((prev) => ({ ...prev, tiktokUrl: true }));
-                    }}
-                    error={fieldErrors.tiktokUrl}
-                  />
-                </div>
-                <div>
-                  <Input
-                    label="จำนวนผู้ติดตาม"
-                    type="number"
-                    value={tiktokFollowers}
-                    onChange={setTiktokFollowers}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-
-              {/* YouTube */}
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="md:col-span-2">
-                  <Input
-                    label="YouTube URL"
-                    icon={<FaYoutube className="h-5 w-5 text-red-600" />}
-                    value={youtubeUrl}
-                    onChange={(value) => {
-                      setYoutubeUrl(value);
-                      if (touchedFields.youtubeUrl) {
-                        setFieldErrors((prev) => ({
-                          ...prev,
-                          youtubeUrl: '',
-                        }));
-                      }
-                    }}
-                    placeholder="https://youtube.com/..."
-                    onBlur={() => {
-                      setTouchedFields((prev) => ({ ...prev, youtubeUrl: true }));
-                    }}
-                    error={fieldErrors.youtubeUrl}
-                  />
-                </div>
-                <div>
-                  <Input
-                    label="จำนวนผู้ติดตาม"
-                    type="number"
-                    value={youtubeFollowers}
-                    onChange={setYoutubeFollowers}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-
-              {/* Twitter */}
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="md:col-span-2">
-                  <Input
-                    label="X (Twitter) URL"
-                    icon={<FaXTwitter className="h-5 w-5 text-black" />}
-                    value={twitterUrl}
-                    onChange={(value) => {
-                      setTwitterUrl(value);
-                      if (touchedFields.twitterUrl) {
-                        setFieldErrors((prev) => ({
-                          ...prev,
-                          twitterUrl: '',
-                        }));
-                      }
-                    }}
-                    placeholder="https://x.com/..."
-                    onBlur={() => {
-                      setTouchedFields((prev) => ({ ...prev, twitterUrl: true }));
-                    }}
-                    error={fieldErrors.twitterUrl}
-                  />
-                </div>
-                <div>
-                  <Input
-                    label="จำนวนผู้ติดตาม"
-                    type="number"
-                    value={twitterFollowers}
-                    onChange={setTwitterFollowers}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-
-              {/* Twitter */}
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="md:col-span-2">
-                  <Input
-                    label="Lemon8"
-                    icon={<Lemon8Icon className="w-5 h-5 text-yellow-500" />}
-                    value={lemon8Url}
-                    onChange={setLemon8Url}
-                    placeholder="https://lemon8.com/..."
-                  />
-                </div>
-                <div>
-                  <Input
-                    label="จำนวนผู้ติดตาม"
-                    type="number"
-                    value={lemon8Followers}
-                    onChange={setLemon8Followers}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-
-            </div>
+            <SocialAccounts
+              initialSocialAccounts={socialData.socialAccounts}
+              initialFollowerCounts={socialData.followerCounts}
+              requireAtLeastOne={true}
+              onChange={(data) => setSocialData(data)}
+            />
 
             {/* Budget per Post */}
             <div className="space-y-4">

@@ -55,7 +55,10 @@ export const saveCreator = async (creator: CreatorProfile): Promise<void> => {
       phone: creator.phone,
       base_location: creator.baseLocation,
       province: creator.province,
-      category: creator.category,
+      // Keep legacy `category` (single string) for backward compatibility,
+      // but store the real source of truth in `categories` (text[]) as multiple values.
+      category: creator.categories && creator.categories.length > 0 ? creator.categories[0] : null,
+      categories: creator.categories ?? [],
       followers: creator.followers,
       profile_image: creator.profileImage,
       social_accounts: creator.socialAccounts,
@@ -131,7 +134,12 @@ const mapDbToCreatorProfile = (row: any): CreatorProfile => ({
   phone: row.phone || '',
   baseLocation: row.base_location || '',
   province: row.province,
-  category: row.category || '',
+  // Prefer new multi-value `categories` column; fall back to legacy single `category`
+  categories: Array.isArray(row.categories)
+    ? row.categories
+    : row.category
+    ? [row.category]
+    : [],
   followers: row.followers || 0,
   profileImage: row.profile_image,
   socialAccounts: row.social_accounts || {},

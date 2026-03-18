@@ -7,6 +7,7 @@ import { getCreatorById, saveCreator } from '../../utils/storage';
 import { getProfileImageUrl } from '../../utils/profileImage';
 import { AffiliateGenerator } from './AffiliateGenerator';
 import Select from 'react-select';
+import SocialAccounts from '../layout/SocialAccounts';
 
 interface CreatorProfileProps {
   creatorId: string;
@@ -44,7 +45,7 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
         setProfile(creator);
         setProfileImageError(false);
         // Auto-enable editing if profile is incomplete
-        if (!creator.category || creator.followers === 0) {
+        if (!creator.categories || creator.categories.length === 0 || creator.followers === 0) {
           setIsEditing(true);
         }
       } else {
@@ -81,17 +82,17 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-6 py-7 md:py-12">
       <div className="mb-6">
-        <h2>โปรไฟล์ของฉัน</h2>
+        <h2 className='text-neutral-800 text-3xl font-medium'>CREATOR PROFILE</h2>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-border p-4 md:p-6 flex flex-col md:flex-row gap-8">
+      <div className="bg-white rounded-lg shadow-sm border border-border px-4 py-6 md:px-10 md:py-12 flex flex-col md:flex-row gap-8">
         {/* Sidebar */}
         <aside className="w-full md:w-64 md:border-r border-border md:pr-6 flex md:flex-col items-center gap-6">
           {getProfileImageUrl(profile) && !profileImageError ? (
             <img
               src={getProfileImageUrl(profile)}
               alt="Profile Image"
-              className="w-32 h-32 rounded-full object-cover border-4 border-primary/20"
+              className="w-48 h-48 rounded-full object-cover border-4 border-primary/20"
               onError={() => setProfileImageError(true)}
             />
           ) : (
@@ -132,9 +133,9 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
             <>
               {/* Basic Info */}
               <div className="space-y-4">
-                <h3 className="text-primary">ข้อมูลพื้นฐาน</h3>
+                <h3 className="text-primary font-bold">ข้อมูลพื้นฐาน</h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-7">
                   <Input
                     label="ชื่อ"
                     value={profile.name}
@@ -142,6 +143,7 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                     placeholder="กรอกชื่อ"
                     required
                   />
+
                   <Input
                     label="นามสกุล"
                     value={profile.lastName || ''}
@@ -149,7 +151,6 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                     placeholder="กรอกนามสกุล"
                     required
                   />
-                </div>
 
                 <Input
                   label="อีเมล"
@@ -168,6 +169,7 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                   placeholder="กรอกเบอร์โทรศัพท์"
                   required
                 />
+                </div>
 
                 {profile.province && (
                   <Input
@@ -178,28 +180,30 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                     required
                   />
                 )}
-
+                <div className="h-5"></div>
                 <div className="grid grid-cols-2 gap-7">
                   <div className="flex flex-col gap-1.5">
                     <h3 className="text-primary">
-                      หมวดหมู่ <span className="text-destructive">*</span>
+                      คุณเป็นครีเอเตอร์สายไหน ? <span className="text-destructive">*</span>
                     </h3>
                     <Select
                       options={CATEGORIES.map((cat) => ({
                         value: cat,
                         label: cat,
                       }))}
-                      value={
-                        profile.category
-                          ? { value: profile.category, label: profile.category }
-                          : null
-                      }
-                      onChange={(selected) =>
-                        setProfile({
-                          ...profile,
-                          category: selected ? (selected as { value: string }).value : '',
-                        })
-                      }
+                    isMulti
+                    value={(profile.categories || []).map((cat) => ({
+                      value: cat,
+                      label: cat,
+                    }))}
+                    onChange={(selected) =>
+                      setProfile({
+                        ...profile,
+                        categories: (selected || []).map(
+                          (opt: unknown) => (opt as { value: string }).value,
+                        ),
+                      })
+                    }
                       placeholder="เลือกหมวดหมู่"
                       classNamePrefix="react-select"
                     />
@@ -207,109 +211,26 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                 </div>
               </div>
 
-              {/* Social Accounts */}
-              <div className="space-y-4 pt-6 border-t border-border">
-                <h3 className="text-primary">บัญชีโซเชียลมีเดีย</h3>
-                
-                <div className="grid grid-cols-2 gap-7">
-                  <Input
-                    label="Facebook"
-                    value={profile.socialAccounts.facebook || ''}
-                    onChange={(value) => setProfile({
-                      ...profile,
-                      socialAccounts: { ...profile.socialAccounts, facebook: value }
-                    })}
-                    placeholder="https://facebook.com/username"
-                  />
-                  <Input
-                    label="จำนวนผู้ติดตาม"
-                    type="number"
-                    value={profile.followerCounts.facebook?.toString() || ''}
-                    onChange={(value) => setProfile({ ...profile, followerCounts: { ...profile.followerCounts, facebook: parseInt(value) || 0 } })}
-                    placeholder="กรอกจำนวนผู้ติดตาม"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-7">
-                  <Input
-                    label="Instagram"
-                    value={profile.socialAccounts.instagram || ''}
-                    onChange={(value) => setProfile({
-                      ...profile,
-                      socialAccounts: { ...profile.socialAccounts, instagram: value }
-                    })}
-                    placeholder="https://instagram.com/username"
-                  />
-                  <Input
-                    label="จำนวนผู้ติดตาม"
-                    type="number"
-                    value={profile.followerCounts.instagram?.toString() || ''}
-                    onChange={(value) => setProfile({ ...profile, followerCounts: { ...profile.followerCounts, instagram: parseInt(value) || 0 } })}
-                    placeholder="กรอกจำนวนผู้ติดตาม"
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-7">
-                  <Input
-                    label="TikTok"
-                    value={profile.socialAccounts.tiktok || ''}
-                    onChange={(value) => setProfile({
-                      ...profile,
-                      socialAccounts: { ...profile.socialAccounts, tiktok: value }
-                    })}
-                    placeholder="https://tiktok.com/@username"
-                  />
-                  <Input
-                    label="จำนวนผู้ติดตาม"
-                    type="number"
-                    value={profile.followerCounts.tiktok?.toString() || ''}
-                    onChange={(value) => setProfile({ ...profile, followerCounts: { ...profile.followerCounts, tiktok: parseInt(value) || 0 } })}
-                    placeholder="กรอกจำนวนผู้ติดตาม"
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-7">
-                  <Input
-                    label="YouTube"
-                    value={profile.socialAccounts.youtube || ''}
-                    onChange={(value) => setProfile({
-                      ...profile,
-                      socialAccounts: { ...profile.socialAccounts, youtube: value }
-                    })}
-                    placeholder="https://youtube.com/@username"
-                  />
-                  <Input
-                    label="จำนวนผู้ติดตาม"
-                    type="number"
-                    value={profile.followerCounts.youtube?.toString() || ''}
-                    onChange={(value) => setProfile({ ...profile, followerCounts: { ...profile.followerCounts, youtube: parseInt(value) || 0 } })}
-                    placeholder="กรอกจำนวนผู้ติดตาม"
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-7">
-                  <Input
-                    label="Twitter (X)"
-                    value={profile.socialAccounts.twitter || ''}
-                    onChange={(value) => setProfile({
-                      ...profile,
-                      socialAccounts: { ...profile.socialAccounts, twitter: value }
-                    })}
-                    placeholder="https://twitter.com/username"
-                  />
-                  <Input
-                    label="จำนวนผู้ติดตาม"
-                    type="number"
-                    value={profile.followerCounts.twitter?.toString() || ''}
-                    onChange={(value) => setProfile({ ...profile, followerCounts: { ...profile.followerCounts, twitter: parseInt(value) || 0 } })}
-                    placeholder="กรอกจำนวนผู้ติดตาม"
-                    required
-                  />
-                </div>
-              </div>
+              <SocialAccounts
+                initialSocialAccounts={profile.socialAccounts}
+                initialFollowerCounts={profile.followerCounts}
+                requireAtLeastOne={false}
+                label="บัญชีโซเชียลมีเดีย"
+                description=""
+                onChange={(data) =>
+                  setProfile({
+                    ...profile,
+                    socialAccounts: {
+                      ...profile.socialAccounts,
+                      ...data.socialAccounts,
+                    },
+                    followerCounts: {
+                      ...profile.followerCounts,
+                      ...data.followerCounts,
+                    },
+                  })
+                }
+              />
 
               <div className="flex gap-3 pt-4">
                 <Button onClick={handleSave} fullWidth disabled={saving}>

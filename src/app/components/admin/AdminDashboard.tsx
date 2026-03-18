@@ -60,7 +60,9 @@ export function AdminDashboard() {
 
     // Category filter
     if (selectedCategory !== 'ทั้งหมด') {
-      filtered = filtered.filter(creator => creator.category === selectedCategory);
+      filtered = filtered.filter(
+        (creator) => creator.categories && creator.categories.includes(selectedCategory),
+      );
     }
 
     // Search filter
@@ -345,7 +347,11 @@ export function AdminDashboard() {
                 <div className="space-y-2 text-sm mb-4 flex-1">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">หมวดหมู่:</span>
-                    <span className="text-foreground">{creator.category || '-'}</span>
+                    <span className="text-foreground">
+                      {creator.categories && creator.categories.length > 0
+                        ? creator.categories.join(', ')
+                        : '-'}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">ผู้ติดตาม:</span>
@@ -447,7 +453,11 @@ export function AdminDashboard() {
                     </td>
                     <td className="py-3 px-4 text-sm text-foreground">{creator.name}</td>
                     <td className="py-3 px-4 text-sm text-foreground">{creator.email}</td>
-                    <td className="py-3 px-4 text-sm text-foreground">{creator.category || '-'}</td>
+                    <td className="py-3 px-4 text-sm text-foreground">
+                      {creator.categories && creator.categories.length > 0
+                        ? creator.categories.join(', ')
+                        : '-'}
+                    </td>
                     <td className="py-3 px-4 text-sm text-foreground">{creator.followers.toLocaleString()}</td>
                     <td className="py-3 px-4 text-sm text-foreground">{creator.phone || '-'}</td>
                     <td className="py-3 px-4 text-sm text-foreground">{getSocialLinks(creator).length} ช่องทาง</td>
@@ -571,7 +581,11 @@ export function AdminDashboard() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-muted-foreground">หมวดหมู่</label>
-                  <p className="text-foreground">{selectedCreator.category || '-'}</p>
+                  <p className="text-foreground">
+                    {selectedCreator.categories && selectedCreator.categories.length > 0
+                      ? selectedCreator.categories.join(', ')
+                      : '-'}
+                  </p>
                 </div>
                 <div>
                   <label className="text-muted-foreground">ผู้ติดตาม</label>
