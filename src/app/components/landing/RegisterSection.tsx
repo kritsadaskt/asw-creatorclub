@@ -6,7 +6,7 @@ import { CreatorProfile } from '../../types';
 import { saveCreator, getCreatorByEmail, getCreatorByFacebookId, setCurrentUser, generateUUID, getProjects } from '../../utils/storage';
 import { loginWithFacebook, getFacebookUserInfo, fetchAndUploadFacebookProfileImage } from '../../utils/facebook';
 import { hashPassword, validatePassword, validatePasswordConfirm } from '../../utils/password';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Eye, EyeOff } from 'lucide-react';
 import { FaFacebook, FaInstagram, FaTiktok, FaYoutube, FaXTwitter } from 'react-icons/fa6';
 import Select from 'react-select';
 import { Lemon8Icon } from '../../utils/svg';
@@ -25,12 +25,27 @@ const BANGKOK_PROVINCES = [
 ];
 
 type SelectOption = { value: string; label: string };
+type ProjectGroup = { label: string; options: SelectOption[] };
 
-const fetchProjectOptions = async () => {
-  const projectOptions = await getProjects();
-  return projectOptions.map((project) => ({
-    value: project.id,
-    label: project.name,
+const fetchProjectOptions = async (): Promise<ProjectGroup[]> => {
+  const projects = await getProjects();
+
+  const groupsByType: Record<string, SelectOption[]> = {};
+
+  projects.forEach((project) => {
+    const typeKey = project.type || 'other';
+    if (!groupsByType[typeKey]) {
+      groupsByType[typeKey] = [];
+    }
+    groupsByType[typeKey].push({
+      value: project.id,
+      label: project.name,
+    });
+  });
+
+  return Object.entries(groupsByType).map(([type, options]) => ({
+    label: type,
+    options,
   }));
 };
 
@@ -45,7 +60,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
   const [province, setProvince] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [projectOptions, setProjectOptions] = useState<SelectOption[]>([]);
+  const [projectOptions, setProjectOptions] = useState<ProjectGroup[]>([]);
   const [facebookLoading, setFacebookLoading] = useState(false);
   
   // Social media fields
@@ -106,6 +121,26 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
   const [projectName, setProjectName] = useState('');
   const [partnerType, setPartnerType] = useState<string>('MUT');
 
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [socialError, setSocialError] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | ''>('');
+
+  const computePasswordStrength = (value: string): 'weak' | 'medium' | 'strong' | '' => {
+    if (!value) return '';
+    let score = 0;
+    if (value.length >= 8) score++;
+    if (/[0-9]/.test(value)) score++;
+    if (/[A-Z]/.test(value) || /[^A-Za-z0-9]/.test(value)) score++;
+    if (score <= 1) return 'weak';
+    if (score === 2) return 'medium';
+    return 'strong';
+  };
+
   useEffect(() => {
     fetchProjectOptions()
       .then(setProjectOptions)
@@ -121,8 +156,131 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
       setProjectOptions([]);
     });
   }, []);
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegex = /^0[0-9]{9}$/;
+  const urlRegex = /^https:\/\/.+/;
+
+  const validateField = (fieldKey: string, value: string): string => {
+    switch (fieldKey) {
+      case 'name':
+        if (!value.trim()) return 'กรุณากรอกชื่อ';
+        return '';
+      case 'lastName':
+        if (!value.trim()) return 'กรุณากรอกนามสกุล';
+        return '';
+      case 'phone':
+        if (!value.trim()) return 'กรุณากรอกเบอร์โทรศัพท์';
+        if (!phoneRegex.test(value.trim())) {
+          return 'กรุณากรอกเบอร์โทรศัพท์ที่ถูกต้อง (10 หลัก)';
+        }
+        return '';
+      case 'email':
+        if (!value.trim()) return 'กรุณากรอกอีเมล';
+        if (!emailRegex.test(value.trim())) {
+          return 'กรุณากรอกอีเมลที่ถูกต้อง';
+        }
+        return '';
+      case 'password':
+        if (!value.trim()) return 'กรุณากรอกรหัสผ่าน';
+        if (value.length < 8 || !/[0-9]/.test(value)) {
+          return 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร และมีตัวเลขอย่างน้อย 1 ตัว';
+        }
+        return '';
+      case 'confirmPassword':
+        if (!value.trim()) return 'กรุณายืนยันรหัสผ่าน';
+        if (value !== password) return 'รหัสผ่านไม่ตรงกัน';
+        return '';
+      case 'baseLocation':
+        if (!value.trim()) return 'กรุณาเลือกจังหวัดที่คุณอยู่ปัจจุบัน';
+        return '';
+      case 'province':
+        if (!value.trim()) return 'กรุณากรอกจังหวัด';
+        return '';
+      case 'projectName':
+        if (!value.trim()) return 'กรุณาเลือกโครงการที่อยู่อาศัย';
+        return '';
+      default:
+        return '';
+    }
+  };
+
+  const validateAll = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    const addError = (key: string, message: string) => {
+      if (message) {
+        newErrors[key] = message;
+      }
+    };
+
+    addError('name', validateField('name', name));
+    addError('lastName', validateField('lastName', lastName));
+    addError('phone', validateField('phone', phone));
+    addError('email', validateField('email', email));
+
+    const hasPendingFacebook =
+      typeof window !== 'undefined' && sessionStorage.getItem('pendingFacebookId');
+    if (!hasPendingFacebook) {
+      addError('password', validateField('password', password));
+      addError('confirmPassword', validateField('confirmPassword', confirmPassword));
+    }
+
+    addError('baseLocation', validateField('baseLocation', baseLocation));
+    if (baseLocation === 'ต่างจังหวัด') {
+      addError('province', validateField('province', province));
+    }
+
+    if (status === 'resident') {
+      addError('projectName', validateField('projectName', projectName));
+    }
+
+    const hasAnySocial =
+      !!facebookUrl || !!instagramUrl || !!tiktokUrl || !!youtubeUrl || !!twitterUrl;
+    if (!hasAnySocial) {
+      newErrors.social = 'กรุณากรอกข้อมูล Social Media อย่างน้อย 1 แพลตฟอร์ม';
+    } else {
+      const validateSocialUrl = (url: string, label: string) =>
+        url && !urlRegex.test(url.trim())
+          ? `กรุณากรอก ${label} ให้เป็นลิงก์ที่ขึ้นต้นด้วย https://`
+          : '';
+
+      const facebookError = validateSocialUrl(facebookUrl, 'Facebook URL');
+      const instagramError = validateSocialUrl(instagramUrl, 'Instagram URL');
+      const tiktokError = validateSocialUrl(tiktokUrl, 'TikTok URL');
+      const youtubeError = validateSocialUrl(youtubeUrl, 'YouTube URL');
+      const twitterError = validateSocialUrl(twitterUrl, 'X (Twitter) URL');
+
+      if (facebookError) newErrors.facebookUrl = facebookError;
+      if (instagramError) newErrors.instagramUrl = instagramError;
+      if (tiktokError) newErrors.tiktokUrl = tiktokError;
+      if (youtubeError) newErrors.youtubeUrl = youtubeError;
+      if (twitterError) newErrors.twitterUrl = twitterError;
+    }
+
+    if (!acceptedTerms) {
+      newErrors.acceptedTerms = 'กรุณายอมรับข้อกำหนดและนโยบายความเป็นส่วนตัว';
+    }
+
+    setFieldErrors(newErrors);
+    setSocialError(newErrors.social || '');
+
+    if (Object.keys(newErrors).length > 0) {
+      setTouchedFields((prev) => {
+        const updated = { ...prev };
+        Object.keys(newErrors).forEach((key) => {
+                  updated[key] = true;
+        });
+        return updated;
+      });
+      return false;
+    }
+
+    return true;
+  };
   const handleFacebookRegister = async () => {
     setError('');
+    setSocialError('');
     setFacebookLoading(true);
 
     try {
@@ -184,6 +342,12 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    const isValid = validateAll();
+    if (!isValid) {
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -229,20 +393,6 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
         return;
       }
 
-      // Validate at least one social media
-      if (!facebookUrl && !instagramUrl && !tiktokUrl && !youtubeUrl && !twitterUrl) {
-        setError('กรุณากรอกข้อมูล Social Media อย่างน้อย 1 แพลตฟอร์ม');
-        setLoading(false);
-        return;
-      }
-
-      // Validate project name for residents
-      if (status === 'resident' && !projectName.trim()) {
-        setError('กรุณากรอกชื่อโครงการ');
-        setLoading(false);
-        return;
-      }
-
       // Hash password if provided
       let passwordHash: string | undefined;
       if (!pendingFacebookId && password) {
@@ -252,7 +402,8 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
       const newCreator: CreatorProfile = {
         id: generateUUID(),
         email,
-        name,
+        name: `${name} ${lastName}`.trim(),
+        lastName: lastName.trim() || undefined,
         phone,
         baseLocation,
         province: baseLocation === 'ต่างจังหวัด' ? province : undefined,
@@ -308,8 +459,8 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
 
   return (
     <section id="register-section" className="py-16">
-      <div className="max-w-3xl mx-auto px-6">
-        <div className="bg-white rounded-2xl shadow-xl p-8 md:p-10">
+      <div className="max-w-3xl mx-auto px-4 md:px-6">
+        <div className="bg-white rounded-2xl shadow-xl p-5 md:p-10">
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <UserPlus className="w-8 h-8 text-accent" />
@@ -353,46 +504,110 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
 
             {/* Basic Information */}
             <div className="space-y-4">
-              <div className="flex gap-5">
-                <div className="w-1/2">
+              <div className="flex flex-col md:flex-row gap-5">
+                <div className="w-full md:w-1/2">
                   <Input
                     label="ชื่อ"
                     value={name}
-                    onChange={setName}
+                    onChange={(value) => {
+                      setName(value);
+                      if (touchedFields.name) {
+                        setFieldErrors((prev) => ({
+                          ...prev,
+                          name: validateField('name', value),
+                        }));
+                      }
+                    }}
                     placeholder="ชื่อ"
                     required
+                    onBlur={() => {
+                      setTouchedFields((prev) => ({ ...prev, name: true }));
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        name: validateField('name', name),
+                      }));
+                    }}
+                    error={touchedFields.name ? fieldErrors.name : ''}
                   />
                 </div>
-                <div className="w-1/2">
+                <div className="w-full md:w-1/2">
                   <Input
                     label="นามสกุล"
                     value={lastName}
-                    onChange={setLastName}
+                    onChange={(value) => {
+                      setLastName(value);
+                      if (touchedFields.lastName) {
+                        setFieldErrors((prev) => ({
+                          ...prev,
+                          lastName: validateField('lastName', value),
+                        }));
+                      }
+                    }}
                     placeholder="นามสกุล"
                     required
+                    onBlur={() => {
+                      setTouchedFields((prev) => ({ ...prev, lastName: true }));
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        lastName: validateField('lastName', lastName),
+                      }));
+                    }}
+                    error={touchedFields.lastName ? fieldErrors.lastName : ''}
                   />
                 </div>
               </div>
 
-              <div className="flex gap-5">
-                <div className="w-1/2">
+              <div className="flex flex-col md:flex-row gap-5">
+                <div className="w-full md:w-1/2">
                   <Input
                     label="เบอร์โทรศัพท์"
                     type="tel"
                     value={phone}
-                    onChange={setPhone}
+                    onChange={(value) => {
+                      setPhone(value);
+                      if (touchedFields.phone) {
+                        setFieldErrors((prev) => ({
+                          ...prev,
+                          phone: validateField('phone', value),
+                        }));
+                      }
+                    }}
                     placeholder="กรอกเบอร์โทรศัพท์"
                     required
+                    onBlur={() => {
+                      setTouchedFields((prev) => ({ ...prev, phone: true }));
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        phone: validateField('phone', phone),
+                      }));
+                    }}
+                    error={touchedFields.phone ? fieldErrors.phone : ''}
                   />
                 </div>
-                <div className="w-1/2">
+                <div className="w-full md:w-1/2">
                   <Input
                     label="อีเมล"
                     type="email"
                     value={email}
-                    onChange={setEmail}
+                    onChange={(value) => {
+                      setEmail(value);
+                      if (touchedFields.email) {
+                        setFieldErrors((prev) => ({
+                          ...prev,
+                          email: validateField('email', value),
+                        }));
+                      }
+                    }}
                     placeholder="กรอกอีเมล"
                     required
+                    onBlur={() => {
+                      setTouchedFields((prev) => ({ ...prev, email: true }));
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        email: validateField('email', email),
+                      }));
+                    }}
+                    error={touchedFields.email ? fieldErrors.email : ''}
                   />
                 </div>
               </div>
@@ -402,20 +617,82 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                 <>
                   <Input
                     label="รหัสผ่าน"
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     value={password}
-                    onChange={setPassword}
-                    placeholder="กรอกรหัสผ่าน (อย่างน้อย 6 ตัวอักษร)"
+                    onChange={(value) => {
+                      setPassword(value);
+                      setPasswordStrength(computePasswordStrength(value));
+                      if (touchedFields.password) {
+                        setFieldErrors((prev) => ({
+                          ...prev,
+                          password: validateField('password', value),
+                        }));
+                      }
+                      if (touchedFields.confirmPassword) {
+                        setFieldErrors((prev) => ({
+                          ...prev,
+                          confirmPassword: validateField('confirmPassword', confirmPassword),
+                        }));
+                      }
+                    }}
+                    placeholder="กรอกรหัสผ่าน (อย่างน้อย 8 ตัวอักษร และมีตัวเลขอย่างน้อย 1 ตัว)"
                     required
+                    onBlur={() => {
+                      setTouchedFields((prev) => ({ ...prev, password: true }));
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        password: validateField('password', password),
+                      }));
+                    }}
+                    error={touchedFields.password ? fieldErrors.password : ''}
+                    rightIcon={showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    onRightIconClick={() => setShowPassword((prev) => !prev)}
                   />
+
+                  {password && (
+                    <div className="mt-1 text-xs">
+                      <span
+                        className={
+                          passwordStrength === 'weak'
+                            ? 'text-destructive'
+                            : passwordStrength === 'medium'
+                            ? 'text-amber-500'
+                            : 'text-emerald-600'
+                        }
+                      >
+                        รหัสผ่าน: {passwordStrength === 'weak' ? 'อ่อน' : passwordStrength === 'medium' ? 'ปานกลาง' : 'แข็งแรง'}
+                      </span>
+                      <p className="text-muted-foreground mt-0.5">
+                        อย่างน้อย 8 ตัวอักษร และมีตัวเลขอย่างน้อย 1 ตัว
+                      </p>
+                    </div>
+                  )}
 
                   <Input
                     label="ยืนยันรหัสผ่าน"
-                    type="password"
+                    type={showConfirmPassword ? 'text' : 'password'}
                     value={confirmPassword}
-                    onChange={setConfirmPassword}
+                    onChange={(value) => {
+                      setConfirmPassword(value);
+                      if (touchedFields.confirmPassword) {
+                        setFieldErrors((prev) => ({
+                          ...prev,
+                          confirmPassword: validateField('confirmPassword', value),
+                        }));
+                      }
+                    }}
                     placeholder="กรอกรหัสผ่านอีกครั้ง"
                     required
+                    onBlur={() => {
+                      setTouchedFields((prev) => ({ ...prev, confirmPassword: true }));
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        confirmPassword: validateField('confirmPassword', confirmPassword),
+                      }));
+                    }}
+                    error={touchedFields.confirmPassword ? fieldErrors.confirmPassword : ''}
+                    rightIcon={showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    onRightIconClick={() => setShowConfirmPassword((prev) => !prev)}
                   />
                 </>
               )}
@@ -466,17 +743,37 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                   placeholder="เลือกจังหวัด"
                   classNamePrefix="react-select"
                   isSearchable
-                  required
                 />
+                {touchedFields.baseLocation && fieldErrors.baseLocation && (
+                  <p className="mt-1 text-xs text-destructive">
+                    {fieldErrors.baseLocation}
+                  </p>
+                )}
               </div>
 
               {baseLocation === 'ต่างจังหวัด' && (
                 <Input
                   label="จังหวัด"
                   value={province}
-                  onChange={setProvince}
+                  onChange={(value) => {
+                    setProvince(value);
+                    if (touchedFields.province) {
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        province: validateField('province', value),
+                      }));
+                    }
+                  }}
                   placeholder="กรอกจังหวัด"
                   required
+                  onBlur={() => {
+                    setTouchedFields((prev) => ({ ...prev, province: true }));
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      province: validateField('province', province),
+                    }));
+                  }}
+                  error={touchedFields.province ? fieldErrors.province : ''}
                 />
               )}
             </div>
@@ -498,6 +795,11 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
             <div className="space-y-4 pt-4 border-t border-border">
               <h3 className="font-semibold text-primary">Social Media</h3>
               <p className="text-sm text-muted-foreground -mt-2">กรอกข้อมูลอย่างน้อย 1 แพลตฟอร์ม</p>
+              {socialError && (
+                <p className="mt-1 text-xs text-destructive">
+                  {socialError}
+                </p>
+              )}
 
               {/* Facebook */}
               <div className="grid md:grid-cols-3 gap-4">
@@ -506,8 +808,20 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                     label="Facebook URL"
                     icon={<FaFacebook className="h-5 w-5 text-[#1877F2]" />}
                     value={facebookUrl}
-                    onChange={setFacebookUrl}
+                    onChange={(value) => {
+                      setFacebookUrl(value);
+                      if (touchedFields.facebookUrl) {
+                        setFieldErrors((prev) => ({
+                          ...prev,
+                          facebookUrl: '',
+                        }));
+                      }
+                    }}
                     placeholder="https://facebook.com/..."
+                    onBlur={() => {
+                      setTouchedFields((prev) => ({ ...prev, facebookUrl: true }));
+                    }}
+                    error={fieldErrors.facebookUrl}
                   />
                 </div>
                 <div>
@@ -528,8 +842,20 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                     label="Instagram URL"
                     icon={<FaInstagram className="h-5 w-5 text-pink-500" />}
                     value={instagramUrl}
-                    onChange={setInstagramUrl}
+                    onChange={(value) => {
+                      setInstagramUrl(value);
+                      if (touchedFields.instagramUrl) {
+                        setFieldErrors((prev) => ({
+                          ...prev,
+                          instagramUrl: '',
+                        }));
+                      }
+                    }}
                     placeholder="https://instagram.com/..."
+                    onBlur={() => {
+                      setTouchedFields((prev) => ({ ...prev, instagramUrl: true }));
+                    }}
+                    error={fieldErrors.instagramUrl}
                   />
                 </div>
                 <div>
@@ -550,8 +876,20 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                     label="TikTok URL"
                     icon={<FaTiktok className="h-5 w-5 text-black" />}
                     value={tiktokUrl}
-                    onChange={setTiktokUrl}
+                    onChange={(value) => {
+                      setTiktokUrl(value);
+                      if (touchedFields.tiktokUrl) {
+                        setFieldErrors((prev) => ({
+                          ...prev,
+                          tiktokUrl: '',
+                        }));
+                      }
+                    }}
                     placeholder="https://tiktok.com/@..."
+                    onBlur={() => {
+                      setTouchedFields((prev) => ({ ...prev, tiktokUrl: true }));
+                    }}
+                    error={fieldErrors.tiktokUrl}
                   />
                 </div>
                 <div>
@@ -572,8 +910,20 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                     label="YouTube URL"
                     icon={<FaYoutube className="h-5 w-5 text-red-600" />}
                     value={youtubeUrl}
-                    onChange={setYoutubeUrl}
+                    onChange={(value) => {
+                      setYoutubeUrl(value);
+                      if (touchedFields.youtubeUrl) {
+                        setFieldErrors((prev) => ({
+                          ...prev,
+                          youtubeUrl: '',
+                        }));
+                      }
+                    }}
                     placeholder="https://youtube.com/..."
+                    onBlur={() => {
+                      setTouchedFields((prev) => ({ ...prev, youtubeUrl: true }));
+                    }}
+                    error={fieldErrors.youtubeUrl}
                   />
                 </div>
                 <div>
@@ -594,8 +944,20 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                     label="X (Twitter) URL"
                     icon={<FaXTwitter className="h-5 w-5 text-black" />}
                     value={twitterUrl}
-                    onChange={setTwitterUrl}
+                    onChange={(value) => {
+                      setTwitterUrl(value);
+                      if (touchedFields.twitterUrl) {
+                        setFieldErrors((prev) => ({
+                          ...prev,
+                          twitterUrl: '',
+                        }));
+                      }
+                    }}
                     placeholder="https://x.com/..."
+                    onBlur={() => {
+                      setTouchedFields((prev) => ({ ...prev, twitterUrl: true }));
+                    }}
+                    error={fieldErrors.twitterUrl}
                   />
                 </div>
                 <div>
@@ -651,7 +1013,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
             <div className="space-y-4">
               <h3 className="font-semibold text-primary">ประเภทผู้สมัคร</h3>
               
-              <div className="flex gap-3">
+              <div className="flex flex-col md:flex-row gap-3">
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="radio"
@@ -664,7 +1026,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                     }}
                     className="w-4 h-4 text-primary"
                   />
-                  <span>บุคคลทั่วไป</span>
+                  <span className='font-normal'>บุคคลทั่วไป</span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
@@ -675,7 +1037,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                     onChange={(e) => setStatus(e.target.value as 'resident')}
                     className="w-4 h-4 text-primary"
                   />
-                  <span>ลูกบ้านแอสเซทไวส์</span>
+                  <span className='font-normal'>ลูกบ้านแอสเซทไวส์</span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
@@ -686,21 +1048,79 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                     onChange={(e) => setStatus(e.target.value as 'partner')}
                     className="w-4 h-4 text-primary"
                   />
-                  <span>แอสเซทไวส์ พาร์ทเนอร์</span>
+                  <span className='font-normal'>แอสเซทไวส์ พาร์ทเนอร์</span>
                 </label>
               </div>
 
               {status === 'resident' && (
-                <Select<{ value: string; label: string }>
-                  options={projectOptions}
-                  value={
-                    projectName
-                      ? projectOptions.find((option) => option.value === projectName) ?? null
-                      : null
-                  }
-                  onChange={(option) => setProjectName(option ? option.value : '')}
-                  placeholder="เลือกโครงการที่อยู่อาศัย"
-                />
+                <div>
+                  <Select
+                    options={projectOptions}
+                    value={
+                      projectName
+                        ? projectOptions
+                            .flatMap((group) => group.options)
+                            .find((option) => option.value === projectName) ?? null
+                        : null
+                    }
+                    onChange={(option: any) => {
+                      const value = option ? option.value : '';
+                      setProjectName(value);
+                      if (touchedFields.projectName) {
+                        setFieldErrors((prev) => ({
+                          ...prev,
+                          projectName: validateField('projectName', value),
+                        }));
+                      }
+                    }}
+                    onBlur={() => {
+                      setTouchedFields((prev) => ({ ...prev, projectName: true }));
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        projectName: validateField('projectName', projectName),
+                      }));
+                    }}
+                    placeholder="เลือกโครงการที่อยู่อาศัย"
+                    formatGroupLabel={(group) => (
+                      <div
+                        style={{
+                          fontSize: 16,
+                          color: 'var(--primary)',
+                          fontWeight: 500,
+                        }}
+                      >
+                        {group.label}
+                      </div>
+                    )}
+                    formatOptionLabel={(option, { context }) =>
+                      context === 'menu' ? (
+                        <div
+                          style={{
+                            fontSize: 16,
+                            paddingLeft: 20,
+                          }}
+                        >
+                          {option.label}
+                        </div>
+                      ) : (
+                        option.label
+                      )
+                    }
+                    styles={{
+                      option: (base, state) => ({
+                        ...base,
+                        cursor: 'pointer',
+                        color: state.isFocused ? '#fff' : '#333',
+                        backgroundColor: state.isFocused ? 'var(--accent)' : '#fff',
+                      }),
+                    }}
+                  />
+                  {touchedFields.projectName && fieldErrors.projectName && (
+                    <p className="mt-1 text-xs text-destructive">
+                      {fieldErrors.projectName}
+                    </p>
+                  )}
+                </div>
               )}
 
               {status === 'partner' && (
@@ -710,7 +1130,34 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
               )}
               
             </div>
-            
+
+            <div className="mt-4 flex items-start gap-2">
+              <input
+                id="accepted-terms"
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => {
+                  setAcceptedTerms(e.target.checked);
+                  setFieldErrors((prev) => {
+                    const next = { ...prev };
+                    if (e.target.checked && next.acceptedTerms) {
+                      delete next.acceptedTerms;
+                    }
+                    return next;
+                  });
+                }}
+                className="mt-1"
+              />
+              <label htmlFor="accepted-terms" className="text-sm text-muted-foreground">
+                ฉันยอมรับข้อกำหนดการใช้บริการ (Terms and Conditions) และนโยบายความเป็นส่วนตัว (Privacy Policy)
+              </label>
+            </div>
+            {fieldErrors.acceptedTerms && (
+              <p className="mt-1 text-xs text-destructive">
+                {fieldErrors.acceptedTerms}
+              </p>
+            )}
+
             <Button type="submit" fullWidth variant="accent" disabled={loading}>
               {loading ? 'กำลังดำเนินการ...' : 'ลงทะเบียน'}
             </Button>

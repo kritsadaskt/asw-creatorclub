@@ -11,6 +11,10 @@ interface InputProps {
   id?: string;
   className?: string;
   hideLabel?: boolean;
+  onBlur?: () => void;
+  error?: string;
+  rightIcon?: ReactNode;
+  onRightIconClick?: () => void;
 }
 
 export function Input({
@@ -24,6 +28,10 @@ export function Input({
   required = false,
   hideLabel = false,
   icon,
+  onBlur,
+  error,
+  rightIcon,
+  onRightIconClick,
 }: InputProps) {
   return (
     <div className="pt-4">
@@ -33,11 +41,21 @@ export function Input({
             {icon}
           </span>
         )}
+        {rightIcon && (
+          <button
+            type="button"
+            onClick={onRightIconClick}
+            className="absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground"
+          >
+            {rightIcon}
+          </button>
+        )}
         <input
           id={id}
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
           //placeholder={placeholder ?? ' '}
           required={required}
           className={`peer w-full border-b border-neutral-400 bg-input-background px-0 pb-1.5 pt-2.5 text-foreground focus:border-primary focus:outline-none ${icon ? 'pl-7' : ''} ${className} ${hideLabel ? 'pt-0' : 'pt-4'}`}
@@ -52,6 +70,9 @@ export function Input({
           {label} {required && <span className="text-destructive">*</span>}
         </label>
       </div>
+      {error && (
+        <p className="mt-1 text-xs text-destructive">{error}</p>
+      )}
     </div>
   );
 }

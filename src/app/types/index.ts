@@ -2,6 +2,7 @@ export interface CreatorProfile {
   id: string;
   email: string;
   name: string;
+  lastName?: string;
   phone: string;
   baseLocation: string;
   province?: string; // For when baseLocation is 'ต่างจังหวัด'

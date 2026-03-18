@@ -134,13 +134,22 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
               <div className="space-y-4">
                 <h3 className="text-primary">ข้อมูลพื้นฐาน</h3>
 
-                <Input
-                  label="ชื่อ-นามสกุล"
-                  value={profile.name}
-                  onChange={(value) => setProfile({ ...profile, name: value })}
-                  placeholder="กรอกชื่อ-นามสกุล"
-                  required
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="ชื่อ"
+                    value={profile.name}
+                    onChange={(value) => setProfile({ ...profile, name: value })}
+                    placeholder="กรอกชื่อ"
+                    required
+                  />
+                  <Input
+                    label="นามสกุล"
+                    value={profile.lastName || ''}
+                    onChange={(value) => setProfile({ ...profile, lastName: value || undefined })}
+                    placeholder="กรอกนามสกุล"
+                    required
+                  />
+                </div>
 
                 <Input
                   label="อีเมล"
@@ -159,6 +168,16 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                   placeholder="กรอกเบอร์โทรศัพท์"
                   required
                 />
+
+                {profile.province && (
+                  <Input
+                    label="จังหวัดที่อยู่อาศัย"
+                    value={profile.province}
+                    onChange={(value) => setProfile({ ...profile, province: value || undefined })}
+                    placeholder="กรอกจังหวัดที่อยู่อาศัย"
+                    required
+                  />
+                )}
 
                 <div className="grid grid-cols-2 gap-7">
                   <div className="flex flex-col gap-1.5">
