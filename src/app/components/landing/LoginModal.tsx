@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../shared/Button';
@@ -20,6 +21,7 @@ interface LoginModalProps {
 }
 
 export function LoginModal({ onClose, onLogin }: LoginModalProps) {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -189,6 +191,20 @@ export function LoginModal({ onClose, onLogin }: LoginModalProps) {
           <Button type="submit" fullWidth disabled={loading}>
             {loading ? 'กำลังดำเนินการ...' : 'เข้าสู่ระบบ'}
           </Button>
+          <p className='text-sm text-muted-foreground text-center'>
+            ลืมรหัสผ่าน ?{' '}
+            <button
+              id="forgetPasswordButton"
+              type="button"
+              className="text-primary text-sm hover:underline cursor-pointer"
+              onClick={() => {
+                onClose();
+                navigate('/account-recovery');
+              }}
+            >
+              คลิกที่นี่
+            </button>
+          </p>
         </form>
 
         <div className="mt-6 p-3 bg-muted rounded-lg">

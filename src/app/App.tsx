@@ -14,6 +14,7 @@ import { clearSession, getSession, setSession } from './utils/auth';
 import { RequireAuth } from './components/auth/RequireAuth';
 import { Header } from './components/landing/Header';
 import { installLocalStorageSafeGuard } from './utils/localStorageSafe';
+import { AccountRecovery } from './account-recovery/AccountRecovery';
 
 export default function App() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -67,6 +68,8 @@ export default function App() {
             <LandingPage onLogin={handleLogin} isLoggedIn={!!currentUserId} />
           }
         />
+
+        <Route path="/account-recovery" element={<AccountRecovery />} />
 
         <Route path="creator" element={<Navigate to="profile" replace />} />
         <Route path="creator/*" element={<Navigate to="profile" replace />} />

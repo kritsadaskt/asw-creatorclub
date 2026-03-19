@@ -6,6 +6,8 @@ import { CreatorProfile as CreatorProfileType } from '../../types';
 import { getCreatorById, saveCreator } from '../../utils/storage';
 import { getProfileImageUrl } from '../../utils/profileImage';
 import { AffiliateGenerator } from './AffiliateGenerator';
+import { supabase } from '../../utils/supabase';
+import { hashPassword, validatePassword, validatePasswordConfirm } from '../../utils/password';
 import Select from 'react-select';
 import SocialAccounts from '../layout/SocialAccounts';
 
@@ -32,6 +34,9 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
   const [saving, setSaving] = useState(false);
   const [profileImageError, setProfileImageError] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'affiliate'>('profile');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordSaving, setPasswordSaving] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -72,6 +77,48 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
       toast.error('ไม่สามารถบันทึกข้อมูลได้');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSetPassword = async () => {
+    if (!profile) return;
+
+    const { isValid, error } = validatePassword(newPassword);
+    if (!isValid) {
+      toast.error(error || 'รหัสผ่านไม่ถูกต้อง');
+      return;
+    }
+
+    const confirm = validatePasswordConfirm(newPassword, confirmPassword);
+    if (!confirm.isValid) {
+      toast.error(confirm.error || 'รหัสผ่านไม่ตรงกัน');
+      return;
+    }
+
+    try {
+      setPasswordSaving(true);
+      const passwordHash = await hashPassword(newPassword);
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ password_hash: passwordHash })
+        .eq('id', profile.id);
+
+      if (updateError) {
+        console.error('Error setting password:', updateError);
+        toast.error('ไม่สามารถตั้งรหัสผ่านได้');
+        return;
+      }
+
+      setProfile({ ...profile, passwordHash });
+      setNewPassword('');
+      setConfirmPassword('');
+      toast.success('ตั้งรหัสผ่านสำเร็จ! คุณสามารถเข้าสู่ระบบด้วยอีเมลและรหัสผ่านได้แล้ว');
+    } catch (err) {
+      console.error('Error setting password:', err);
+      toast.error('ไม่สามารถตั้งรหัสผ่านได้');
+    } finally {
+      setPasswordSaving(false);
     }
   };
 
@@ -231,6 +278,41 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                   })
                 }
               />
+
+              {/* Password section for Facebook-only accounts */}
+              {profile.facebookId && !profile.passwordHash && (
+                <div className="mt-6 space-y-3 border-t border-border pt-6">
+                  <h3 className="text-primary font-bold">ตั้งรหัสผ่านสำหรับเข้าสู่ระบบด้วยอีเมล</h3>
+                  <p className="text-sm text-muted-foreground">
+                    บัญชีของคุณถูกสร้างด้วย Facebook คุณสามารถตั้งรหัสผ่านเพื่อเข้าสู่ระบบด้วยอีเมลและใช้ฟีเจอร์กู้คืนรหัสผ่านได้
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                      label="รหัสผ่านใหม่"
+                      type="password"
+                      value={newPassword}
+                      onChange={setNewPassword}
+                      placeholder="กรอกรหัสผ่านใหม่"
+                    />
+                    <Input
+                      label="ยืนยันรหัสผ่านใหม่"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={setConfirmPassword}
+                      placeholder="กรอกรหัสผ่านใหม่อีกครั้ง"
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <Button
+                      type="button"
+                      onClick={handleSetPassword}
+                      disabled={passwordSaving || !newPassword || !confirmPassword}
+                    >
+                      {passwordSaving ? 'กำลังตั้งรหัสผ่าน...' : 'ตั้งรหัสผ่าน'}
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-3 pt-4">
                 <Button onClick={handleSave} fullWidth disabled={saving}>
