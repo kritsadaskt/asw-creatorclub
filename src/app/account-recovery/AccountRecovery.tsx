@@ -6,6 +6,7 @@ import { Button } from '../components/shared/Button';
 import { supabase } from '../utils/supabase';
 import { getCreatorByEmail } from '../utils/storage';
 import { hashPassword, validatePassword } from '../utils/password';
+import { ArrowLeftIcon } from 'lucide-react';
 
 type Step = 'email' | 'otp' | 'newPassword' | 'done';
 
@@ -81,7 +82,16 @@ export function AccountRecovery() {
       }
 
       // TODO: replace with real email sending
-      console.log('Password recovery OTP for', email, 'is', otp);
+      const functionsBase = import.meta.env.VITE_SUPABASE_URL!.replace(
+        ".supabase.co",
+        ".functions.supabase.co",
+      );
+      
+      await fetch(`${functionsBase}/send-password-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp }),
+      });
 
       await supabase.from('password_recovery_logs').insert({
         profile_id: creator.id,
@@ -271,9 +281,15 @@ export function AccountRecovery() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted px-4">
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+        <div className="password-recover-header mb-5">
+          <button type="button" className="text-primary text-sm hover:underline ml-1 cursor-pointer flex items-center gap-2" onClick={() => navigate('/')}><ArrowLeftIcon className="w-5 h-5" /> กลับ</button>
+        </div>
         <h1 className="text-2xl font-bold text-center text-primary mb-6">
           กู้คืนรหัสผ่าน
         </h1>
+        <p className="text-muted-foreground text-center">
+          กรุณากรอกอีเมลที่ใช้สมัครเพื่อกู้คืนรหัสผ่าน
+        </p>
 
         {step === 'email' && (
           <form onSubmit={handleRequestOtp} className="space-y-4">
