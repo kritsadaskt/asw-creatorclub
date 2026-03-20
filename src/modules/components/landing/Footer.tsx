@@ -1,4 +1,4 @@
-import { imgSrc } from '@/lib/imgSrc';
+import Image from 'next/image';
 import logoAsw from '@/assets/logo-asw.png';
 import footerFbIcon from '@/assets/footer-fb-icon.png';
 import footerLineIcon from '@/assets/footer-line-icon.png';
@@ -151,23 +151,29 @@ function Footer() {
       <div className="container px-4 lg:px-6 mx-auto">
         <div className="w-full flex flex-col md:flex-row">
           <div className="w-full md:w-4/12 flex flex-col gap-3 mb-5 md:mb-0">
-            <img src={imgSrc(logoAsw)} alt="AssetWise Logo" width={160} height={35} className="h-auto w-[220px] mb-5" />
+            <Image
+              src={logoAsw}
+              alt="AssetWise Logo"
+              width={160}
+              height={35}
+              className="h-auto w-[220px] mb-5"
+            />
             <h4 className="text-white text-[20px] font-normal">ติดตามแอสเซทไวส์</h4>
             <div className="social-listed flex gap-3 mb-3">
               <a href="https://th-th.facebook.com/AssetWiseThailand/" title="Facebook" className="opacity-80 hover:opacity-100 transition">
-                <img src={imgSrc(footerFbIcon)} alt="Facbook" width={45} height={45} className="" />
+                <Image src={footerFbIcon} alt="Facbook" width={45} height={45} />
               </a>
               <a href="https://page.line.me/assetwise" title="Line" className="opacity-80 hover:opacity-100 transition">
-                <img src={imgSrc(footerLineIcon)} alt="Line" width={45} height={45} className="" />
+                <Image src={footerLineIcon} alt="Line" width={45} height={45} />
               </a>
               <a href="https://www.instagram.com/assetwisethailand" title="Instagram" className="opacity-80 hover:opacity-100 transition">
-                <img src={imgSrc(footerIgIcon)} alt="Instagram" width={45} height={45} className="" />
+                <Image src={footerIgIcon} alt="Instagram" width={45} height={45} />
               </a>
               <a href="https://www.youtube.com/c/AssetwiseChannel" title="Youtube" className="opacity-80 hover:opacity-100 transition">
-                <img src={imgSrc(footerYtIcon)} alt="Youtube" width={45} height={45} className="" />
+                <Image src={footerYtIcon} alt="Youtube" width={45} height={45} />
               </a>
               <a href="https://www.tiktok.com/@assetwise" title="Tiktok" className="opacity-80 hover:opacity-100 transition">
-                <img src={imgSrc(footerTiktokIcon)} alt="Tiktok" width={45} height={45} className="" />
+                <Image src={footerTiktokIcon} alt="Tiktok" width={45} height={45} />
               </a>
             </div>
             <a href="tel:021680000" title='โทรศัพท์' className='text-3xl flex text-[#47ccc7]'>

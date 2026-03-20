@@ -1,12 +1,38 @@
-import { imgSrc } from '@/lib/imgSrc';
-import heroBannerImg from '@/assets/creator-club_desktop-banner.jpg'
-import heroBannerImgMobile from '@/assets/creator-club_mobile-banner.jpg'
+import type { StaticImageData } from 'next/image';
+import Image from 'next/image';
 
-export function HeroBanner() {
+import desktopBanner from '@/assets/creator-club_desktop-banner.jpg';
+import mobileBanner from '@/assets/creator-club_mobile-banner.jpg';
+
+export type HeroBannerImage = StaticImageData;
+
+export interface HeroBannerProps {
+  imageDesktop?: HeroBannerImage;
+  imageMobile?: HeroBannerImage;
+  altDesktop?: string;
+  altMobile?: string;
+}
+
+export function HeroBanner({
+  imageDesktop = desktopBanner,
+  imageMobile = mobileBanner,
+  altDesktop = 'Hero Banner',
+  altMobile = 'Hero Banner',
+}: HeroBannerProps) {
   return (
     <>
-      <img src={imgSrc(heroBannerImg)} alt="Hero Banner" className="w-full h-full object-cover hidden md:block" />
-      <img src={imgSrc(heroBannerImgMobile)} alt="Hero Banner" className="w-full h-full object-cover block md:hidden" />
+      <Image
+        src={imageDesktop}
+        alt={altDesktop}
+        className="w-full h-full object-cover hidden md:block"
+        priority
+      />
+      <Image
+        src={imageMobile}
+        alt={altMobile}
+        className="w-full h-full object-cover block md:hidden"
+        priority
+      />
     </>
   );
 }

@@ -9,7 +9,9 @@ import Footer from '../landing/Footer';
 import { Input } from '../shared/Input';
 import { Button } from '../shared/Button';
 import { getSession } from '../../utils/auth';
-import { useSession } from '@/modules/context/SessionContext';
+import { useSession } from '../../context/SessionContext';
+import fgfDesktopBanner from '@/assets/fgf_desktop_banner.png';
+import fgfMobileBanner from '@/assets/fgf_mobile_banner.png';
 
 interface FriendGetFriendPageProps {
   onLogin?: (id: string, role: 'creator' | 'admin') => void;
@@ -40,7 +42,7 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
   return (
     <div className="min-h-screen">
       <Header onLogin={onLogin ?? sessionLogin} isLoggedInFromParent={isLoggedIn} />
-      <HeroBanner />
+      <HeroBanner imageDesktop={fgfDesktopBanner} imageMobile={fgfMobileBanner} />
       <IntroSection />
 
       <section id="friendgetfriend-form" className="py-16">

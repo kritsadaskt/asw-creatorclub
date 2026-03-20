@@ -1,5 +1,5 @@
 import { CheckCircle, Users, TrendingUp, Link2, SquareCheckBig } from 'lucide-react';
-import { imgSrc } from '@/lib/imgSrc';
+import Image from 'next/image';
 import creatorClubIcon from '@/assets/creator-img.webp';
 import friendGetFriendsIcon from '@/assets/fgf-img.webp';
 import affiliateProgramIcon from '@/assets/aff-img.webp';
@@ -15,7 +15,11 @@ export function IntroSection() {
         <div className="grid md:grid-cols-3 gap-7 lg:gap-0">
           <div className='lg:pr-7 pr-0 flex flex-col justify-between gap-12'>
             <div className="content">
-              <img src={imgSrc(creatorClubIcon)} alt="Creator Club" className="w-4/5 h-auto object-cover mx-auto mb-7" />
+              <Image
+                src={creatorClubIcon}
+                alt="Creator Club"
+                className="w-4/5 h-auto object-cover mx-auto mb-7"
+              />
               <h3 className="text-4xl uppercase text-center font-medium mb-7">Creator Club</h3>
               <div className="detail text-white font-light text-lg">
                 <p>คอมมูนิตี้สำหรับคนรักการสร้างคอนเทนต์ ไม่ว่าคุณจะเป็น Creator สายรีวิว สายไลฟ์สไตล์ อินฟลูเอนเซอร์ หรือคนทั่วไปที่อยากเปลี่ยนไอเดียให้กลายเป็นรายได้ ที่นี่เปิดโอกาสให้คุณได้ สร้างรายได้จากการทำคอนเทนต์ร่วมกับแบรนด์อสังหาริมทรัพย์ชั้นนำ</p>
@@ -37,7 +41,11 @@ export function IntroSection() {
 
           <div className='lg:px-7 px-0 lg:border-x border-white/90 flex flex-col justify-between'>
             <div className="content">
-              <img src={imgSrc(friendGetFriendsIcon)} alt="Friend Get Friends" className="w-4/5 h-auto object-cover mx-auto mb-7" />
+              <Image
+                src={friendGetFriendsIcon}
+                alt="Friend Get Friends"
+                className="w-4/5 h-auto object-cover mx-auto mb-7"
+              />
               <h3 className="text-4xl uppercase text-center font-medium mb-7">FRIEND GET FRIENDS</h3>
               <div className="detail text-white font-light text-lg mb-7 md:mb-0">
                 <p>โปรแกรมที่ชวนคุณส่งต่อสิ่งดีๆ ได้ง่ายๆ เพียงสมัครเข้ามาเป็นส่วนหนึ่งของ ASSETWISE FAMILY และชวนเพื่อนมาเป็นเพื่อนบ้านในโครงการบ้านและคอนโดมิเนียมของ ASSETWISE รับค่าแนะนำสูงสุด 500,000 บ.*</p>
@@ -48,7 +56,11 @@ export function IntroSection() {
 
           <div className='lg:pl-7 pl-0 flex flex-col justify-between'>
             <div className="content">
-              <img src={imgSrc(affiliateProgramIcon)} alt="Affiliate Program" className="w-4/5 h-auto object-cover mx-auto mb-7" />
+              <Image
+                src={affiliateProgramIcon}
+                alt="Affiliate Program"
+                className="w-4/5 h-auto object-cover mx-auto mb-7"
+              />
               <h3 className="text-4xl uppercase text-center font-medium">Affiliate Program</h3>
               <p className="text-center text-xl text-white/80 mb-7">โพสต์ง่ายๆ รายได้ปัง</p>
               <div className="detail text-white font-light text-lg mb-7 md:mb-0">
