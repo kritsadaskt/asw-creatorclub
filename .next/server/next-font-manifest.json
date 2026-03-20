@@ -1,0 +1,17 @@
+{
+  "app": {
+    "[project]/src/app/_not-found/page": [],
+    "[project]/src/app/account-recovery/page": [],
+    "[project]/src/app/admin/dashboard/page": [],
+    "[project]/src/app/admin/page": [],
+    "[project]/src/app/admin/projects/page": [],
+    "[project]/src/app/affiliate/[[...slug]]/page": [],
+    "[project]/src/app/friendgetfriend/[[...slug]]/page": [],
+    "[project]/src/app/page": [],
+    "[project]/src/app/profile/affiliate/page": [],
+    "[project]/src/app/profile/page": []
+  },
+  "appUsingSizeAdjust": false,
+  "pages": {},
+  "pagesUsingSizeAdjust": false
+}

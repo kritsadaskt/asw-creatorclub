@@ -1,0 +1,3 @@
+{
+  "/affiliate/[[...slug]]/page": "app/affiliate/[[...slug]]/page.js"
+}

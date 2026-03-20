@@ -1,0 +1,20 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/account-recovery/page": "/account-recovery",
+  "/admin/dashboard/page": "/admin/dashboard",
+  "/admin/page": "/admin",
+  "/admin/projects/page": "/admin/projects",
+  "/affiliate/[[...slug]]/page": "/affiliate/[[...slug]]",
+  "/api/account-recovery/request/route": "/api/account-recovery/request",
+  "/api/account-recovery/reset-password/route": "/api/account-recovery/reset-password",
+  "/api/account-recovery/verify-otp/route": "/api/account-recovery/verify-otp",
+  "/api/admin/creators/[id]/approval/route": "/api/admin/creators/[id]/approval",
+  "/api/admin/creators/[id]/email/approval/route": "/api/admin/creators/[id]/email/approval",
+  "/api/admin/creators/[id]/email/rejection/route": "/api/admin/creators/[id]/email/rejection",
+  "/api/send-password-otp/route": "/api/send-password-otp",
+  "/friendgetfriend/[[...slug]]/page": "/friendgetfriend/[[...slug]]",
+  "/page": "/",
+  "/profile/affiliate/page": "/profile/affiliate",
+  "/profile/page": "/profile"
+}
