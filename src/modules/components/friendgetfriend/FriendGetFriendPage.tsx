@@ -12,6 +12,16 @@ import { getSession } from '../../utils/auth';
 import { useSession } from '../../context/SessionContext';
 import fgfDesktopBanner from '@/assets/fgf_desktop_banner.png';
 import fgfMobileBanner from '@/assets/fgf_mobile_banner.png';
+import { FriendGetFriendProjectList } from './FriendGetFriendProjectList';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '../ui/drawer';
 
 interface FriendGetFriendPageProps {
   onLogin?: (id: string, role: 'creator' | 'admin') => void;
@@ -20,6 +30,8 @@ interface FriendGetFriendPageProps {
 export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
   const { handleLogin: sessionLogin, currentUserId } = useSession();
   const isLoggedIn = !!currentUserId || !!getSession();
+
+  const [isRecommendDrawerOpen, setIsRecommendDrawerOpen] = useState(false);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -44,6 +56,16 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
       <Header onLogin={onLogin ?? sessionLogin} isLoggedInFromParent={isLoggedIn} />
       <HeroBanner imageDesktop={fgfDesktopBanner} imageMobile={fgfMobileBanner} />
       <IntroSection />
+
+      <div className="px-4 md:px-0 py-10">
+        <FriendGetFriendProjectList
+          onLogin={onLogin ?? sessionLogin}
+          onRecommend={(project) => {
+            setInterestedProject(project.name);
+            setIsRecommendDrawerOpen(true);
+          }}
+        />
+      </div>
 
       <section id="friendgetfriend-form" className="py-16">
         <div className="max-w-3xl mx-auto px-6">
@@ -80,67 +102,86 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
             )}
 
             {isLoggedIn && (
-              <div className="mt-8 border-t border-border pt-8">
-                <h2 className="text-2xl font-semibold text-primary mb-2">
-                  ฟอร์มแนะนำเพื่อน
-                </h2>
-                <p className="text-muted-foreground mb-6">
-                  กรุณากรอกข้อมูลของคุณและเพื่อนที่ต้องการแนะนำให้ครบถ้วน
-                  เพื่อให้ทีมงานสามารถติดต่อกลับได้อย่างรวดเร็ว
-                </p>
-
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="space-y-4">
-                    <h3 className="font-medium text-foreground">
-                      ข้อมูลผู้แนะนำ (คุณ)
-                    </h3>
-                    <Input
-                      label="ชื่อ-นามสกุล"
-                      value={name}
-                      onChange={setName}
-                      placeholder="กรอกชื่อ-นามสกุลของคุณ"
-                      required
-                    />
-                    <Input
-                      label="อีเมล"
-                      type="email"
-                      value={email}
-                      onChange={setEmail}
-                      placeholder="example@email.com"
-                      required
-                    />
-                    <Input
-                      label="เบอร์โทรศัพท์"
-                      type="tel"
-                      value={phone}
-                      onChange={setPhone}
-                      placeholder="กรอกเบอร์โทรศัพท์ที่ติดต่อได้"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-4 pt-4 border-t border-border">
-                    <h3 className="font-medium text-foreground">
-                      ข้อมูลเพื่อนที่ต้องการแนะนำ
-                    </h3>
-                    <Input
-                      label="โครงการที่สนใจแนะนำเพื่อน"
-                      value={interestedProject}
-                      onChange={setInterestedProject}
-                      placeholder="เช่น คอนโดโครงการใดที่ต้องการแนะนำ"
-                      required
-                    />
-                  </div>
-
-                  <Button type="submit" fullWidth>
-                    ส่งข้อมูลการแนะนำเพื่อน
-                  </Button>
-                </form>
+              <div className="mt-8 border-t border-border pt-8 text-muted-foreground">
+                เลือกโครงการจากตารางด้านบน แล้วกดปุ่ม `แนะนำเพื่อน` เพื่อกรอกฟอร์ม
               </div>
             )}
           </div>
         </div>
       </section>
+
+      <Drawer
+        direction="right"
+        open={isRecommendDrawerOpen}
+        onOpenChange={(open) => {
+          setIsRecommendDrawerOpen(open);
+          if (!open) {
+            setInterestedProject('');
+          }
+        }}
+      >
+        <DrawerContent>
+          <DrawerHeader className="p-7">
+            <DrawerTitle>แนะนำเพื่อน</DrawerTitle>
+            <DrawerDescription>
+              กรุณากรอกข้อมูลของคุณและเพื่อนที่ต้องการแนะนำให้ครบถ้วน
+              เพื่อให้ทีมงานสามารถติดต่อกลับได้อย่างรวดเร็ว
+            </DrawerDescription>
+          </DrawerHeader>
+
+          <div className="px-7 pb-7">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-4">
+                <h3 className="font-medium text-foreground">ข้อมูลผู้แนะนำ (คุณ)</h3>
+                <Input
+                  label="ชื่อ-นามสกุล"
+                  value={name}
+                  onChange={setName}
+                  placeholder="กรอกชื่อ-นามสกุลของคุณ"
+                  required
+                />
+                <Input
+                  label="อีเมล"
+                  type="email"
+                  value={email}
+                  onChange={setEmail}
+                  placeholder="example@email.com"
+                  required
+                />
+                <Input
+                  label="เบอร์โทรศัพท์"
+                  type="tel"
+                  value={phone}
+                  onChange={setPhone}
+                  placeholder="กรอกเบอร์โทรศัพท์ที่ติดต่อได้"
+                  required
+                />
+              </div>
+
+              <div className="space-y-4 pt-4 border-t border-border">
+                <h3 className="font-medium text-foreground">ข้อมูลเพื่อนที่ต้องการแนะนำ</h3>
+                <Input
+                  label="โครงการที่สนใจแนะนำเพื่อน"
+                  value={interestedProject}
+                  onChange={setInterestedProject}
+                  placeholder="เช่น คอนโดโครงการใดที่ต้องการแนะนำ"
+                  required
+                />
+              </div>
+
+              <Button type="submit" fullWidth>
+                ส่งข้อมูลการแนะนำเพื่อน
+              </Button>
+            </form>
+          </div>
+
+          <DrawerFooter>
+            <DrawerClose className="items-center justify-center rounded-md border border-destructive text-destructive p-3 inline-block font-medium hover:bg-destructive hover:text-white transition-colors cursor-pointer w-fit min-w-30 mx-auto">
+              ปิด
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
 
       <Footer />
     </div>
