@@ -7,7 +7,9 @@
 
   Run `npm i` to install the dependencies.
 
-  Run `npm run dev` to start the development server.
+  Run `npm run dev` to start the **Next.js** dev server (default: [http://localhost:3000/creatorclub](http://localhost:3000/creatorclub) — `basePath` is `/creatorclub`).
+
+  Copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_*` variables (Supabase, Facebook, optional SMTP for password recovery emails).
 
   ## Supabase Storage (Facebook profile images)
 

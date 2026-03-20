@@ -185,8 +185,9 @@
 }
 
 #register-section {
-  background: url('/src/assets/confetti.webp'), linear-gradient(to bottom, #3a2ee13d, rgba(57, 46, 225, 0.5));
-  background-size: cover, cover;
-  background-position: center, center;
+  /* background: url('/src/assets/confetti.webp'), linear-gradient(to bottom, #3a2ee13d, rgba(57, 46, 225, 0.5)); */
+  background: linear-gradient(to bottom, #3a2ee13d, rgba(57, 46, 225, 0.3));
+  background-size: 100%;
+  background-position: top, center;
   background-repeat: no-repeat, no-repeat;
 }
