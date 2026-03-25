@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
+import { sendEmail } from '@/lib/email/send-email';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,15 +11,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'INVALID_INPUT' }, { status: 400 });
     }
 
-    const host = process.env.SMTP_HOST;
-    const port = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587;
-    const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS;
-    const from = process.env.SMTP_FROM ?? user;
+    const result = await sendEmail({
+      to: email,
+      subject: 'รหัสยืนยันกู้คืนรหัสผ่าน — Creator Club',
+      text: `รหัสยืนยันของคุณคือ ${otp} (หมดอายุใน 10 นาที)`,
+      html: `<p>รหัสยืนยันของคุณคือ <strong>${otp}</strong></p><p>รหัสหมดอายุใน 10 นาที</p>`,
+    });
 
-    if (!host || !user || !pass || !from) {
+    if (result.sent) {
+      return NextResponse.json({ success: true });
+    }
+
+    if (result.reason === 'not_configured') {
       console.warn(
-        '[send-password-otp] SMTP not configured; set SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM. OTP for',
+        '[send-password-otp] SMTP not configured; set SMTP_HOST, SMTP_USER/SMTP_USERNAME, SMTP_PASS/SMTP_PASSWORD, SMTP_FROM/SMTP_FROM_ADDRESS. OTP for',
         email,
         ':',
         otp,
@@ -27,22 +32,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, dev: true });
     }
 
-    const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465,
-      auth: { user, pass },
-    });
-
-    await transporter.sendMail({
-      from,
-      to: email,
-      subject: 'รหัสยืนยันกู้คืนรหัสผ่าน — Creator Club',
-      text: `รหัสยืนยันของคุณคือ ${otp} (หมดอายุใน 10 นาที)`,
-      html: `<p>รหัสยืนยันของคุณคือ <strong>${otp}</strong></p><p>รหัสหมดอายุใน 10 นาที</p>`,
-    });
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ error: 'EMAIL_SEND_FAILED' }, { status: 500 });
   } catch (error) {
     console.error('[send-password-otp]', error);
     return NextResponse.json({ error: 'EMAIL_SEND_FAILED' }, { status: 500 });

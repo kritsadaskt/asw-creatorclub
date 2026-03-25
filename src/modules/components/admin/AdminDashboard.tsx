@@ -10,6 +10,7 @@ import { getProfileImageUrl } from '../../utils/profileImage';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { LayoutGrid, Loader2, MailIcon, Table } from 'lucide-react';
 import { FaPhone } from 'react-icons/fa6';
+import { BASE_PATH } from '@/lib/publicPath';
 
 const CATEGORIES = [
   'ทั้งหมด',
@@ -36,6 +37,8 @@ export function AdminDashboard() {
   const [followerRange, setFollowerRange] = useState('all');
   const [customFollowers, setCustomFollowers] = useState('');
   const [loading, setLoading] = useState(true);
+  /** `${creatorId}:approval` | `${creatorId}:rejection` while that request is in flight */
+  const [emailSendKey, setEmailSendKey] = useState<string | null>(null);
 
   useEffect(() => {
     loadCreators();
@@ -154,20 +157,60 @@ export function AdminDashboard() {
     }
   };
 
-  const sendApprovalEmail = (creator: CreatorProfile) => {
-    const subject = encodeURIComponent('AssetWise Creators Club - อนุมัติการเข้าร่วม');
-    const body = encodeURIComponent(
-      `สวัสดีคุณ ${creator.name},\n\nคำขอเข้าร่วมของคุณได้รับการอนุมัติเรียบร้อยแล้ว คุณสามารถเริ่มต้นใช้งานแพลตฟอร์มสำหรับ Creators ของเราได้ทันที\n\nขอบคุณที่เข้าร่วมเป็นส่วนหนึ่งของ AssetWise Creators Club`
-    );
-    window.location.href = `mailto:${creator.email}?subject=${subject}&body=${body}`;
+  const sendApprovalEmail = async (creator: CreatorProfile) => {
+    const key = `${creator.id}:approval`;
+    try {
+      setEmailSendKey(key);
+      const res = await fetch(`${BASE_PATH}/api/admin/creators/${creator.id}/email/approval`, {
+        method: 'POST',
+      });
+      const data = (await res.json().catch(() => ({}))) as { success?: boolean; dev?: boolean; error?: string };
+
+      if (!res.ok) {
+        toast.error('ไม่สามารถส่งอีเมลได้');
+        return;
+      }
+
+      if (data.dev) {
+        toast.success('โหมดพัฒนา: ยังไม่ได้ตั้งค่า SMTP — อีเมลไม่ถูกส่งจริง');
+        return;
+      }
+
+      toast.success('ส่งอีเมลแจ้งอนุมัติแล้ว');
+    } catch (error) {
+      console.error('sendApprovalEmail', error);
+      toast.error('ไม่สามารถส่งอีเมลได้');
+    } finally {
+      setEmailSendKey(null);
+    }
   };
 
-  const sendRejectionEmail = (creator: CreatorProfile) => {
-    const subject = encodeURIComponent('AssetWise Creators Club - ผลการพิจารณา');
-    const body = encodeURIComponent(
-      `สวัสดีคุณ ${creator.name},\n\nหลังจากการตรวจสอบคำขอของคุณ ทีมงานขอแจ้งให้ทราบว่าไม่สามารถอนุมัติคำขอเข้าร่วมได้ในขณะนี้\n\nคุณสามารถติดต่อทีมงานเพื่อสอบถามข้อมูลเพิ่มเติม หรือลองสมัครใหม่อีกครั้งในอนาคตได้เช่นกัน\n\nขอบคุณที่ให้ความสนใจใน AssetWise Creators Club`
-    );
-    window.location.href = `mailto:${creator.email}?subject=${subject}&body=${body}`;
+  const sendRejectionEmail = async (creator: CreatorProfile) => {
+    const key = `${creator.id}:rejection`;
+    try {
+      setEmailSendKey(key);
+      const res = await fetch(`${BASE_PATH}/api/admin/creators/${creator.id}/email/rejection`, {
+        method: 'POST',
+      });
+      const data = (await res.json().catch(() => ({}))) as { success?: boolean; dev?: boolean; error?: string };
+
+      if (!res.ok) {
+        toast.error('ไม่สามารถส่งอีเมลได้');
+        return;
+      }
+
+      if (data.dev) {
+        toast.success('โหมดพัฒนา: ยังไม่ได้ตั้งค่า SMTP — อีเมลไม่ถูกส่งจริง');
+        return;
+      }
+
+      toast.success('ส่งอีเมลแจ้งผลการพิจารณาแล้ว');
+    } catch (error) {
+      console.error('sendRejectionEmail', error);
+      toast.error('ไม่สามารถส่งอีเมลได้');
+    } finally {
+      setEmailSendKey(null);
+    }
   };
 
   const getSocialLinks = (creator: CreatorProfile) => {
@@ -395,23 +438,33 @@ export function AdminDashboard() {
                   )}
                   {creator.approvalStatus === 1 && (
                     <Button
-                      onClick={() => sendApprovalEmail(creator)}
+                      onClick={() => void sendApprovalEmail(creator)}
                       fullWidth
                       variant='successTransparent'
                       center
+                      disabled={emailSendKey === `${creator.id}:approval`}
                     >
-                      <MailIcon className="w-5 h-5" />
+                      {emailSendKey === `${creator.id}:approval` ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <MailIcon className="w-5 h-5" />
+                      )}
                       ส่งอีเมลแจ้งอนุมัติ
                     </Button>
                   )}
                   {creator.approvalStatus === 0 && (
                     <Button
-                      onClick={() => sendRejectionEmail(creator)}
+                      onClick={() => void sendRejectionEmail(creator)}
                       fullWidth
                       variant='errorTransparent'
                       center
+                      disabled={emailSendKey === `${creator.id}:rejection`}
                     >
-                      <MailIcon className="w-5 h-5" />
+                      {emailSendKey === `${creator.id}:rejection` ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <MailIcon className="w-5 h-5" />
+                      )}
                       ส่งอีเมลแจ้งปฏิเสธ
                     </Button>
                   )}
@@ -497,25 +550,35 @@ export function AdminDashboard() {
                       )}
                       {creator.approvalStatus === 1 && (
                         <Button
-                          onClick={() => sendApprovalEmail(creator)}
+                          onClick={() => void sendApprovalEmail(creator)}
                           size="sm"
                           fullWidth
                           variant='successTransparent'
                           center
+                          disabled={emailSendKey === `${creator.id}:approval`}
                         >
-                          <MailIcon className="w-5 h-5" />
+                          {emailSendKey === `${creator.id}:approval` ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <MailIcon className="w-5 h-5" />
+                          )}
                           ส่งอีเมลแจ้งอนุมัติ
                         </Button>
                       )}
                       {creator.approvalStatus === 0 && (
                         <Button
-                          onClick={() => sendRejectionEmail(creator)}
+                          onClick={() => void sendRejectionEmail(creator)}
                           size="sm"
                           fullWidth
                           variant='errorTransparent'
                           center
+                          disabled={emailSendKey === `${creator.id}:rejection`}
                         >
-                          <MailIcon className="w-5 h-5" />
+                          {emailSendKey === `${creator.id}:rejection` ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <MailIcon className="w-5 h-5" />
+                          )}
                           ส่งอีเมลแจ้งปฏิเสธ
                         </Button>
                       )}

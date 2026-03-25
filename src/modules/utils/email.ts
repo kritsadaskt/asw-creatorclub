@@ -2,17 +2,15 @@ import { CreatorProfile } from '../types';
 
 type ApprovalStatusCode = 0 | 1 | 2 | 3;
 
-const SMTP_HOST = process.env.SMTP_HOST;
-const SMTP_PORT = process.env.SMTP_PORT;
-const SMTP_USERNAME = process.env.SMTP_USERNAME;
-const SMTP_PASSWORD = process.env.SMTP_PASSWORD;
-const SMTP_FROM_ADDRESS = process.env.SMTP_FROM_ADDRESS;
+export type CreatorTransactionalEmailMessage = {
+  to: string;
+  subject: string;
+  html: string;
+};
 
-const ensureSmtpConfig = () => {
-  if (!SMTP_HOST || !SMTP_PORT || !SMTP_USERNAME || !SMTP_PASSWORD || !SMTP_FROM_ADDRESS) {
-    console.error('SMTP configuration is incomplete. Please set SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD, SMTP_FROM_ADDRESS.');
-    throw new Error('SMTP configuration is incomplete');
-  }
+type RegistrationPendingEmailInput = {
+  name: string;
+  email: string;
 };
 
 const buildApprovalEmailHtml = (creator: CreatorProfile) => {
@@ -21,28 +19,16 @@ const buildApprovalEmailHtml = (creator: CreatorProfile) => {
     <html lang="en">
       <head>
         <meta charset="UTF-8" />
-        <title>AssetWise Creators Club - Approved</title>
+        <title>CONGRATULATIONS! คุณได้รับคัดเลือกให้เข้าร่วม AssetWise Creator Club</title>
       </head>
-      <body style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background-color: #f5f5f5; margin: 0; padding: 32px;">
+      <body style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 32px;">
         <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
           <tr>
             <td align="center">
               <table width="600" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #ffffff; border-radius: 16px; padding: 32px;">
                 <tr>
-                  <td>
-                    <h1 style="margin: 0 0 16px; font-size: 24px; color: #111827;">ยินดีต้อนรับสู่ AssetWise Creators Club</h1>
-                    <p style="margin: 0 0 12px; font-size: 15px; color: #374151;">
-                      สวัสดีคุณ ${creator.name},
-                    </p>
-                    <p style="margin: 0 0 12px; font-size: 15px; color: #374151;">
-                      คำขอเข้าร่วมของคุณได้รับการ<strong>อนุมัติ</strong>เรียบร้อยแล้ว คุณสามารถเริ่มต้นใช้งานแพลตฟอร์มสำหรับ Creators ของเราได้ทันที
-                    </p>
-                    <p style="margin: 0 0 12px; font-size: 15px; color: #374151;">
-                      หากคุณมีข้อสงสัยหรือพบปัญหาในการใช้งาน สามารถติดต่อทีมงานได้ผ่านช่องทางที่ระบุในเว็บไซต์
-                    </p>
-                    <p style="margin: 24px 0 0; font-size: 13px; color: #6b7280;">
-                      ขอบคุณที่เข้าร่วมเป็นส่วนหนึ่งของ AssetWise Creators Club
-                    </p>
+                  <td align="center">
+                    <img style="max-width: 100%;" src="https://assetwise.co.th/wp-content/uploads/2026/03/asw-creatorclub_approved_email_1080px.jpg" alt="CONGRATULATIONS! คุณได้รับคัดเลือกให้เข้าร่วม AssetWise Creator Club" />
                   </td>
                 </tr>
               </table>
@@ -60,27 +46,54 @@ const buildRejectionEmailHtml = (creator: CreatorProfile) => {
     <html lang="en">
       <head>
         <meta charset="UTF-8" />
-        <title>AssetWise Creators Club - Application Result</title>
+        <title>ขอขอบคุณท่านที่ให้ความสนใจเข้าร่วม AssetWise Creator Club</title>
       </head>
-      <body style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background-color: #f5f5f5; margin: 0; padding: 32px;">
+      <body style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 32px;">
         <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
           <tr>
             <td align="center">
-              <table width="600" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #ffffff; border-radius: 16px; padding: 32px;">
+              <img style="max-width: 100%;" src="https://assetwise.co.th/wp-content/uploads/2026/03/asw-creatorclub_thankyou_email02_1080px.jpg" alt="ขอขอบคุณท่านที่ให้ความสนใจเข้าร่วม AssetWise Creator Club" />
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>
+  `;
+};
+
+const buildRegistrationPendingEmailHtml = (recipient: RegistrationPendingEmailInput) => {
+  return `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <title>ขอบคุณที่สนใจสมัครเข้าร่วม AssetWise CREATOR CLUB</title>
+      </head>
+      <body style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 32px;">
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+          <tr>
+            <td align="center">
+              <table cellpadding="0" cellspacing="0" role="presentation" style="background-color: #ffffff; border-radius: 16px; padding: 32px;">
                 <tr>
                   <td>
-                    <h1 style="margin: 0 0 16px; font-size: 24px; color: #111827;">ผลการพิจารณาเข้าร่วม AssetWise Creators Club</h1>
-                    <p style="margin: 0 0 12px; font-size: 15px; color: #374151;">
-                      สวัสดีคุณ ${creator.name},
+                    <h1 style="margin: 0 0 16px; font-size: 24px; color: #111827; text-align: center; font-weight: bold;">บริษัท แอสเซทไวส์ จำกัด (มหาชน) ขอขอบคุณคุณ ${recipient.name}</h1>
+                    <p style="margin: 0 0 12px; font-size: 15px; color: #374151; text-align: center;">
+                      ที่ให้ความสนใจสมัครเข้าร่วมโปรแกรม AssetWise CREATOR CLUB<br/>
+                      เนื่องจากปัจจุบันมีผู้สมัครเข้าร่วมเป็นจำนวนมาก<br/>
+                      ทางทีมงานจะดำเนินการพิจารณาและติดต่อกลับภายใน 7 วันทำการ<br/> หากท่านได้รับการคัดเลือกเข้าร่วมโปรแกรม
                     </p>
-                    <p style="margin: 0 0 12px; font-size: 15px; color: #374151;">
-                      หลังจากการตรวจสอบคำขอของคุณ ทีมงานขอแจ้งให้ทราบว่า<strong>ไม่สามารถอนุมัติ</strong>คำขอเข้าร่วมได้ในขณะนี้
+                    <p style="margin: 0 0 12px; font-size: 15px; color: #374151; text-align: center;">
+                      ท่านสามารถสอบถามข้อมูลเรื่อง AssetWise CREATOR CLUB ผ่านช่องทาง
                     </p>
-                    <p style="margin: 0 0 12px; font-size: 15px; color: #374151;">
-                      คุณสามารถติดต่อทีมงานเพื่อสอบถามข้อมูลเพิ่มเติม หรือลองสมัครใหม่อีกครั้งในอนาคตได้เช่นกัน
-                    </p>
-                    <p style="margin: 24px 0 0; font-size: 13px; color: #6b7280;">
-                      ขอบคุณที่ให้ความสนใจใน AssetWise Creators Club
+                    <p style="margin: 24px 0 0; font-size: 13px; color: #6b7280; text-align: center; display: flex; justify-content: center; align-items: center; gap: 16px;">
+                      <a href="https://line.me/" title="AssetWise Crator Club" style="display: inline-flex; gap: 8px;">
+                        <img src="https://assetwise.co.th/wp-content/uploads/2026/03/lineoa-icon.png" style="width: 20px; height: 20px;" alt="AssetWise Crator Club" />
+                        <span>@AssetWiseCratorclub</span>
+                      </a>
+                      <a href="tel:021680000" title="ติดต่อ AssetWise" style="display: inline-flex; gap: 8px;">
+                        <img src="https://assetwise.co.th/wp-content/uploads/2026/03/tel-icon.png" style="width: 20px; height: 20px;" alt="ติดต่อ AssetWise" />
+                        <span>02-168-0000</span>
+                      </a>
                     </p>
                   </td>
                 </tr>
@@ -93,52 +106,25 @@ const buildRejectionEmailHtml = (creator: CreatorProfile) => {
   `;
 };
 
-interface SmtpPayload {
-  host: string;
-  port: number;
-  username: string;
-  password: string;
-  from: string;
-  to: string;
-  subject: string;
-  html: string;
-}
+export const buildApprovalEmailMessage = (creator: CreatorProfile): CreatorTransactionalEmailMessage => ({
+  to: creator.email,
+  subject: 'CONGRATULATIONS! คุณได้รับคัดเลือกให้เข้าร่วม AssetWise Creator Club',
+  html: buildApprovalEmailHtml(creator),
+});
 
-/**
- * This function assumes you'll wire it to a backend handler
- * that knows how to talk to Outlook SMTP using this payload.
- * For now it just returns the payload so API routes can send it.
- */
-export const buildSmtpPayload = (params: Omit<SmtpPayload, 'host' | 'port' | 'username' | 'password' | 'from'>): SmtpPayload => {
-  ensureSmtpConfig();
+export const buildRejectionEmailMessage = (creator: CreatorProfile): CreatorTransactionalEmailMessage => ({
+  to: creator.email,
+  subject: 'ขอขอบคุณท่านที่ให้ความสนใจเข้าร่วม AssetWise Creator Club',
+  html: buildRejectionEmailHtml(creator),
+});
 
-  return {
-    host: SMTP_HOST as string,
-    port: parseInt(SMTP_PORT as string, 10),
-    username: SMTP_USERNAME as string,
-    password: SMTP_PASSWORD as string,
-    from: SMTP_FROM_ADDRESS as string,
-    ...params,
-  };
-};
-
-export const buildApprovalEmailPayload = (creator: CreatorProfile): SmtpPayload => {
-  const html = buildApprovalEmailHtml(creator);
-  return buildSmtpPayload({
-    to: creator.email,
-    subject: 'AssetWise Creators Club - อนุมัติการเข้าร่วม',
-    html,
-  });
-};
-
-export const buildRejectionEmailPayload = (creator: CreatorProfile): SmtpPayload => {
-  const html = buildRejectionEmailHtml(creator);
-  return buildSmtpPayload({
-    to: creator.email,
-    subject: 'AssetWise Creators Club - ผลการพิจารณา',
-    html,
-  });
-};
+export const buildRegistrationPendingEmailMessage = (
+  recipient: RegistrationPendingEmailInput,
+): CreatorTransactionalEmailMessage => ({
+  to: recipient.email,
+  subject: 'ขอบคุณที่สนใจสมัครเข้าร่วม AssetWise Creator Club',
+  html: buildRegistrationPendingEmailHtml(recipient),
+});
 
 export const APPROVAL_STATUS_LABELS: Record<ApprovalStatusCode, string> = {
   0: 'ถูกปฏิเสธ',
@@ -146,4 +132,3 @@ export const APPROVAL_STATUS_LABELS: Record<ApprovalStatusCode, string> = {
   2: 'ไม่ใช้งาน',
   3: 'รอการอนุมัติ',
 };
-
