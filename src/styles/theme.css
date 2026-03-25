@@ -121,6 +121,10 @@
   --color-footer-background: var(--footer-background);
 }
 
+@utility container {
+  @apply mx-auto;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
