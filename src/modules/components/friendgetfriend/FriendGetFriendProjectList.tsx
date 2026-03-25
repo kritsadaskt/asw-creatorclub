@@ -133,15 +133,6 @@ export function FriendGetFriendProjectList({
   return (
     <div className="container pt-10 pb-8">
       <div className="bg-white rounded-2xl shadow-xl border border-border p-6 md:p-8">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-6">
-          <div>
-            <h2 className="text-center text-2xl font-bold text-primary mb-2">เลือกโครงการที่ใช่</h2>
-            <p className="text-muted-foreground text-center sm:text-left">
-              รายละเอียดโครงการสามารถดูได้ทุกคน แต่ฟอร์มแนะนำเพื่อนมีเฉพาะ Creator Club ที่ลงทะเบียนแล้วเท่านั้น
-            </p>
-          </div>
-        </div>
-
         {isLoading ? (
           <div className="py-16 text-center text-muted-foreground">
             <div className="flex items-center justify-center gap-2">
@@ -215,13 +206,13 @@ export function FriendGetFriendProjectList({
                   <table className="min-w-full">
                     <thead className="bg-muted/40">
                       <tr>
-                        <th className="px-4 w-3/5 md:px-6 py-3 text-left font-medium text-foreground">
+                        <th className="px-3 md:px-6 py-2 text-left font-medium text-foreground w-3/5">
                           โครงการ
                         </th>
-                        <th className="px-4 w-1/5 md:px-6 py-3 text-center font-medium text-foreground">
+                        <th className="px-3 md:px-6 py-2 text-center font-medium text-foreground w-1/5">
                           ค่าแนะนำ
                         </th>
-                        <th className="px-4 w-1/5 md:px-6 py-3 text-center font-medium text-foreground">
+                        <th className="px-3 md:px-6 py-2 text-center font-medium text-foreground w-1/5">
                           แนะนำเพื่อน
                         </th>
                       </tr>
@@ -229,50 +220,49 @@ export function FriendGetFriendProjectList({
                     <tbody className="divide-y divide-border">
                       {paginatedProjects.map((project) => (
                         <tr key={project.id} className="hover:bg-muted/30">
-                          <td className="px-4 md:px-6 py-4">
-                            <div className="flex items-center gap-7">
-                              <div className="w-50 h-auto rounded-lg bg-muted overflow-hidden flex items-center justify-center text-xs text-muted-foreground aspect-square flex-shrink-0">
+                          <td className="px-3 md:px-6 py-3">
+                            <div className="flex items-center gap-4">
+                              <div className="w-26 h-26 rounded bg-muted overflow-hidden flex items-center justify-center text-xs text-muted-foreground flex-shrink-0">
                                 {project.imageUrl ? (
                                   // eslint-disable-next-line @next/next/no-img-element
                                   <img
                                     src={project.imageUrl}
                                     alt={project.name}
                                     className="w-full h-full object-cover"
+                                    loading="lazy"
                                   />
                                 ) : (
-                                  <span className="px-1 text-center">
-                                    ไม่มีรูปภาพ
-                                  </span>
+                                  <span className="px-1 text-center">ไม่มีรูปภาพ</span>
                                 )}
                               </div>
-                              <div>
-                                <h4 className="text-xl mb-2 font-medium text-foreground">
+                              <div className="min-w-0">
+                                <h4 className="text-lg font-medium text-foreground truncate mb-4">
                                   {project.name}
+                                  {getStatusLabel(project.projectStatus) && (
+                                    <div
+                                      className={`project-status-badge inline-block ml-2 ${project.projectStatus}`}
+                                    >
+                                      <span className="text-xs font-light">{getStatusLabel(project.projectStatus)}</span>
+                                    </div>
+                                  )}
                                 </h4>
-                                <p className="text-neutral-500">
+                                <p className="text-sm text-neutral-500 line-clamp-2">
                                   {project.description}
                                 </p>
-                                {getStatusLabel(project.projectStatus) && (
-                                  <div
-                                    className={`mt-1 project-status-badge ${project.projectStatus}`}
-                                  >
-                                    <span>{getStatusLabel(project.projectStatus)}</span>
-                                  </div>
-                                )}
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 md:px-6 py-4 align-center">
-                            <div className="text-muted-foreground max-w-xs text-center">
+                          <td className="px-3 md:px-6 py-3 align-center">
+                            <div className="text-muted-foreground text-sm text-center max-w-xs">
                               {project.commission || 'จะประกาศคอมมิชชั่นเร็ว ๆ นี้'}
                             </div>
                           </td>
-                          <td className="px-4 md:px-6 py-4 align-center">
+                          <td className="px-3 md:px-6 py-3 align-center">
                             <div className="flex justify-center">
                               <button
                                 type="button"
                                 onClick={() => handleRecommend(project)}
-                                className="inline-flex items-center justify-center rounded-lg border border-primary px-3 py-1.5 font-medium text-primary hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
+                                className="inline-flex items-center justify-center rounded-lg border border-primary px-2.5 py-1.5 font-medium text-primary text-sm hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
                               >
                                 แนะนำเพื่อน
                               </button>
