@@ -152,7 +152,7 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
             <button
               type="button"
               onClick={() => setActiveTab('profile')}
-              className={`w-full text-left px-4 py-2.5 rounded-lg font-medium ${
+              className={`w-full text-left px-4 py-2.5 rounded-lg font-medium cursor-pointer ${
                 activeTab === 'profile'
                   ? 'bg-primary/5 text-primary'
                   : 'text-muted-foreground hover:bg-primary/5 hover:text-primary transition-colors'
@@ -163,7 +163,7 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
             <button
               type="button"
               onClick={() => setActiveTab('affiliate')}
-              className={`w-full text-left px-4 py-2.5 rounded-lg font-medium ${
+              className={`w-full text-left px-4 py-2.5 rounded-lg font-medium cursor-pointer ${
                 activeTab === 'affiliate'
                   ? 'bg-primary/5 text-primary'
                   : 'text-muted-foreground hover:bg-primary/5 hover:text-primary transition-colors'
