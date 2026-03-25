@@ -55,17 +55,14 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
     <div className="min-h-screen">
       <Header onLogin={onLogin ?? sessionLogin} isLoggedInFromParent={isLoggedIn} />
       <HeroBanner imageDesktop={fgfDesktopBanner} imageMobile={fgfMobileBanner} />
-      <IntroSection />
 
-      <div className="px-4 md:px-0 py-10">
-        <FriendGetFriendProjectList
-          onLogin={onLogin ?? sessionLogin}
-          onRecommend={(project) => {
-            setInterestedProject(project.name);
-            setIsRecommendDrawerOpen(true);
-          }}
-        />
-      </div>
+      <FriendGetFriendProjectList
+        onLogin={onLogin ?? sessionLogin}
+        onRecommend={(project) => {
+          setInterestedProject(project.name);
+          setIsRecommendDrawerOpen(true);
+        }}
+      />
 
       <section id="friendgetfriend-form" className="py-16">
         <div className="max-w-3xl mx-auto px-6">
@@ -109,6 +106,8 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
           </div>
         </div>
       </section>
+
+      <IntroSection />
 
       <Drawer
         direction="right"

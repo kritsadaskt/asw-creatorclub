@@ -5,8 +5,11 @@ import friendGetFriendsIcon from '@/assets/fgf-img.webp';
 import affiliateProgramIcon from '@/assets/aff-img.webp';
 import { Button } from '../ui/button';
 import Link from 'next/link';
+import { useSession } from '@/modules/context/SessionContext';
 
 export function IntroSection() {
+  const { currentUserId } = useSession();
+  const isLoggedIn = !!currentUserId;
   return (
     <>
     <section className="relative bg-gradient-to-br from-primary to-primary/80 text-white py-12 md:pt-24 md:pb-16">
@@ -36,7 +39,11 @@ export function IntroSection() {
                 </ul>
               </div>
             </div>
-            <a href="/#register-section" className='text-2xl h-auto w-[220px] block mx-auto rounded-md bg-gradient-to-br from-orange-400 to-orange-600 px-7 py-4 leading-none text-center cursor-pointer'>สมัครเข้าร่วม</a>
+            
+            {/* If user is not logged in, show the link */}
+            {!isLoggedIn && (
+              <a href="/#register-section" className='text-2xl h-auto w-[220px] block mx-auto rounded-md bg-gradient-to-br from-orange-400 to-orange-600 px-7 py-4 leading-none text-center cursor-pointer'>สมัครเข้าร่วม</a>
+            )}
           </div>
 
           <div className='lg:px-7 px-0 lg:border-x border-white/90 flex flex-col justify-between'>

@@ -3,7 +3,6 @@
 @import './theme.css';
 
 .project-status-badge {
-  @apply pt-2;
   span {
     @apply inline-flex items-center rounded-full bg-muted px-4 py-1;
   }
