@@ -1,3 +1,0 @@
-{
-  "/api/account-recovery/verify-otp/route": "app/api/account-recovery/verify-otp/route.js"
-}

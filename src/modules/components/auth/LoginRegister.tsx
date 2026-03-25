@@ -14,6 +14,7 @@ import {
 import { loginWithFacebook, getFacebookUserInfo } from '../../utils/facebook';
 import { hashPassword, validatePassword, validatePasswordConfirm } from '../../utils/password';
 import { setSession } from '../../utils/auth';
+import { BASE_PATH } from '@/lib/publicPath';
 
 interface LoginRegisterProps {
   onLogin: (id: string, role: 'creator' | 'admin') => void;
@@ -29,6 +30,23 @@ export function LoginRegister({ onLogin }: LoginRegisterProps) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [facebookLoading, setFacebookLoading] = useState(false);
+
+  const sendRegistrationPendingEmail = async (creator: Pick<CreatorProfile, 'name' | 'email'>) => {
+    try {
+      const res = await fetch(`${BASE_PATH}/api/creators/email/registration-pending`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: creator.name, email: creator.email }),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        console.error('registration-pending email failed:', res.status, errText);
+      }
+    } catch (error) {
+      console.error('registration-pending email error:', error);
+    }
+  };
 
   const handleFacebookAuth = async () => {
     setError('');
@@ -154,6 +172,7 @@ export function LoginRegister({ onLogin }: LoginRegisterProps) {
         };
 
         await saveCreator(newCreator);
+        await sendRegistrationPendingEmail(newCreator);
         sessionStorage.removeItem('pendingFacebookId');
         setCurrentUser(newCreator.id, 'creator');
         setSession({ id: newCreator.id, role: 'creator' });

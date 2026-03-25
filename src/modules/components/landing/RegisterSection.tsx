@@ -11,6 +11,7 @@ import { FaFacebook } from 'react-icons/fa6';
 import Select from 'react-select';
 import { Lemon8Icon } from '../../utils/svg';
 import SocialAccounts from '../layout/SocialAccounts';
+import { BASE_PATH } from '@/lib/publicPath';
 
 interface RegisterSectionProps {
   onLogin: (id: string, role: 'creator' | 'admin') => void;
@@ -146,6 +147,23 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | ''>('');
+
+  const sendRegistrationPendingEmail = async (creator: Pick<CreatorProfile, 'name' | 'email'>) => {
+    try {
+      const res = await fetch(`${BASE_PATH}/api/creators/email/registration-pending`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: creator.name, email: creator.email }),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        console.error('registration-pending email failed:', res.status, errText);
+      }
+    } catch (error) {
+      console.error('registration-pending email error:', error);
+    }
+  };
 
   const computePasswordStrength = (value: string): 'weak' | 'medium' | 'strong' | '' => {
     if (!value) return '';
@@ -447,6 +465,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
       };
 
       await saveCreator(newCreator);
+      await sendRegistrationPendingEmail(newCreator);
       
       // Clear pending Facebook data
       sessionStorage.removeItem('pendingFacebookId');

@@ -64,6 +64,14 @@ export function Header({
   const [role, setRole] = useState<'creator' | 'admin' | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
 
+
+  if (!navLinks || navLinks.length < 1) {
+    navLinks = [
+      { label: 'Friend Get Friend', to: '/friendgetfriend' },
+      { label: 'Affiliate', to: '/affiliate' },
+    ];
+  }
+
   const isLoggedIn = !!role;
 
   const loadFromSession = useCallback(async () => {
@@ -127,6 +135,89 @@ export function Header({
 
   const hasNavTabs = navTabs && navTabs.length > 0;
 
+  const UserDropdownMenu = () => {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className="focus:outline-none hover:ring-2 hover:ring-primary/30 rounded-full transition-all cursor-pointer"
+            aria-label="User menu"
+          >
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={displayName || 'Profile'}
+                className="w-9 h-9 rounded-full object-cover border border-border"
+                onError={() => setAvatarUrl(null)}
+              />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-medium">
+                {displayName ? displayName.charAt(0).toUpperCase() : 'U'}
+              </div>
+            )}
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-52">
+          <DropdownMenuLabel className="font-normal">
+            <div className="flex flex-col gap-0.5">
+              <span className="font-semibold text-foreground truncate">
+                {displayName ?? 'User'}
+              </span>
+            </div>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {role === 'admin' && (
+            <DropdownMenuItem
+              onClick={() => { router.push('/admin/dashboard'); }}
+              className="cursor-pointer group"
+            >
+              <LayoutDashboard className="w-4 h-4 mr-2 group-hover:stroke-white" />
+              Dashboard
+            </DropdownMenuItem>
+          )}
+          {role === 'creator' && (
+            <DropdownMenuItem
+              onClick={() => { router.push('/profile'); }}
+              className="cursor-pointer group"
+            >
+              <User className="w-4 h-4 mr-2 group-hover:stroke-white" />
+              โปรไฟล์ของฉัน
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={handleLogout}
+            className="cursor-pointer text-destructive focus:text-destructive group"
+          >
+            <LogOut className="w-4 h-4 mr-2 group-hover:stroke-white" />
+            <span className="group-hover:text-white">ออกจากระบบ</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    )
+  }
+
+  const MainMenu = ({ isLoggedIn }: { isLoggedIn: boolean }) => {
+    return (
+      <>
+        {navLinks && navLinks.length > 0 && (
+          <div className="flex items-center gap-4">
+            {navLinks.map((link) => (
+              <Link key={link.to} href={link.to} className='cursor-pointer hover:text-primary border-r border-border pr-4'>{link.label}</Link>
+            ))}
+          </div>
+        )}
+        {isLoggedIn ? <UserDropdownMenu /> : (
+          <>
+            <Link href="/#register-section" className='cursor-pointer hover:text-primary'>ลงทะเบียน</Link>
+            <button onClick={() => setShowLoginModal(true)} className='bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 cursor-pointer'>เข้าสู่ระบบ</button>
+          </>
+        )}
+      </>
+    );
+  };
+
   return (
     <>
       <header
@@ -150,106 +241,9 @@ export function Header({
 
             {/* Right section */}
             <div className="flex gap-4 items-center">
+              
               {/* Inline nav links (creator-style) */}
-              {navLinks?.map((link) => {
-                const isActive = link.end
-                  ? normalizedPath === link.to
-                  : normalizedPath === link.to || normalizedPath.startsWith(`${link.to}/`);
-                return (
-                  <Link
-                    key={link.to}
-                    href={link.to}
-                    className={`transition-colors ${
-                      isActive
-                        ? 'text-primary'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                );
-              })}
-
-              {/* Profile area */}
-              {isLoadingProfile ? (
-                <div className="w-9 h-9 rounded-full bg-muted animate-pulse" />
-              ) : isLoggedIn ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      className="focus:outline-none hover:ring-2 hover:ring-primary/30 rounded-full transition-all cursor-pointer"
-                      aria-label="User menu"
-                    >
-                      {avatarUrl ? (
-                        <img
-                          src={avatarUrl}
-                          alt={displayName || 'Profile'}
-                          className="w-9 h-9 rounded-full object-cover border border-border"
-                          onError={() => setAvatarUrl(null)}
-                        />
-                      ) : (
-                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-medium">
-                          {displayName ? displayName.charAt(0).toUpperCase() : 'U'}
-                        </div>
-                      )}
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-52">
-                    <DropdownMenuLabel className="font-normal">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-semibold text-foreground truncate">
-                          {displayName ?? 'User'}
-                        </span>
-                      </div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {role === 'admin' && (
-                      <DropdownMenuItem
-                        onClick={() => { router.push('/admin/dashboard'); }}
-                        className="cursor-pointer group"
-                      >
-                        <LayoutDashboard className="w-4 h-4 mr-2 group-hover:stroke-white" />
-                        Dashboard
-                      </DropdownMenuItem>
-                    )}
-                    {role === 'creator' && (
-                      <DropdownMenuItem
-                        onClick={() => { router.push('/profile'); }}
-                        className="cursor-pointer group"
-                      >
-                        <User className="w-4 h-4 mr-2 group-hover:stroke-white" />
-                        โปรไฟล์ของฉัน
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={handleLogout}
-                      className="cursor-pointer text-destructive focus:text-destructive group"
-                    >
-                      <LogOut className="w-4 h-4 mr-2 group-hover:stroke-white" />
-                      <span className="group-hover:text-white">ออกจากระบบ</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : onLogin ? (
-                <>
-                  <Link
-                    href="/#register-section"
-                    className="text-muted-foreground hover:text-accent transition-colors hidden md:block cursor-pointer"
-                    title="ลงทะเบียน"
-                  >
-                    ลงทะเบียน
-                  </Link>
-                  <button
-                    onClick={() => setShowLoginModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors cursor-pointer"
-                  >
-                    <LogIn className="w-4 h-4" />
-                    เข้าสู่ระบบ
-                  </button>
-                </>
-              ) : null}
+              <MainMenu isLoggedIn={isLoggedIn} />
             </div>
           </div>
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { sendEmail } from '@/lib/email/send-email';
+import { buildRejectionEmailMessage } from '@/modules/utils/email';
 import { getCreatorById } from '@/modules/utils/storage';
-import { buildRejectionEmailPayload } from '@/modules/utils/email';
 
 export async function POST(
   _request: NextRequest,
@@ -13,9 +14,26 @@ export async function POST(
       return NextResponse.json({ error: 'Creator not found' }, { status: 404 });
     }
 
-    const payload = buildRejectionEmailPayload(creator);
+    const message = buildRejectionEmailMessage(creator);
+    const result = await sendEmail({
+      to: message.to,
+      subject: message.subject,
+      html: message.html,
+    });
 
-    return NextResponse.json({ success: true, smtpPayload: { ...payload, password: undefined } });
+    if (result.sent) {
+      return NextResponse.json({ success: true });
+    }
+
+    if (result.reason === 'not_configured') {
+      return NextResponse.json({ success: true, dev: true });
+    }
+
+    if (result.reason === 'invalid_content') {
+      return NextResponse.json({ error: 'INVALID_EMAIL_CONTENT' }, { status: 400 });
+    }
+
+    return NextResponse.json({ error: 'EMAIL_SEND_FAILED' }, { status: 500 });
   } catch (error) {
     console.error('Send rejection email error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
