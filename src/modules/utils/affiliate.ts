@@ -9,6 +9,10 @@ export interface AffiliateProject {
    */
   imageUrl?: string;
   /**
+   * Optional fallback thumbnail URL (from DB `projects.thumb_url`).
+   */
+  thumbUrl?: string;
+  /**
    * Optional commission information (e.g. '3% ของราคาขาย').
    */
   commission?: string;
@@ -48,6 +52,7 @@ export const fetchAffiliateProjects = async (): Promise<AffiliateProject[]> => {
     id: project.id,
     name: project.name,
     imageUrl: project.imageUrl,
+    thumbUrl: project.thumbUrl,
     projectStatus: project.projectStatus ?? '',
     // Prefer structured commission range; fall back to description.
     commission:

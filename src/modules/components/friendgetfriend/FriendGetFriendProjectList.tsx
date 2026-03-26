@@ -223,16 +223,16 @@ export function FriendGetFriendProjectList({
                           <td className="px-3 md:px-6 py-3">
                             <div className="flex items-center gap-4">
                               <div className="w-26 h-26 rounded bg-muted overflow-hidden flex items-center justify-center text-xs text-muted-foreground flex-shrink-0">
-                                {project.imageUrl ? (
+                                {project.imageUrl || project.thumbUrl ? (
                                   // eslint-disable-next-line @next/next/no-img-element
                                   <img
-                                    src={project.imageUrl}
+                                    src={project.imageUrl || project.thumbUrl}
                                     alt={project.name}
                                     className="w-full h-full object-cover"
                                     loading="lazy"
                                   />
                                 ) : (
-                                  <span className="px-1 text-center">ไม่มีรูปภาพ</span>
+                                  <span className="px-1 text-center">no thumbnail</span>
                                 )}
                               </div>
                               <div className="min-w-0">
