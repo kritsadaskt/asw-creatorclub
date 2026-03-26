@@ -8,6 +8,7 @@ import { Input } from '../shared/Input';
 import { AffiliateLink, Project, Campaign } from '../../types';
 import { getAffiliateLinksByCreator, getProjects, getCampaigns, saveAffiliateLink, generateUUID } from '../../utils/storage';
 import { Building2, Home, Megaphone, Link2, Plus, Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 interface AffiliateGeneratorProps {
   creatorId: string;
@@ -123,7 +124,7 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
 
       {/* Generator Form */}
       <div className="bg-white rounded-xl shadow-sm border border-border px-4 py-4 md:p-6 mb-6">
-        <h3 className="text-primary mb-4">สร้างลิงค์ใหม่</h3>
+        <h3 className="text-primary">สร้างลิงค์ใหม่</h3>
         
         <div className="space-y-4">
           <Input
@@ -138,18 +139,22 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
             <label className="block text-sm mb-2 text-foreground">
               เลือกโครงการ (ไม่บังคับ)
             </label>
-            <select
-              value={selectedProjectId}
-              onChange={(e) => handleProjectSelect(e.target.value)}
-              className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
+            <Select
+              value={selectedProjectId || undefined}
+              onValueChange={(value) => handleProjectSelect(value === '__none__' ? '' : value)}
             >
-              <option value="">ไม่เลือก - ใช้ URL กำหนดเอง</option>
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.type === 'condo' ? '🏢' : '🏠'} {project.name} - {project.location}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="border-border">
+                <SelectValue placeholder="ไม่เลือกโครงการ" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">ไม่เลือกโครงการ</SelectItem>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {`${project.type === 'condo' ? '🏢' : '🏠'} ${project.name} - ${project.location}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <Input

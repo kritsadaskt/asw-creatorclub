@@ -23,6 +23,7 @@ export function ProjectManagement() {
   const [description, setDescription] = useState('');
   const [baseUrl, setBaseUrl] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [thumbUrl, setThumbUrl] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [googleDriveUrl, setGoogleDriveUrl] = useState('');
@@ -59,6 +60,7 @@ export function ProjectManagement() {
     setDescription('');
     setBaseUrl('');
     setImageUrl('');
+    setThumbUrl('');
     setImageFile(null);
     setImagePreviewUrl(null);
     setGoogleDriveUrl('');
@@ -78,6 +80,7 @@ export function ProjectManagement() {
     setDescription(project.description || '');
     setBaseUrl(project.baseUrl);
     setImageUrl(project.imageUrl || '');
+    setThumbUrl(project.thumbUrl || '');
     setGoogleDriveUrl(project.googleDriveUrl || '');
     setGoogleDrivePassword(project.googleDrivePassword || 'creatorclub');
     setProjectStatus(project.projectStatus || '');
@@ -165,6 +168,7 @@ export function ProjectManagement() {
         location,
         description,
         imageUrl: resolvedImageUrl,
+        thumbUrl: thumbUrl || undefined,
         googleDriveUrl: googleDriveUrl || undefined,
         googleDrivePassword: googleDrivePassword || 'creatorclub',
         projectStatus,
@@ -403,6 +407,13 @@ export function ProjectManagement() {
             />
 
             <Input
+              label="Thumbnail URL (fallback)"
+              value={thumbUrl}
+              onChange={setThumbUrl}
+              placeholder="https://example.com/thumb.jpg"
+            />
+
+            <Input
               label="Google Drive materials link"
               value={googleDriveUrl}
               onChange={setGoogleDriveUrl}
@@ -416,16 +427,16 @@ export function ProjectManagement() {
               </label>
               <div className="flex flex-col md:flex-row gap-4 items-start">
                 <div className="w-32 h-32 rounded-lg border border-dashed border-border flex items-center justify-center overflow-hidden bg-muted text-xs text-muted-foreground">
-                  {imagePreviewUrl || imageUrl ? (
+                  {imagePreviewUrl || imageUrl || thumbUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={imagePreviewUrl || imageUrl}
+                      src={imagePreviewUrl || imageUrl || thumbUrl}
                       alt={name || 'Project image'}
                       className="w-full h-full object-cover"
                     />
                   ) : (
                     <span className="px-2 text-center">
-                      ไม่มีรูปภาพ
+                      no thumbnail
                     </span>
                   )}
                 </div>

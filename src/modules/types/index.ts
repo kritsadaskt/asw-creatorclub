@@ -55,6 +55,10 @@ export interface Project {
   location: string;
   description?: string;
   imageUrl?: string;
+  /**
+   * Fallback thumbnail URL from DB (`projects.thumb_url`) used when no uploaded image is set.
+   */
+  thumbUrl?: string;
   googleDriveUrl?: string;
   googleDrivePassword?: string;
   // Text status from DB: 'ready' | 'new' | 'sold_out'

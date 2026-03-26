@@ -217,16 +217,16 @@ function AffiliateProjectList() {
                           <td className="px-4 md:px-6 py-4">
                             <div className="flex items-center gap-7">
                               <div className="w-50 h-auto rounded-lg bg-muted overflow-hidden flex items-center justify-center text-xs text-muted-foreground aspect-square flex-shrink-0">
-                                {project.imageUrl ? (
+                                {project.imageUrl || project.thumbUrl ? (
                                   // eslint-disable-next-line @next/next/no-img-element
                                   <img
-                                    src={project.imageUrl}
+                                    src={project.imageUrl || project.thumbUrl}
                                     alt={project.name}
                                     className="w-full h-full object-cover"
                                   />
                                 ) : (
                                   <span className="px-1 text-center">
-                                    ไม่มีรูปภาพ
+                                    no thumbnail
                                   </span>
                                 )}
                               </div>
@@ -391,16 +391,16 @@ function AffiliateProjectList() {
             <div className="px-7 pb-7 space-y-4">
               <div className="flex items-center gap-3">
                 <div className="w-30 h-auto rounded-lg bg-muted overflow-hidden flex items-center justify-center text-xs text-muted-foreground aspect-square flex-shrink-0">
-                  {selectedProject.imageUrl ? (
+                  {selectedProject.imageUrl || selectedProject.thumbUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={selectedProject.imageUrl}
+                      src={selectedProject.imageUrl || selectedProject.thumbUrl}
                       alt={selectedProject.name}
                       className="w-full h-full object-cover"
                     />
                   ) : (
                     <span className="px-1 text-center">
-                      ไม่มีรูปภาพ
+                      no thumbnail
                     </span>
                   )}
                 </div>
