@@ -11,6 +11,7 @@ import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { LayoutGrid, Loader2, MailIcon, Table } from 'lucide-react';
 import { FaPhone } from 'react-icons/fa6';
 import { BASE_PATH } from '@/lib/publicPath';
+import Select from 'react-select';
 
 const CATEGORIES = [
   'ทั้งหมด',
@@ -39,6 +40,30 @@ export function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   /** `${creatorId}:approval` | `${creatorId}:rejection` while that request is in flight */
   const [emailSendKey, setEmailSendKey] = useState<string | null>(null);
+
+  const approvalOptions: Array<{
+    value: typeof approvalFilter;
+    label: string;
+  }> = [
+    { value: 'all', label: 'ทั้งหมด' },
+    { value: 'pending', label: 'คำขอเข้าร่วม (รอการอนุมัติ)' },
+    { value: 'approved', label: 'อนุมัติแล้ว' },
+    { value: 'rejected', label: 'ถูกปฏิเสธ' },
+    { value: 'inactive', label: 'ไม่ใช้งาน' },
+  ];
+
+  const categoryOptions = CATEGORIES.map((cat) => ({ value: cat, label: cat }));
+
+  const followerOptions: Array<{ value: string; label: string }> = [
+    { value: 'all', label: 'ทั้งหมด' },
+    { value: '0-1k', label: '0 - 1,000' },
+    { value: '1k-10k', label: '1,000 - 10,000' },
+    { value: '10k-50k', label: '10,000 - 50,000' },
+    { value: '50k-100k', label: '50,000 - 100,000' },
+    { value: '100k-500k', label: '100,000 - 500,000' },
+    { value: '500k+', label: '500,000+' },
+    { value: 'custom', label: 'กำหนดเอง' },
+  ];
 
   useEffect(() => {
     loadCreators();
@@ -229,9 +254,9 @@ export function AdminDashboard() {
 
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-sm border border-border p-6 mb-6">
-        <h3 className="text-primary mb-4">ค้นหาและกรองข้อมูล</h3>
+        <h3 className="text-neutral-700 text-xl font-medium mb-4">ค้นหาและกรองข้อมูล</h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
           <div className="flex flex-col gap-1.5">
             <label>ค้นหา (ชื่อ / อีเมล)</label>
             <input
@@ -239,59 +264,54 @@ export function AdminDashboard() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="ค้นหา..."
-              className="px-4 py-2.5 bg-input-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="px-4 py-2.5 bg-input-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label>สถานะการอนุมัติ</label>
-            <select
-              value={approvalFilter}
-              onChange={(e) => setApprovalFilter(e.target.value as typeof approvalFilter)}
-              className="px-4 py-2.5 bg-input-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
-            >
-              <option value="all">ทั้งหมด</option>
-              <option value="pending">คำขอเข้าร่วม (รอการอนุมัติ)</option>
-              <option value="approved">อนุมัติแล้ว</option>
-              <option value="rejected">ถูกปฏิเสธ</option>
-              <option value="inactive">ไม่ใช้งาน</option>
-            </select>
+            <Select
+              options={approvalOptions}
+              value={approvalOptions.find((o) => o.value === approvalFilter)}
+              onChange={(option) => {
+                setApprovalFilter((option?.value ?? 'all') as typeof approvalFilter);
+              }}
+              isClearable={false}
+              classNamePrefix="react-select"
+              placeholder="ทั้งหมด"
+            />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label>หมวดหมู่</label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-4 py-2.5 bg-input-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
-            >
-              {CATEGORIES.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
+            <Select
+              options={categoryOptions}
+              value={categoryOptions.find((o) => o.value === selectedCategory)}
+              onChange={(option) => {
+                setSelectedCategory(option?.value ?? 'ทั้งหมด');
+              }}
+              isClearable={false}
+              classNamePrefix="react-select"
+              placeholder="ทั้งหมด"
+            />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label>ผู้ติดตาม (follower)</label>
-            <select
-              value={followerRange}
-              onChange={(e) => {
-                setFollowerRange(e.target.value);
-                if (e.target.value !== 'custom') {
+            <Select
+              options={followerOptions}
+              value={followerOptions.find((o) => o.value === followerRange)}
+              onChange={(option) => {
+                const value = option?.value ?? 'all';
+                setFollowerRange(value);
+                if (value !== 'custom') {
                   setCustomFollowers('');
                 }
               }}
-              className="px-4 py-2.5 bg-input-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
-            >
-              <option value="all">ทั้งหมด</option>
-              <option value="0-1k">0 - 1,000</option>
-              <option value="1k-10k">1,000 - 10,000</option>
-              <option value="10k-50k">10,000 - 50,000</option>
-              <option value="50k-100k">50,000 - 100,000</option>
-              <option value="100k-500k">100,000 - 500,000</option>
-              <option value="500k+">500,000+</option>
-              <option value="custom">กำหนดเอง</option>
-            </select>
+              isClearable={false}
+              classNamePrefix="react-select"
+              placeholder="ทั้งหมด"
+            />
           </div>
         </div>
 
