@@ -489,17 +489,14 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
   const hasPendingFacebook = typeof window !== 'undefined' && sessionStorage.getItem('pendingFacebookId');
 
   return (
-    <section id="register-section" className="py-16">
+    <section id="register-section" className="py-16 bg-primary/10">
       <div className="max-w-3xl mx-auto px-4 md:px-6">
         <div className="bg-white rounded-2xl shadow-xl p-5 md:p-10">
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <UserPlus className="w-8 h-8 text-accent" />
             </div>
-            <h2 className="text-black mb-2">เข้าร่วมกับเรา</h2>
-            <p className="text-muted-foreground">
-              สร้างโปรไฟล์และเริ่มต้นเส้นทางสู่ความสำเร็จในวันนี้
-            </p>
+            <h2 className="text-black mb-2">สมัครเป็นครีเอเตอร์</h2>
           </div>
 
           {error && (
