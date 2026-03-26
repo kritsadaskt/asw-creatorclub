@@ -24,8 +24,8 @@ export function IntroSection() {
               </div>
 
               <div className="content">
-                <h3 className='uppercase font-bold mb-2'><span className='text-primary text-5xl lg:text-7xl'>AssetWise</span><br/><span className='text-orange-500 text-4xl lg:text-6xl'>Creator Club</span></h3>
-                <h3 className='text-3xl font-normal text-primary/70 mb-7'>Make content : Earn Commission</h3>
+                <h3 className='uppercase font-bold mb-2 text-center lg:text-left'><span className='text-primary text-5xl lg:text-7xl'>AssetWise</span><br/><span className='text-orange-500 text-4xl lg:text-6xl'>Creator Club</span></h3>
+                <h3 className='text-xl lg:text-3xl font-normal text-primary/70 mb-3 lg:mb-7 text-center lg:text-left'>Make content : Earn Commission</h3>
                 <div className="detail text-neutral-600 text-lg">
                   <p>คอมมูนิตี้สำหรับคนรักการสร้างคอนเทนต์ ไม่ว่าคุณจะเป็น Creator สายรีวิว สายไลฟ์สไตล์ อินฟลูเอนเซอร์ หรือคนทั่วไปที่อยากเปลี่ยนไอเดียให้กลายเป็นรายได้ ที่นี่เปิดโอกาสให้คุณได้ สร้างรายได้จากการทำคอนเทนต์ร่วมกับแบรนด์อสังหาริมทรัพย์ชั้นนำ</p>
                   <div className="h-4"></div>
@@ -41,7 +41,7 @@ export function IntroSection() {
                   </ul>
                   {/* If user is not logged in, show the link */}
                   {!isLoggedIn && (
-                    <div className='mt-7 flex justify-start gap-5'>
+                    <div className='mt-7 flex justify-center lg:justify-start gap-3 lg:gap-5'>
                       <a href="/#register-section" className='text-base lg:text-xl h-auto w-auto lg:w-[200px] block rounded-4xl bg-gradient-to-br from-orange-400 to-orange-600 text-white px-7 py-4 leading-none text-center cursor-pointer'>สมัครเข้าร่วม</a>
                       <a href="/#register-section" className='text-base lg:text-xl h-auto w-auto lg:w-[200px] block rounded-4xl border-2 border-orange-600 text-orange-600 px-7 py-4 leading-none text-center cursor-pointer'>ข้อมูลเพิ่มเติม</a>
                     </div>

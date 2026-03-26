@@ -873,17 +873,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                   />
                   <span className='font-normal'>ลูกบ้านแอสเซทไวส์</span>
                 </label>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="status"
-                    value="partner"
-                    checked={status === 'partner'}
-                    onChange={(e) => setStatus(e.target.value as 'partner')}
-                    className="w-4 h-4 text-primary"
-                  />
-                  <span className='font-normal'>แอสเซทไวส์ พาร์ทเนอร์</span>
-                </label>
+                
               </div>
 
               {status === 'resident' && (
