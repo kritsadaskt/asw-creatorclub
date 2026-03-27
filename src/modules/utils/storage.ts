@@ -206,6 +206,24 @@ export const saveAffiliateLink = async (link: AffiliateLink): Promise<void> => {
   }
 };
 
+export const updateAffiliateLink = async (link: AffiliateLink): Promise<void> => {
+  const { error } = await supabase
+    .from('affiliate_links')
+    .update({
+      campaign_name: link.campaignName,
+      project_id: link.projectId ?? null,
+      campaign_id: link.campaignId ?? null,
+      url: link.url,
+    })
+    .eq('id', link.id)
+    .eq('creator_id', link.creatorId);
+
+  if (error) {
+    console.error('Error updating affiliate link:', error);
+    throw error;
+  }
+};
+
 export const getAffiliateLinks = async (): Promise<AffiliateLink[]> => {
   const { data, error } = await supabase
     .from('affiliate_links')
