@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Button } from '../shared/Button';
-import { CreatorProfile } from '../../types';
-import { getCreators } from '../../utils/storage';
+import { AffiliateLink, CreatorProfile } from '../../types';
+import { getAffiliateLinksByCreator, getCreators } from '../../utils/storage';
 import { supabase } from '../../utils/supabase';
 import { getProfileImageUrl } from '../../utils/profileImage';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
-import { LayoutGrid, Loader2, MailIcon, MoreVertical, Table } from 'lucide-react';
+import { ChevronRight, Eye, LayoutGrid, Loader2, MailIcon, Table } from 'lucide-react';
 import { FaPhone } from 'react-icons/fa6';
 import { BASE_PATH } from '@/lib/publicPath';
 import Select from 'react-select';
@@ -21,6 +21,8 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '../ui/drawer';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 
 const CATEGORIES = [
   'ทั้งหมด',
@@ -43,11 +45,18 @@ export function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [minFollowers, setMinFollowers] = useState('');
   const [selectedCreator, setSelectedCreator] = useState<CreatorProfile | null>(null);
-  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('table');
   const [followerRange, setFollowerRange] = useState('all');
   const [customFollowers, setCustomFollowers] = useState('');
   const [loading, setLoading] = useState(true);
-  const [openActionMenuId, setOpenActionMenuId] = useState<CreatorProfile['id'] | null>(null);
+  const [creatorAffiliateLinks, setCreatorAffiliateLinks] = useState<AffiliateLink[]>([]);
+  const [affiliateLinksLoading, setAffiliateLinksLoading] = useState(false);
+  const [decisionDialog, setDecisionDialog] = useState<{
+    open: boolean;
+    creator: CreatorProfile | null;
+    action: 'approve' | 'reject' | null;
+  }>({ open: false, creator: null, action: null });
+  const [decisionSubmitting, setDecisionSubmitting] = useState(false);
   /** `${creatorId}:approval` | `${creatorId}:rejection` while that request is in flight */
   const [emailSendKey, setEmailSendKey] = useState<string | null>(null);
 
@@ -84,18 +93,26 @@ export function AdminDashboard() {
   }, [creators, selectedCategory, searchQuery, followerRange, customFollowers, approvalFilter]);
 
   useEffect(() => {
-    const handleOutsideClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (!target?.closest('[data-action-dropdown="true"]')) {
-        setOpenActionMenuId(null);
+    const loadCreatorAffiliateLinks = async () => {
+      if (!selectedCreator) {
+        setCreatorAffiliateLinks([]);
+        return;
+      }
+
+      try {
+        setAffiliateLinksLoading(true);
+        const links = await getAffiliateLinksByCreator(selectedCreator.id);
+        setCreatorAffiliateLinks(links);
+      } catch (error) {
+        console.error('Error loading affiliate links by creator:', error);
+        toast.error('ไม่สามารถโหลดลิงก์ Affiliate ของครีเอเตอร์ได้');
+      } finally {
+        setAffiliateLinksLoading(false);
       }
     };
 
-    document.addEventListener('mousedown', handleOutsideClick);
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-    };
-  }, []);
+    void loadCreatorAffiliateLinks();
+  }, [selectedCreator]);
 
   const loadCreators = async () => {
     try {
@@ -155,7 +172,10 @@ export function AdminDashboard() {
     }
 
     // Approval status filter
-    if (approvalFilter === 'pending') {
+    // Default "all" excludes rejected creators; rejected are visible only in the rejected filter.
+    if (approvalFilter === 'all') {
+      filtered = filtered.filter((creator) => creator.approvalStatus !== 0);
+    } else if (approvalFilter === 'pending') {
       filtered = filtered.filter((creator) => creator.approvalStatus === 3);
     } else if (approvalFilter === 'approved') {
       filtered = filtered.filter((creator) => creator.approvalStatus === 1);
@@ -182,7 +202,7 @@ export function AdminDashboard() {
     return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700">รอการอนุมัติ</span>;
   };
 
-  const updateApprovalStatus = async (creator: CreatorProfile, status: 0 | 1 | 2 | 3) => {
+  const updateApprovalStatus = async (creator: CreatorProfile, status: 0 | 1 | 2 | 3): Promise<boolean> => {
     try {
       const { error } = await supabase
         .from('profiles')
@@ -192,7 +212,7 @@ export function AdminDashboard() {
       if (error) {
         console.error('Update approval status error:', error);
         toast.error('ไม่สามารถอัปเดตสถานะได้');
-        return;
+        return false;
       }
 
       toast.success('อัปเดตสถานะสำเร็จ');
@@ -200,9 +220,43 @@ export function AdminDashboard() {
       setCreators((prev) =>
         prev.map((c) => (c.id === creator.id ? { ...c, approvalStatus: status } : c)),
       );
+      setSelectedCreator((prev) =>
+        prev && prev.id === creator.id ? { ...prev, approvalStatus: status } : prev,
+      );
+      return true;
     } catch (error) {
       console.error('Update approval status error:', error);
       toast.error('ไม่สามารถอัปเดตสถานะได้');
+      return false;
+    }
+  };
+
+  const openDecisionDialog = (creator: CreatorProfile, action: 'approve' | 'reject') => {
+    setDecisionDialog({ open: true, creator, action });
+  };
+
+  const handleDecisionConfirm = async (sendEmail: boolean) => {
+    const creator = decisionDialog.creator;
+    const action = decisionDialog.action;
+    if (!creator || !action) return;
+
+    try {
+      setDecisionSubmitting(true);
+      const nextStatus: 0 | 1 = action === 'approve' ? 1 : 0;
+      const updated = await updateApprovalStatus(creator, nextStatus);
+      if (!updated) return;
+
+      if (sendEmail) {
+        if (action === 'approve') {
+          await sendApprovalEmail(creator);
+        } else {
+          await sendRejectionEmail(creator);
+        }
+      }
+
+      setDecisionDialog({ open: false, creator: null, action: null });
+    } finally {
+      setDecisionSubmitting(false);
     }
   };
 
@@ -459,66 +513,18 @@ export function AdminDashboard() {
                     onClick={() => setSelectedCreator(creator)}
                     variant="outline"
                     fullWidth
+                    center
                   >
+                    <Eye className="w-4 h-4" />
                     ดูรายละเอียด
                   </Button>
-                  {creator.approvalStatus === 3 && (
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => updateApprovalStatus(creator, 1)}
-                        fullWidth
-                        variant='success'
-                      >
-                        อนุมัติ
-                      </Button>
-                      <Button
-                        onClick={() => updateApprovalStatus(creator, 0)}
-                        fullWidth
-                        variant='error'
-                      >
-                        ปฏิเสธ
-                      </Button>
-                    </div>
-                  )}
-                  {creator.approvalStatus === 1 && (
-                    <Button
-                      onClick={() => void sendApprovalEmail(creator)}
-                      fullWidth
-                      variant='successTransparent'
-                      center
-                      disabled={emailSendKey === `${creator.id}:approval`}
-                    >
-                      {emailSendKey === `${creator.id}:approval` ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <MailIcon className="w-5 h-5" />
-                      )}
-                      ส่งอีเมลแจ้งอนุมัติ
-                    </Button>
-                  )}
-                  {creator.approvalStatus === 0 && (
-                    <Button
-                      onClick={() => void sendRejectionEmail(creator)}
-                      fullWidth
-                      variant='errorTransparent'
-                      center
-                      disabled={emailSendKey === `${creator.id}:rejection`}
-                    >
-                      {emailSendKey === `${creator.id}:rejection` ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <MailIcon className="w-5 h-5" />
-                      )}
-                      ส่งอีเมลแจ้งปฏิเสธ
-                    </Button>
-                  )}
                 </div>
               </div>
             ))}
           </div>
         ) : (
           /* Table View */
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overflow-y-visible">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
@@ -565,99 +571,15 @@ export function AdminDashboard() {
                       {approvalStatusBadge(creator)}
                     </td>
                     <td className="py-3 px-4">
-                      <div className="relative inline-block" data-action-dropdown="true">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setOpenActionMenuId((prev) => (prev === creator.id ? null : creator.id))
-                          }
-                          className="inline-flex items-center justify-center rounded-md border border-border bg-white px-3 py-1.5 text-sm text-foreground hover:bg-input-background"
-                        >
-                          <MoreVertical className="w-5 h-5" />
-                        </button>
-                        {openActionMenuId === creator.id && (
-                          <div className="absolute right-0 z-20 mt-2 w-56 rounded-lg border border-border bg-white p-2 shadow-lg space-y-1">
-                          <Button
-                            onClick={() => {
-                              setSelectedCreator(creator);
-                              setOpenActionMenuId(null);
-                            }}
-                            variant='ghost'
-                            size="sm"
-                            fullWidth
-                            rounded='none'
-                          >
-                            ดูรายละเอียด
-                          </Button>
-                          {creator.approvalStatus === 3 && (
-                            <>
-                              <Button
-                                onClick={() => {
-                                  void updateApprovalStatus(creator, 1);
-                                  setOpenActionMenuId(null);
-                                }}
-                                size="sm"
-                                fullWidth
-                                variant='success'
-                              >
-                                อนุมัติ
-                              </Button>
-                              <Button
-                                onClick={() => {
-                                  void updateApprovalStatus(creator, 0);
-                                  setOpenActionMenuId(null);
-                                }}
-                                variant='error'
-                                size="sm"
-                                fullWidth
-                              >
-                                ปฏิเสธ
-                              </Button>
-                            </>
-                          )}
-                          {creator.approvalStatus === 1 && (
-                            <Button
-                              onClick={() => {
-                                void sendApprovalEmail(creator);
-                                setOpenActionMenuId(null);
-                              }}
-                              size="sm"
-                              fullWidth
-                              variant='successTransparent'
-                              center
-                              disabled={emailSendKey === `${creator.id}:approval`}
-                            >
-                              {emailSendKey === `${creator.id}:approval` ? (
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                              ) : (
-                                <MailIcon className="w-5 h-5" />
-                              )}
-                              ส่งอีเมลแจ้งอนุมัติ
-                            </Button>
-                          )}
-                          {creator.approvalStatus === 0 && (
-                            <Button
-                              onClick={() => {
-                                void sendRejectionEmail(creator);
-                                setOpenActionMenuId(null);
-                              }}
-                              size="sm"
-                              fullWidth
-                              variant='errorTransparent'
-                              center
-                              disabled={emailSendKey === `${creator.id}:rejection`}
-                            >
-                              {emailSendKey === `${creator.id}:rejection` ? (
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                              ) : (
-                                <MailIcon className="w-5 h-5" />
-                              )}
-                              ส่งอีเมลแจ้งปฏิเสธ
-                            </Button>
-                          )}
-                          </div>
-                        )}
-                      </div>
+                      <Button
+                        type="button"
+                        onClick={() => setSelectedCreator(creator)}
+                        variant="ghost"
+                        className="cursor-pointer rounded-full p-2"
+                        aria-label={`ดูรายละเอียด ${creator.name}`}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -701,7 +623,7 @@ export function AdminDashboard() {
 
                 <div>
                   <label className="text-muted-foreground">ชื่อ-นามสกุล</label>
-                  <p className="text-foreground">{selectedCreator.name}</p>
+                  <p className="text-foreground">{selectedCreator.name} {selectedCreator.lastName}</p>
                 </div>
 
                 <div>
@@ -725,22 +647,100 @@ export function AdminDashboard() {
 
                 <div>
                   <label className="text-muted-foreground">บัญชีโซเชียลมีเดีย</label>
-                  <div className="mt-2 space-y-2">
+                  <div className="flex flex-col gap-2">
                     {getSocialLinks(selectedCreator).map((social, idx) => (
                       <div key={idx} className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-foreground w-24">{social.name}:</span>
+                        <span className="font-medium text-foreground w-24">{social.name}:</span>
                         <a
                           href={`https://${social.url}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm text-primary hover:underline break-all"
+                          className="text-primary hover:underline break-all"
                         >
                           {social.url}
                         </a>
                       </div>
                     ))}
                     {getSocialLinks(selectedCreator).length === 0 && (
-                      <p className="text-sm text-muted-foreground">ยังไม่มีข้อมูล</p>
+                      <p className="text-muted-foreground">ยังไม่มีข้อมูล</p>
+                    )}
+                  </div>
+                </div>
+
+                {selectedCreator.approvalStatus === 3 && (
+                  <>
+                    <h4 className="text-muted-foreground mb-2">การพิจารณา</h4>
+                    <div className="w-full flex flex-col md:flex-row gap-2">
+                      <Button
+                        onClick={() => openDecisionDialog(selectedCreator, 'approve')}
+                        variant="success"
+                        fullWidth
+                      >
+                        อนุมัติ
+                      </Button>
+                      <Button
+                        onClick={() => openDecisionDialog(selectedCreator, 'reject')}
+                        variant="error"
+                        fullWidth
+                      >
+                        ปฏิเสธ
+                      </Button>
+                    </div>
+                  </>
+                )}
+
+                <div>
+                  <label className="text-muted-foreground">Affiliate Links</label>
+                  <div className="mt-2 rounded-lg border border-border">
+                    {affiliateLinksLoading ? (
+                      <div className="py-4 text-muted-foreground flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>กำลังโหลดลิงก์ Affiliate...</span>
+                      </div>
+                    ) : creatorAffiliateLinks.length === 0 ? (
+                      <div className="p-4 text-muted-foreground">
+                        ยังไม่มีลิงก์ Affiliate
+                      </div>
+                    ) : (
+                      <Accordion type="single" collapsible>
+                        {creatorAffiliateLinks.map((link) => (
+                          <AccordionItem key={link.id} value={link.id}>
+                            <AccordionTrigger className="hover:no-underline px-4">
+                              <div className="flex flex-col text-left">
+                                <span className="font-medium text-foreground">{link.campaignName}</span>
+                                <span className="text-muted-foreground">
+                                  {new Date(link.createdAt).toLocaleDateString('th-TH', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric',
+                                  })}
+                                </span>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="px-4">
+                              <div className="space-y-2">
+                                {!link.postLinks || link.postLinks.length === 0 ? (
+                                  <p className="text-muted-foreground">
+                                    ยังไม่มีลิงก์โพสต์ที่ครีเอเตอร์ส่งมา
+                                  </p>
+                                ) : (
+                                  link.postLinks.map((postLink, index) => (
+                                    <a
+                                      key={`${link.id}-post-${index}`}
+                                      href={postLink}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="block text-sm text-primary hover:underline break-all"
+                                    >
+                                      {postLink}
+                                    </a>
+                                  ))
+                                )}
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        ))}
+                      </Accordion>
                     )}
                   </div>
                 </div>
@@ -760,7 +760,8 @@ export function AdminDashboard() {
               </div>
 
               <DrawerFooter>
-                <div className="w-full flex flex-col md:flex-row gap-2 justify-center">
+                <div className="w-full flex flex-col gap-2">
+                  <div className="w-full flex flex-col md:flex-row gap-2 justify-center">
                   <Button
                     onClick={() => window.location.href = `tel:${selectedCreator.phone}`}
                     variant="outline"
@@ -772,12 +773,67 @@ export function AdminDashboard() {
                   <DrawerClose asChild>
                     <Button variant="outline">ปิด</Button>
                   </DrawerClose>
+                  </div>
                 </div>
               </DrawerFooter>
             </>
           )}
         </DrawerContent>
       </Drawer>
+
+      <Dialog
+        open={decisionDialog.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDecisionDialog({ open: false, creator: null, action: null });
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {decisionDialog.action === 'approve' ? 'Approve ครีเอเตอร์' : 'Reject ครีเอเตอร์'}
+            </DialogTitle>
+            <DialogDescription>
+              {decisionDialog.action === 'approve'
+                ? `ต้องการ Approve ${decisionDialog.creator?.name ?? 'ครีเอเตอร์นี้'} หรือไม่`
+                : `ต้องการ Reject ${decisionDialog.creator?.name ?? 'ครีเอเตอร์นี้'} หรือไม่`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="h-7"></div>
+          <DialogFooter className="sm:justify-between">
+            <Button
+              variant="errorTransparent"
+              onClick={() => setDecisionDialog({ open: false, creator: null, action: null })}
+              disabled={decisionSubmitting}
+            >
+              ยกเลิก
+            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => void handleDecisionConfirm(true)}
+                disabled={
+                  decisionSubmitting ||
+                  (decisionDialog.creator
+                    ? emailSendKey === `${decisionDialog.creator.id}:${decisionDialog.action === 'approve' ? 'approval' : 'rejection'}`
+                    : false)
+                }
+                variant={decisionDialog.action === 'approve' ? 'success' : 'error'}
+                center
+              >
+                {(decisionSubmitting || (decisionDialog.creator
+                  ? emailSendKey === `${decisionDialog.creator.id}:${decisionDialog.action === 'approve' ? 'approval' : 'rejection'}`
+                  : false)) ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <MailIcon className="w-5 h-5" />
+                )}
+                ยืนยันและส่งอีเมล
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
