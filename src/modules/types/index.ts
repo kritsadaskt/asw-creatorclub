@@ -96,4 +96,39 @@ export interface Campaign {
   createdAt: string;
 }
 
+export type FgfLeadStatus = 'new' | 'contacting' | 'verified' | 'uploaded';
+
+export interface FgfLead {
+  id: string;
+  referrerName: string;
+  referrerLastName: string;
+  referrerEmail: string;
+  referrerTel: string;
+  referrerCreatorId?: string;
+  leadName: string;
+  leadLastName: string;
+  leadEmail: string;
+  leadTel: string;
+  status: FgfLeadStatus;
+  chosenProjectId?: string;
+  uploadedToCrm: boolean;
+  uploadedAt?: string;
+  uploadedBy?: string;
+  crmResponse?: unknown;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FgfLeadProject {
+  id: string;
+  fgfLeadId: string;
+  projectId: string;
+  createdAt: string;
+}
+
+export interface FgfLeadWithProjects {
+  lead: FgfLead;
+  projectIds: string[];
+}
+
 export type UserRole = 'creator' | 'admin';

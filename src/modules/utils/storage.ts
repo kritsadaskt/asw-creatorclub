@@ -1,4 +1,12 @@
-import { CreatorProfile, AffiliateLink, Project, Campaign } from '../types';
+import {
+  CreatorProfile,
+  AffiliateLink,
+  Project,
+  Campaign,
+  FgfLead,
+  FgfLeadStatus,
+  FgfLeadWithProjects,
+} from '../types';
 import { supabase } from './supabase';
 import { verifyPassword } from './password';
 import { getSession, setSession, clearSession } from './auth';
@@ -440,6 +448,191 @@ export const deleteCampaign = async (id: string): Promise<void> => {
 
   if (error) {
     console.error('Error deleting campaign:', error);
+    throw error;
+  }
+};
+
+// ===== Friend Get Friend Lead Operations =====
+
+export type CreateFgfLeadInput = {
+  referrerName: string;
+  referrerLastName: string;
+  referrerEmail: string;
+  referrerTel: string;
+  referrerCreatorId?: string;
+  leadName: string;
+  leadLastName: string;
+  leadEmail: string;
+  leadTel: string;
+  projectIds: string[];
+};
+
+const mapDbToFgfLead = (row: any): FgfLead => ({
+  id: row.id,
+  referrerName: row.referrer_name || '',
+  referrerLastName: row.referrer_last_name || '',
+  referrerEmail: row.referrer_email || '',
+  referrerTel: row.referrer_tel || '',
+  referrerCreatorId: row.referrer_creator_id || undefined,
+  leadName: row.lead_name || '',
+  leadLastName: row.lead_last_name || '',
+  leadEmail: row.lead_email || '',
+  leadTel: row.lead_tel || '',
+  status: (row.status || 'new') as FgfLeadStatus,
+  chosenProjectId: row.chosen_project_id || undefined,
+  uploadedToCrm: !!row.uploaded_to_crm,
+  uploadedAt: row.uploaded_at || undefined,
+  uploadedBy: row.uploaded_by || undefined,
+  crmResponse: row.crm_response ?? undefined,
+  createdAt: row.created_at || new Date().toISOString(),
+  updatedAt: row.updated_at || new Date().toISOString(),
+});
+
+const getFgfLeadProjectIds = async (leadIds: string[]): Promise<Record<string, string[]>> => {
+  if (leadIds.length === 0) return {};
+  const { data, error } = await supabase
+    .from('fgf_lead_projects')
+    .select('fgf_lead_id, project_id')
+    .in('fgf_lead_id', leadIds);
+
+  if (error) {
+    console.error('Error getting FGF lead projects:', error);
+    throw error;
+  }
+
+  const grouped: Record<string, string[]> = {};
+  (data || []).forEach((row: any) => {
+    if (!grouped[row.fgf_lead_id]) grouped[row.fgf_lead_id] = [];
+    grouped[row.fgf_lead_id].push(row.project_id);
+  });
+  return grouped;
+};
+
+export const createFgfLeadWithProjects = async (
+  input: CreateFgfLeadInput
+): Promise<FgfLeadWithProjects> => {
+  const uniqueProjectIds = Array.from(
+    new Set(input.projectIds.filter((projectId) => !!projectId))
+  );
+
+  if (uniqueProjectIds.length === 0) {
+    throw new Error('At least one project is required');
+  }
+
+  const initialChosenProjectId = uniqueProjectIds.length === 1 ? uniqueProjectIds[0] : null;
+  const initialStatus: FgfLeadStatus = uniqueProjectIds.length === 1 ? 'verified' : 'new';
+
+  const { data, error } = await supabase
+    .from('fgf_leads')
+    .insert({
+      referrer_name: input.referrerName,
+      referrer_last_name: input.referrerLastName,
+      referrer_email: input.referrerEmail,
+      referrer_tel: input.referrerTel,
+      referrer_creator_id: input.referrerCreatorId ?? null,
+      lead_name: input.leadName,
+      lead_last_name: input.leadLastName,
+      lead_email: input.leadEmail,
+      lead_tel: input.leadTel,
+      status: initialStatus,
+      chosen_project_id: initialChosenProjectId,
+    })
+    .select('*')
+    .single();
+
+  if (error || !data) {
+    console.error('Error creating FGF lead:', error);
+    throw error ?? new Error('Failed to create FGF lead');
+  }
+
+  const { error: projectInsertError } = await supabase
+    .from('fgf_lead_projects')
+    .insert(
+      uniqueProjectIds.map((projectId) => ({
+        fgf_lead_id: data.id,
+        project_id: projectId,
+      }))
+    );
+
+  if (projectInsertError) {
+    console.error('Error creating FGF lead project mappings:', projectInsertError);
+    throw projectInsertError;
+  }
+
+  return {
+    lead: mapDbToFgfLead(data),
+    projectIds: uniqueProjectIds,
+  };
+};
+
+export const getFgfLeadsWithProjects = async (): Promise<FgfLeadWithProjects[]> => {
+  const { data, error } = await supabase
+    .from('fgf_leads')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error getting FGF leads:', error);
+    throw error;
+  }
+
+  const leads = (data || []).map(mapDbToFgfLead);
+  const projectMap = await getFgfLeadProjectIds(leads.map((lead) => lead.id));
+
+  return leads.map((lead) => ({
+    lead,
+    projectIds: projectMap[lead.id] || [],
+  }));
+};
+
+export const getFgfLeadByIdWithProjects = async (
+  fgfLeadId: string
+): Promise<FgfLeadWithProjects | null> => {
+  const { data, error } = await supabase
+    .from('fgf_leads')
+    .select('*')
+    .eq('id', fgfLeadId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    console.error('Error getting FGF lead by ID:', error);
+    throw error;
+  }
+
+  const lead = mapDbToFgfLead(data);
+  const projectMap = await getFgfLeadProjectIds([lead.id]);
+  return {
+    lead,
+    projectIds: projectMap[lead.id] || [],
+  };
+};
+
+export const updateFgfLeadStatusAndChoice = async (
+  fgfLeadId: string,
+  payload: {
+    status?: FgfLeadStatus;
+    chosenProjectId?: string | null;
+    uploadedToCrm?: boolean;
+    uploadedAt?: string | null;
+    uploadedBy?: string | null;
+    crmResponse?: unknown;
+  }
+): Promise<void> => {
+  const { error } = await supabase
+    .from('fgf_leads')
+    .update({
+      status: payload.status,
+      chosen_project_id: payload.chosenProjectId,
+      uploaded_to_crm: payload.uploadedToCrm,
+      uploaded_at: payload.uploadedAt,
+      uploaded_by: payload.uploadedBy,
+      crm_response: payload.crmResponse,
+    })
+    .eq('id', fgfLeadId);
+
+  if (error) {
+    console.error('Error updating FGF lead:', error);
     throw error;
   }
 };
