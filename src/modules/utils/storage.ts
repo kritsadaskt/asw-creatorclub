@@ -180,6 +180,9 @@ export const authenticateCreator = async (
   if (!creator || !creator.passwordHash) {
     return null; // User not found or registered via Facebook
   }
+  if (creator.approvalStatus === 0) {
+    return null; // Rejected users cannot login
+  }
 
   const isValid = await verifyPassword(password, creator.passwordHash);
   return isValid ? creator : null;

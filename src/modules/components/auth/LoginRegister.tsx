@@ -63,6 +63,10 @@ export function LoginRegister({ onLogin }: LoginRegisterProps) {
       }
 
       if (creator) {
+        if (creator.approvalStatus === 0) {
+          setError('บัญชีนี้ถูกปฏิเสธการอนุมัติและไม่สามารถเข้าสู่ระบบได้');
+          return;
+        }
         // User exists, log them in
         setCurrentUser(creator.id, 'creator');
         setSession({ id: creator.id, role: 'creator' });
@@ -123,7 +127,9 @@ export function LoginRegister({ onLogin }: LoginRegisterProps) {
           onLogin(creator.id, 'creator');
         } else {
           const existingCreator = await getCreatorByEmail(email);
-          if (existingCreator && existingCreator.facebookId && !existingCreator.passwordHash) {
+          if (existingCreator?.approvalStatus === 0) {
+            setError('บัญชีนี้ถูกปฏิเสธการอนุมัติและไม่สามารถเข้าสู่ระบบได้');
+          } else if (existingCreator && existingCreator.facebookId && !existingCreator.passwordHash) {
             setError('บัญชีนี้ลงทะเบียนด้วย Facebook กรุณาเข้าสู่ระบบด้วย Facebook');
           } else {
             setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง');

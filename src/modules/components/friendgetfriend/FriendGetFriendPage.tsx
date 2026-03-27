@@ -76,8 +76,7 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
                 ยิ่งชวนมาก ยิ่งมีโอกาสได้รับสิทธิพิเศษและของรางวัลจาก ASW
               </p>
               <p className="text-muted-foreground">
-                กรณียังไม่ได้เข้าสู่ระบบ คุณจะสามารถดูรายละเอียดของแคมเปญได้เท่านั้น
-                หากต้องการกรอกฟอร์มแนะนำเพื่อน กรุณาเข้าสู่ระบบ Creator Club ก่อน
+                ทุกคนสามารถกรอกฟอร์มแนะนำเพื่อนได้ทันที โดยไม่จำเป็นต้องเข้าสู่ระบบ
               </p>
               <div className="mt-3">
                 <Link
@@ -90,19 +89,9 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
               </div>
             </div>
 
-            {!isLoggedIn && (
-              <div className="rounded-lg bg-muted px-4 py-3 text-sm text-muted-foreground">
-                ยังไม่ได้เข้าสู่ระบบ
-                <span className="mx-1">-</span>
-                กรุณาเข้าสู่ระบบที่หน้า Creator Club เพื่อเริ่มแนะนำเพื่อนเข้าร่วมแคมเปญ
-              </div>
-            )}
-
-            {isLoggedIn && (
-              <div className="mt-8 border-t border-border pt-8 text-muted-foreground">
-                เลือกโครงการจากตารางด้านบน แล้วกดปุ่ม `แนะนำเพื่อน` เพื่อกรอกฟอร์ม
-              </div>
-            )}
+            <div className="mt-8 border-t border-border pt-8 text-muted-foreground">
+              เลือกโครงการจากตารางด้านบน แล้วกดปุ่ม `แนะนำเพื่อน` เพื่อกรอกฟอร์ม
+            </div>
           </div>
         </div>
       </section>

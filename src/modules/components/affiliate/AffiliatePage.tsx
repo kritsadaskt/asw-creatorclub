@@ -34,6 +34,9 @@ import { FaGoogleDrive, FaLink } from "react-icons/fa";
 import { Loader2 } from 'lucide-react';
 import { HeroBanner } from '../landing/HeroBanner';
 import { StatusBadge } from '../ui/status-badge';
+import { LoginModal } from '../landing/LoginModal';
+import { useSession } from '@/modules/context/SessionContext';
+import { getSession } from '@/modules/utils/auth';
 
 const DEFAULT_ITEMS_PER_PAGE = 10;
 const STATUS_FILTER_ALL = 'all';
@@ -49,11 +52,14 @@ export function AffiliatePage() {
 }
 
 function AffiliateProjectList() {
+  const { currentUserId, handleLogin: sessionLogin } = useSession();
+  const isLoggedIn = !!currentUserId || !!getSession();
   const [projects, setProjects] = useState<AffiliateProject[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<AffiliateProject | null>(null);
   const [isMaterialsOpen, setIsMaterialsOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>(STATUS_FILTER_ALL);
   const [page, setPage] = useState(1);
@@ -253,6 +259,10 @@ function AffiliateProjectList() {
                               <button
                                 type="button"
                                 onClick={() => {
+                                  if (!isLoggedIn) {
+                                    setIsLoginModalOpen(true);
+                                    return;
+                                  }
                                   setSelectedProject(project);
                                   setIsMaterialsOpen(true);
                                 }}
@@ -462,6 +472,13 @@ function AffiliateProjectList() {
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
+
+      {isLoginModalOpen && (
+        <LoginModal
+          onClose={() => setIsLoginModalOpen(false)}
+          onLogin={(id, role) => sessionLogin(id, role)}
+        />
+      )}
     </div>
   );
 }
