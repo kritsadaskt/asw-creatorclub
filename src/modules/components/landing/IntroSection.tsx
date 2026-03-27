@@ -12,74 +12,46 @@ export function IntroSection() {
   const isLoggedIn = !!currentUserId;
   return (
     <>
-    <section className="relative bg-gradient-to-br from-primary to-primary/80 text-white py-12 md:pt-24 md:pb-16">
-      <div className="container mx-auto px-6">
-        <h3 className='text-center w-full lg:w-3/4 mx-auto lg:text-4xl text-[1.75rem] font-normal uppercase mb-12 leading-normal'>3 โปรแกรมจาก AssetWise ที่จะช่วยคุณสร้างรายได้<br/>พร้อมอัพเกรดสกิลให้พร้อมสำหรับการสร้างคอนเทนต์</h3>
-        <div className="grid md:grid-cols-3 gap-7 lg:gap-0">
-          <div className='lg:pr-7 pr-0 flex flex-col justify-between gap-12'>
-            <div className="content">
-              <Image
-                src={creatorClubIcon}
-                alt="Creator Club"
-                className="w-4/5 h-auto object-cover mx-auto mb-7"
-              />
-              <h3 className="text-4xl uppercase text-center font-medium mb-7">Creator Club</h3>
-              <div className="detail text-white font-light text-lg">
-                <p>คอมมูนิตี้สำหรับคนรักการสร้างคอนเทนต์ ไม่ว่าคุณจะเป็น Creator สายรีวิว สายไลฟ์สไตล์ อินฟลูเอนเซอร์ หรือคนทั่วไปที่อยากเปลี่ยนไอเดียให้กลายเป็นรายได้ ที่นี่เปิดโอกาสให้คุณได้ สร้างรายได้จากการทำคอนเทนต์ร่วมกับแบรนด์อสังหาริมทรัพย์ชั้นนำ</p>
-                <div className="h-4"></div>
-                <ul className="text-left lg:text-xl text-base space-y-2">
-                  <li className="flex">
-                    <SquareCheckBig className="w-6 h-6 inline-block mr-2 flex-shrink-0 text-orange-400" /><span>เข้าร่วมกิจกรรมและแคมเปญพิเศษก่อนใคร</span></li>
-                  <li className="flex">
-                    <SquareCheckBig className="w-6 h-6 inline-block mr-2 flex-shrink-0 text-orange-400" /><span>เรียนรู้และอัปสกิลผ่าน Workshop จากผู้เชี่ยวชาญ</span></li>
-                  <li className="flex">
-                    <SquareCheckBig className="w-6 h-6 inline-block mr-2 flex-shrink-0 text-orange-400" /><span>เชื่อมต่อกับ Creator คนอื่น ๆ ใน Community ที่พร้อมเติบโตไปด้วยกัน</span></li>
-                  <li className="flex">
-                    <SquareCheckBig className="w-6 h-6 inline-block mr-2 flex-shrink-0 text-orange-400" /><span>Creator Club ไม่ได้มองหาคนที่ &quot;ดังที่สุด&quot; แต่มองหาคนที่ &quot;เป็นตัวเองที่สุด&quot; และอยากเติบโตไปพร้อมกัน</span></li>
-                </ul>
+      <section className="relative bg-primary text-white py-12 md:pt-24 md:pb-16">
+        <div className="container mx-auto px-6">
+          <div className="grid md:grid-cols-2 gap-7 lg:gap-0">
+              <div className="featured_image">
+                <Image
+                  src={creatorClubIcon}
+                  alt="Creator Club"
+                  className="w-4/5 h-auto object-cover mx-auto mb-7"
+                />
               </div>
-            </div>
-            
-            {/* If user is not logged in, show the link */}
-            {!isLoggedIn && (
-              <a href="/#register-section" className='text-2xl h-auto w-[220px] block mx-auto rounded-md bg-gradient-to-br from-orange-400 to-orange-600 px-7 py-4 leading-none text-center cursor-pointer'>สมัครเข้าร่วม</a>
-            )}
-          </div>
 
-          <div className='lg:px-7 px-0 lg:border-x border-white/90 flex flex-col justify-between'>
-            <div className="content">
-              <Image
-                src={friendGetFriendsIcon}
-                alt="Friend Get Friends"
-                className="w-4/5 h-auto object-cover mx-auto mb-7"
-              />
-              <h3 className="text-4xl uppercase text-center font-medium mb-7">FRIEND GET FRIENDS</h3>
-              <div className="detail text-white font-light text-lg mb-7 md:mb-0">
-                <p>โปรแกรมที่ชวนคุณส่งต่อสิ่งดีๆ ได้ง่ายๆ เพียงสมัครเข้ามาเป็นส่วนหนึ่งของ ASSETWISE FAMILY และชวนเพื่อนมาเป็นเพื่อนบ้านในโครงการบ้านและคอนโดมิเนียมของ ASSETWISE รับค่าแนะนำสูงสุด 500,000 บ.*</p>
+              <div className="content">
+                <h3 className='uppercase font-bold mb-2 text-center lg:text-left'><span className='text-white text-5xl lg:text-7xl'>AssetWise</span><br/><span className='text-orange-500 text-4xl lg:text-6xl'>Creator Club</span></h3>
+                <h3 className='text-xl lg:text-3xl font-normal text-white/80 mb-3 lg:mb-7 text-center lg:text-left'>Make content : Earn Commission</h3>
+                <div className="detail text-white text-lg">
+                  <p>คอมมูนิตี้สำหรับคนรักการสร้างคอนเทนต์ ไม่ว่าคุณจะเป็น Creator สายรีวิว สายไลฟ์สไตล์ อินฟลูเอนเซอร์ หรือคนทั่วไปที่อยากเปลี่ยนไอเดียให้กลายเป็นรายได้ ที่นี่เปิดโอกาสให้คุณได้ สร้างรายได้จากการทำคอนเทนต์ร่วมกับแบรนด์อสังหาริมทรัพย์ชั้นนำ</p>
+                  <div className="h-4"></div>
+                  <ul className="text-left space-y-2">
+                    <li className="flex">
+                      <SquareCheckBig className="w-6 h-6 inline-block mr-2 flex-shrink-0 text-orange-400" /><span>เข้าร่วมกิจกรรมและแคมเปญพิเศษก่อนใคร</span></li>
+                    <li className="flex">
+                      <SquareCheckBig className="w-6 h-6 inline-block mr-2 flex-shrink-0 text-orange-400" /><span>เรียนรู้และอัปสกิลผ่าน Workshop จากผู้เชี่ยวชาญ</span></li>
+                    <li className="flex">
+                      <SquareCheckBig className="w-6 h-6 inline-block mr-2 flex-shrink-0 text-orange-400" /><span>เชื่อมต่อกับ Creator คนอื่น ๆ ใน Community ที่พร้อมเติบโตไปด้วยกัน</span></li>
+                    <li className="flex">
+                      <SquareCheckBig className="w-6 h-6 inline-block mr-2 flex-shrink-0 text-orange-400" /><span>Creator Club ไม่ได้มองหาคนที่ &quot;ดังที่สุด&quot; แต่มองหาคนที่ &quot;เป็นตัวเองที่สุด&quot; และอยากเติบโตไปพร้อมกัน</span></li>
+                  </ul>
+                  {/* If user is not logged in, show the link */}
+                  {!isLoggedIn && (
+                    <div className='mt-7 flex justify-center lg:justify-start gap-3 lg:gap-5'>
+                      <Link href="/#register-section" className='text-base lg:text-xl h-auto w-auto lg:w-[200px] block rounded-4xl bg-gradient-to-br from-orange-400 to-orange-600 text-white px-7 py-4 leading-none text-center cursor-pointer'>สมัครเข้าร่วม</Link>
+                      <Link href="/#register-section" className='text-base lg:text-xl h-auto w-auto lg:w-[200px] block rounded-4xl border-2 border-white text-white px-7 py-4 leading-none text-center cursor-pointer'>ข้อมูลเพิ่มเติม</Link>
+                    </div>
+                  )}
+                </div>
               </div>
+              
             </div>
-            <Link href="/friendgetfriend" className='text-2xl h-auto w-[220px] block mx-auto rounded-md bg-gradient-to-br from-orange-400 to-orange-600 px-7 py-4 leading-none text-center cursor-pointer'>สมัครเข้าร่วม</Link>
           </div>
-
-          <div className='lg:pl-7 pl-0 flex flex-col justify-between'>
-            <div className="content">
-              <Image
-                src={affiliateProgramIcon}
-                alt="Affiliate Program"
-                className="w-4/5 h-auto object-cover mx-auto mb-7"
-              />
-              <h3 className="text-4xl uppercase text-center font-medium">Affiliate Program</h3>
-              <p className="text-center text-xl text-white/80 mb-7">โพสต์ง่ายๆ รายได้ปัง</p>
-              <div className="detail text-white font-light text-lg mb-7 md:mb-0">
-                <h4 className="text-2xl font-medium mb-4">AFFILIATE PROGRAM คืออะไร ?</h4>
-                <p>คือโปรแกรมที่จะช่วยให้คุณสร้างรายได้ ง่ายๆ เพียงสมัครเข้าร่วมกับ ASSETWISE AFFILIATE จากนั้นเลือกโครงการที่ต้องการโปรโมทกว่า 36 โครงการ เพียงแชร์ Link, โพส Content ไปยังช่องทางออนไลน์ต่าง ๆ เช่น Facebook, TikTok, Instagram, X, Youtube รับค่าคอมมิชชั่น เมื่อมีการจองผ่าน Link ของคุณ ทุกยอดขายคุณจะได้รับผลตอบแทนจาก ASSETWISE สูงสุด 500,000 บาท*</p>
-              </div>
-            </div>
-            <Link href="/affiliate" className='text-2xl h-auto w-[220px] block mx-auto rounded-md bg-gradient-to-br from-orange-400 to-orange-600 px-7 py-4 leading-none text-center cursor-pointer'>สมัครเข้าร่วม</Link>
-          </div>
-        </div>
-      </div>
-    </section>
+      </section>
     </>
   );
 }

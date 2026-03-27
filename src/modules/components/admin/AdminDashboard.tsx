@@ -8,7 +8,7 @@ import { getCreators } from '../../utils/storage';
 import { supabase } from '../../utils/supabase';
 import { getProfileImageUrl } from '../../utils/profileImage';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
-import { LayoutGrid, Loader2, MailIcon, Table } from 'lucide-react';
+import { LayoutGrid, Loader2, MailIcon, MoreVertical, Table } from 'lucide-react';
 import { FaPhone } from 'react-icons/fa6';
 import { BASE_PATH } from '@/lib/publicPath';
 import Select from 'react-select';
@@ -38,6 +38,7 @@ export function AdminDashboard() {
   const [followerRange, setFollowerRange] = useState('all');
   const [customFollowers, setCustomFollowers] = useState('');
   const [loading, setLoading] = useState(true);
+  const [openActionMenuId, setOpenActionMenuId] = useState<CreatorProfile['id'] | null>(null);
   /** `${creatorId}:approval` | `${creatorId}:rejection` while that request is in flight */
   const [emailSendKey, setEmailSendKey] = useState<string | null>(null);
 
@@ -71,7 +72,21 @@ export function AdminDashboard() {
 
   useEffect(() => {
     filterCreators();
-  }, [creators, selectedCategory, searchQuery, followerRange, customFollowers]);
+  }, [creators, selectedCategory, searchQuery, followerRange, customFollowers, approvalFilter]);
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target?.closest('[data-action-dropdown="true"]')) {
+        setOpenActionMenuId(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, []);
 
   const loadCreators = async () => {
     try {
@@ -498,7 +513,7 @@ export function AdminDashboard() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">รูป</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground"></th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">ชื่อ</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">อีเมล</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">หมวดหมู่</th>
@@ -506,7 +521,7 @@ export function AdminDashboard() {
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">โทรศัพท์</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">โซเชียล</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">สถานะ</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">การดำเนินการ</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground"></th>
                 </tr>
               </thead>
               <tbody>
@@ -540,68 +555,100 @@ export function AdminDashboard() {
                     <td className="py-3 px-4">
                       {approvalStatusBadge(creator)}
                     </td>
-                    <td className="py-3 px-4 space-y-1">
-                      <Button
-                        onClick={() => setSelectedCreator(creator)}
-                        variant="outline"
-                        size="sm"
-                        fullWidth
-                      >
-                        ดูรายละเอียด
-                      </Button>
-                      {creator.approvalStatus === 3 && (
-                        <div className="flex gap-2 mt-1">
+                    <td className="py-3 px-4">
+                      <div className="relative inline-block" data-action-dropdown="true">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setOpenActionMenuId((prev) => (prev === creator.id ? null : creator.id))
+                          }
+                          className="inline-flex items-center justify-center rounded-md border border-border bg-white px-3 py-1.5 text-sm text-foreground hover:bg-input-background"
+                        >
+                          <MoreVertical className="w-5 h-5" />
+                        </button>
+                        {openActionMenuId === creator.id && (
+                          <div className="absolute right-0 z-20 mt-2 w-56 rounded-lg border border-border bg-white p-2 shadow-lg space-y-1">
                           <Button
-                            onClick={() => updateApprovalStatus(creator, 1)}
+                            onClick={() => {
+                              setSelectedCreator(creator);
+                              setOpenActionMenuId(null);
+                            }}
+                            variant='ghost'
                             size="sm"
                             fullWidth
+                            rounded='none'
                           >
-                            อนุมัติ
+                            ดูรายละเอียด
                           </Button>
-                          <Button
-                            onClick={() => updateApprovalStatus(creator, 0)}
-                            variant="outline"
-                            size="sm"
-                            fullWidth
-                          >
-                            ปฏิเสธ
-                          </Button>
-                        </div>
-                      )}
-                      {creator.approvalStatus === 1 && (
-                        <Button
-                          onClick={() => void sendApprovalEmail(creator)}
-                          size="sm"
-                          fullWidth
-                          variant='successTransparent'
-                          center
-                          disabled={emailSendKey === `${creator.id}:approval`}
-                        >
-                          {emailSendKey === `${creator.id}:approval` ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                          ) : (
-                            <MailIcon className="w-5 h-5" />
+                          {creator.approvalStatus === 3 && (
+                            <>
+                              <Button
+                                onClick={() => {
+                                  void updateApprovalStatus(creator, 1);
+                                  setOpenActionMenuId(null);
+                                }}
+                                size="sm"
+                                fullWidth
+                                variant='success'
+                              >
+                                อนุมัติ
+                              </Button>
+                              <Button
+                                onClick={() => {
+                                  void updateApprovalStatus(creator, 0);
+                                  setOpenActionMenuId(null);
+                                }}
+                                variant='error'
+                                size="sm"
+                                fullWidth
+                              >
+                                ปฏิเสธ
+                              </Button>
+                            </>
                           )}
-                          ส่งอีเมลแจ้งอนุมัติ
-                        </Button>
-                      )}
-                      {creator.approvalStatus === 0 && (
-                        <Button
-                          onClick={() => void sendRejectionEmail(creator)}
-                          size="sm"
-                          fullWidth
-                          variant='errorTransparent'
-                          center
-                          disabled={emailSendKey === `${creator.id}:rejection`}
-                        >
-                          {emailSendKey === `${creator.id}:rejection` ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                          ) : (
-                            <MailIcon className="w-5 h-5" />
+                          {creator.approvalStatus === 1 && (
+                            <Button
+                              onClick={() => {
+                                void sendApprovalEmail(creator);
+                                setOpenActionMenuId(null);
+                              }}
+                              size="sm"
+                              fullWidth
+                              variant='successTransparent'
+                              center
+                              disabled={emailSendKey === `${creator.id}:approval`}
+                            >
+                              {emailSendKey === `${creator.id}:approval` ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                              ) : (
+                                <MailIcon className="w-5 h-5" />
+                              )}
+                              ส่งอีเมลแจ้งอนุมัติ
+                            </Button>
                           )}
-                          ส่งอีเมลแจ้งปฏิเสธ
-                        </Button>
-                      )}
+                          {creator.approvalStatus === 0 && (
+                            <Button
+                              onClick={() => {
+                                void sendRejectionEmail(creator);
+                                setOpenActionMenuId(null);
+                              }}
+                              size="sm"
+                              fullWidth
+                              variant='errorTransparent'
+                              center
+                              disabled={emailSendKey === `${creator.id}:rejection`}
+                            >
+                              {emailSendKey === `${creator.id}:rejection` ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                              ) : (
+                                <MailIcon className="w-5 h-5" />
+                              )}
+                              ส่งอีเมลแจ้งปฏิเสธ
+                            </Button>
+                          )}
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

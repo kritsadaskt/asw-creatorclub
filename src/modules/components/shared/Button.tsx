@@ -2,13 +2,14 @@ interface ButtonProps {
   children: React.ReactNode;
   onClick?: () => void;
   type?: 'button' | 'submit';
-  variant?: 'primary' | 'secondary' | 'outline' | 'accent' | 'successTransparent' | 'errorTransparent' | 'success' | 'error';
+  variant?: 'primary' | 'secondary' | 'outline' | 'accent' | 'successTransparent' | 'errorTransparent' | 'success' | 'error' | 'ghost';
   fullWidth?: boolean;
   disabled?: boolean;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   center?: boolean;
   width?: string;
+  rounded?: 'none' | 'sm' | 'md' | 'lg' | 'full';
 }
 
 export function Button({ 
@@ -20,7 +21,8 @@ export function Button({
   disabled = false,
   size = 'md',
   className = '',
-  center = false
+  center = false,
+  rounded = 'md'
 }: ButtonProps) {
   const sizeStyles = {
     sm: 'px-3 py-1.5 text-sm',
@@ -39,6 +41,7 @@ export function Button({
     error: 'bg-red-600 text-white hover:bg-red-600/70',
     successTransparent: 'bg-transparent text-green-500 hover:bg-green-500/10',
     errorTransparent: 'bg-transparent text-red-500 hover:bg-red-500/10',
+    ghost: 'text-foreground hover:bg-muted hover:text-neutral-800',
   };
 
   const widthStyles = fullWidth ? 'w-full' : '';

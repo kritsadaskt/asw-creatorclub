@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, LogIn, LogOut, User } from 'lucide-react';
+import { LayoutDashboard, LogIn, LogOut, Menu, User, X } from 'lucide-react';
 import { LoginModal } from './LoginModal';
 import { BASE_PATH } from '@/lib/publicPath';
 import { useSession } from '@/modules/context/SessionContext';
@@ -63,6 +63,7 @@ export function Header({
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [role, setRole] = useState<'creator' | 'admin' | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
 
   if (!navLinks || navLinks.length < 1) {
@@ -109,6 +110,10 @@ export function Header({
   useEffect(() => {
     void loadFromSession();
   }, [loadFromSession, isLoggedInFromParent]);
+
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
 
   const scrollToRegister = () => {
     const registerSection = document.getElementById('register-section');
@@ -201,19 +206,52 @@ export function Header({
   const MainMenu = ({ isLoggedIn }: { isLoggedIn: boolean }) => {
     return (
       <>
-        {navLinks && navLinks.length > 0 && (
-          <div className="flex items-center gap-4">
-            {navLinks.map((link) => (
-              <Link key={link.to} href={link.to} className='cursor-pointer hover:text-primary border-r border-border pr-4'>{link.label}</Link>
-            ))}
-          </div>
-        )}
-        {isLoggedIn ? <UserDropdownMenu /> : (
-          <>
-            <Link href="/#register-section" className='cursor-pointer hover:text-primary'>ลงทะเบียน</Link>
-            <button onClick={() => setShowLoginModal(true)} className='bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 cursor-pointer'>เข้าสู่ระบบ</button>
-          </>
-        )}
+        {/* Desktop */}
+        <div className="hidden md:flex items-center gap-4">
+          {navLinks && navLinks.length > 0 && (
+            <div className="flex items-center gap-4">
+              {navLinks.map((link, idx) => (
+                <Link
+                  key={link.to}
+                  href={link.to}
+                  className={`cursor-pointer hover:text-primary ${idx < navLinks.length - 1 ? 'border-r border-border pr-4' : ''}`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {isLoggedIn ? (
+            <UserDropdownMenu />
+          ) : (
+            <>
+              <Link href="/#register-section" className="cursor-pointer hover:text-primary">
+                ลงทะเบียน
+              </Link>
+              <button
+                type="button"
+                onClick={() => setShowLoginModal(true)}
+                className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 cursor-pointer"
+              >
+                เข้าสู่ระบบ
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* Mobile hamburger */}
+        <div className="md:hidden flex items-center">
+          <button
+            type="button"
+            onClick={() => setIsMobileMenuOpen((v) => !v)}
+            className="inline-flex items-center justify-center rounded-md p-2 hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/30"
+            aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={isMobileMenuOpen}
+          >
+            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </>
     );
   };
@@ -226,7 +264,7 @@ export function Header({
         }`}
       >
         <div className={`container mx-auto px-4 md:px-6 ${hasNavTabs ? 'pt-4' : 'py-3 md:py-4'}`}>
-          {/* Top row: logo · [inline navLinks] · profile */}
+          {/* Top row: logo · menu */}
           <div className={`flex justify-between items-center ${hasNavTabs ? 'mb-4' : ''}`}>
             {/* Logo */}
             <div className="flex items-center gap-3">
@@ -241,9 +279,69 @@ export function Header({
 
             {/* Right section */}
             <div className="flex gap-4 items-center">
-              
-              {/* Inline nav links (creator-style) */}
               <MainMenu isLoggedIn={isLoggedIn} />
+            </div>
+          </div>
+
+          {/* Mobile menu panel */}
+          <div className={`md:hidden ${isMobileMenuOpen ? 'pb-3' : ''}`}>
+            <div
+              className={[
+                'rounded-lg overflow-hidden',
+                isMobileMenuOpen ? 'mt-2 border border-border bg-white shadow-sm' : 'mt-0 border border-transparent bg-transparent shadow-none',
+                'transition-all duration-200 ease-out',
+                isMobileMenuOpen
+                  ? 'max-h-[70vh] opacity-100 translate-y-0'
+                  : 'max-h-0 opacity-0 -translate-y-1 pointer-events-none',
+              ].join(' ')}
+            >
+              {navLinks && navLinks.length > 0 && (
+                <div className="flex flex-col">
+                  {navLinks.map((link) => (
+                    <Link
+                      key={link.to}
+                      href={link.to}
+                      className="px-4 py-3 hover:bg-muted/40 transition-colors"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
+
+              <div className="border-t border-border" />
+
+              <div className="px-4 py-3 flex flex-col gap-3">
+                {isLoggedIn ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground truncate">
+                      {isLoadingProfile ? 'Loading…' : displayName ?? 'User'}
+                    </span>
+                    <UserDropdownMenu />
+                  </div>
+                ) : (
+                  <>
+                    <Link
+                      href="/#register-section"
+                      className="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 hover:bg-muted/40 transition-colors"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      ลงทะเบียน
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        setShowLoginModal(true);
+                      }}
+                      className="inline-flex items-center justify-center rounded-md bg-primary text-white px-4 py-2 hover:bg-primary/90 cursor-pointer"
+                    >
+                      เข้าสู่ระบบ
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 

@@ -12,6 +12,7 @@ import Select from 'react-select';
 import { Lemon8Icon } from '../../utils/svg';
 import SocialAccounts from '../layout/SocialAccounts';
 import { BASE_PATH } from '@/lib/publicPath';
+import { Switch } from '../ui/switch';
 
 interface RegisterSectionProps {
   onLogin: (id: string, role: 'creator' | 'admin') => void;
@@ -231,7 +232,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
         if (!value.trim()) return 'กรุณากรอกจังหวัด';
         return '';
       case 'projectName':
-        if (!value.trim()) return 'กรุณาเลือกโครงการที่อยู่อาศัย';
+        if (!value.trim()) return 'กรุณาเลือกโครงการ';
         return '';
       default:
         return '';
@@ -489,17 +490,14 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
   const hasPendingFacebook = typeof window !== 'undefined' && sessionStorage.getItem('pendingFacebookId');
 
   return (
-    <section id="register-section" className="py-16">
+    <section id="register-section" className="py-16 bg-primary/10">
       <div className="max-w-3xl mx-auto px-4 md:px-6">
         <div className="bg-white rounded-2xl shadow-xl p-5 md:p-10">
-          <div className="text-center mb-8">
+          <div className="text-center mb-3">
             <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <UserPlus className="w-8 h-8 text-accent" />
             </div>
-            <h2 className="text-black mb-2">เข้าร่วมกับเรา</h2>
-            <p className="text-muted-foreground">
-              สร้างโปรไฟล์และเริ่มต้นเส้นทางสู่ความสำเร็จในวันนี้
-            </p>
+            <h2 className="text-black">สมัครเป็นครีเอเตอร์</h2>
           </div>
 
           {error && (
@@ -513,7 +511,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
             type="button"
             onClick={handleFacebookRegister}
             disabled={facebookLoading}
-            className="w-full flex items-center justify-center gap-3 bg-[#1877F2] hover:bg-[#166FE5] text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-2"
+            className="w-fit mx-auto flex items-center justify-center gap-3 bg-[#1877F2] hover:bg-[#166FE5] text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-2"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
@@ -522,7 +520,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
           </button>
 
           {/* Divider */}
-          <div className="relative my-6">
+          <div className="relative my-8">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-border"></div>
             </div>
@@ -531,7 +529,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
 
             {/* Basic Information */}
             <div className="space-y-4">
@@ -833,7 +831,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
             />
 
             {/* Budget per Post */}
-            <div className="space-y-4">
+            <div className="space-y-4 mb-5">
               <div className="flex items-center gap-4">
                 <Input
                   label="Budgets"
@@ -847,128 +845,87 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
             </div>
 
             {/* Status */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-primary">ประเภทผู้สมัคร</h3>
-              
-              <div className="flex flex-col md:flex-row gap-3">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="status"
-                    value="general"
-                    checked={status === 'general'}
-                    onChange={(e) => {
-                      setStatus(e.target.value as 'general');
-                      setProjectName('');
-                    }}
-                    className="w-4 h-4 text-primary"
-                  />
-                  <span className='font-normal'>บุคคลทั่วไป</span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="status"
-                    value="resident"
-                    checked={status === 'resident'}
-                    onChange={(e) => setStatus(e.target.value as 'resident')}
-                    className="w-4 h-4 text-primary"
-                  />
-                  <span className='font-normal'>ลูกบ้านแอสเซทไวส์</span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="status"
-                    value="partner"
-                    checked={status === 'partner'}
-                    onChange={(e) => setStatus(e.target.value as 'partner')}
-                    className="w-4 h-4 text-primary"
-                  />
-                  <span className='font-normal'>แอสเซทไวส์ พาร์ทเนอร์</span>
-                </label>
+            <div className="flex flex-col gap-1">
+              <h3 className="font-semibold text-primary">คุณเป็นลูกบ้านแอสเซทไวส์หรือไม่ ?</h3>
+              <div className="flex items-start gap-4 pt-2">
+                <span className="font-normal text-neutral-600">ไม่ใช่</span>
+                <Switch checked={status === 'resident'} onCheckedChange={(checked) => setStatus(checked ? 'resident' : 'general')} size="lg" />
+                <span className="font-normal text-neutral-600">ใช่</span>
               </div>
+            </div>
 
-              {status === 'resident' && (
-                <div>
-                  <Select
-                    instanceId="register-project-name"
-                    options={projectOptions}
-                    value={
-                      projectName
-                        ? projectOptions
-                            .flatMap((group) => group.options)
-                            .find((option) => option.value === projectName) ?? null
-                        : null
-                    }
-                    onChange={(option: any) => {
-                      const value = option ? option.value : '';
-                      setProjectName(value);
-                      if (touchedFields.projectName) {
-                        setFieldErrors((prev) => ({
-                          ...prev,
-                          projectName: validateField('projectName', value),
-                        }));
-                      }
-                    }}
-                    onBlur={() => {
-                      setTouchedFields((prev) => ({ ...prev, projectName: true }));
+            {status === 'resident' && (
+              <div className="flex flex-col gap-2">
+                <h3 className="font-semibold text-primary">โปรดระบุโครงการ</h3>
+                <Select
+                  instanceId="register-project-name"
+                  options={projectOptions}
+                  value={
+                    projectName
+                      ? projectOptions
+                        .flatMap((group) => group.options)
+                        .find((option) => option.value === projectName) ?? null
+                      : null
+                  }
+                  onChange={(option: any) => {
+                    const value = option ? option.value : '';
+                    setProjectName(value);
+                    if (touchedFields.projectName) {
                       setFieldErrors((prev) => ({
                         ...prev,
-                        projectName: validateField('projectName', projectName),
+                        projectName: validateField('projectName', value),
                       }));
-                    }}
-                    placeholder="เลือกโครงการที่อยู่อาศัย"
-                    formatGroupLabel={(group) => (
+                    }
+                  }}
+                  onBlur={() => {
+                    setTouchedFields((prev) => ({ ...prev, projectName: true }));
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      projectName: validateField('projectName', projectName),
+                    }));
+                  }}
+                  placeholder="เลือกโครงการ"
+                  formatGroupLabel={(group) => (
+                    <div
+                      style={{
+                        fontSize: 16,
+                        color: 'var(--primary)',
+                        fontWeight: 500,
+                      }}
+                    >
+                      {group.label}
+                    </div>
+                  )}
+                  formatOptionLabel={(option, { context }) =>
+                    context === 'menu' ? (
                       <div
                         style={{
                           fontSize: 16,
-                          color: 'var(--primary)',
-                          fontWeight: 500,
+                          paddingLeft: 20,
                         }}
                       >
-                        {group.label}
+                        {option.label}
                       </div>
-                    )}
-                    formatOptionLabel={(option, { context }) =>
-                      context === 'menu' ? (
-                        <div
-                          style={{
-                            fontSize: 16,
-                            paddingLeft: 20,
-                          }}
-                        >
-                          {option.label}
-                        </div>
-                      ) : (
-                        option.label
-                      )
-                    }
-                    styles={{
-                      option: (base, state) => ({
-                        ...base,
-                        cursor: 'pointer',
-                        color: state.isFocused ? '#fff' : '#333',
-                        backgroundColor: state.isFocused ? 'var(--accent)' : '#fff',
-                      }),
-                    }}
-                  />
-                  {touchedFields.projectName && fieldErrors.projectName && (
-                    <p className="mt-1 text-xs text-destructive">
-                      {fieldErrors.projectName}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {status === 'partner' && (
-                <Select 
-                    instanceId="register-partner-type"
-                  options={PARTNERS_TYPE} 
+                    ) : (
+                      option.label
+                    )
+                  }
+                  styles={{
+                    option: (base, state) => ({
+                      ...base,
+                      cursor: 'pointer',
+                      color: state.isFocused ? '#fff' : '#333',
+                      backgroundColor: state.isFocused ? 'var(--accent)' : '#fff',
+                    }),
+                  }}
                 />
-              )}
-              
-            </div>
+                {touchedFields.projectName && fieldErrors.projectName && (
+                  <p className="mt-2 text-xs text-destructive">
+                    {fieldErrors.projectName}
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="mt-4 flex items-start gap-2">
               <input
