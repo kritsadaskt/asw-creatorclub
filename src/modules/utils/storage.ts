@@ -197,6 +197,7 @@ export const saveAffiliateLink = async (link: AffiliateLink): Promise<void> => {
       project_id: link.projectId,
       campaign_id: link.campaignId,
       url: link.url,
+      post_links: link.postLinks ?? [],
       created_at: link.createdAt
     });
 
@@ -214,6 +215,7 @@ export const updateAffiliateLink = async (link: AffiliateLink): Promise<void> =>
       project_id: link.projectId ?? null,
       campaign_id: link.campaignId ?? null,
       url: link.url,
+      post_links: link.postLinks ?? [],
     })
     .eq('id', link.id)
     .eq('creator_id', link.creatorId);
@@ -261,6 +263,9 @@ const mapDbToAffiliateLink = (row: any): AffiliateLink => ({
   projectId: row.project_id,
   campaignId: row.campaign_id,
   url: row.url || '',
+  postLinks: Array.isArray(row.post_links)
+    ? row.post_links.filter((item: unknown): item is string => typeof item === 'string')
+    : [],
   createdAt: row.created_at || new Date().toISOString()
 });
 

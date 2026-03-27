@@ -7,7 +7,7 @@ import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
 import { AffiliateLink, Project, Campaign } from '../../types';
 import { getAffiliateLinksByCreator, getProjects, getCampaigns, updateAffiliateLink } from '../../utils/storage';
-import { Building2, Home, Link2, Loader2, PencilIcon } from 'lucide-react';
+import { Building2, CalendarIcon, Home, HomeIcon, Link2, Loader2, PencilIcon, PlusIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import {
   Drawer,
@@ -18,6 +18,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '../ui/drawer';
+import { FaRegTrashAlt } from 'react-icons/fa';
 
 interface AffiliateGeneratorProps {
   creatorId: string;
@@ -34,6 +35,7 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
   const [draftCampaignName, setDraftCampaignName] = useState('');
   const [draftUrl, setDraftUrl] = useState('');
   const [draftProjectId, setDraftProjectId] = useState<string>('');
+  const [draftPostLinks, setDraftPostLinks] = useState<string[]>(['']);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -93,7 +95,23 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
     setDraftCampaignName(link.campaignName);
     setDraftUrl(link.url);
     setDraftProjectId(link.projectId ?? '');
+    setDraftPostLinks(link.postLinks && link.postLinks.length > 0 ? link.postLinks : ['']);
     setIsDetailOpen(true);
+  };
+
+  const handlePostLinkChange = (index: number, value: string) => {
+    setDraftPostLinks((prev) => prev.map((item, i) => (i === index ? value : item)));
+  };
+
+  const handleAddPostLink = () => {
+    setDraftPostLinks((prev) => [...prev, '']);
+  };
+
+  const handleRemovePostLink = (index: number) => {
+    setDraftPostLinks((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      return next.length > 0 ? next : [''];
+    });
   };
 
   const handleSaveLink = async () => {
@@ -109,11 +127,16 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
 
     try {
       setSaving(true);
+      const normalizedPostLinks = draftPostLinks
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0);
+
       const updatedLink: AffiliateLink = {
         ...selectedLink,
         campaignName: draftCampaignName.trim(),
         url: draftUrl.trim(),
         projectId: draftProjectId || undefined,
+        postLinks: normalizedPostLinks,
       };
 
       await updateAffiliateLink(updatedLink);
@@ -289,44 +312,31 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
 
           {selectedLink && (
             <div className="px-7 pb-7 space-y-4">
+              <div>
+                <h4 className="text-xl font-semibold text-neutral-700 flex items-center gap-2">
+                  <HomeIcon className="w-4 h-4" />
+                  <span>{draftProjectId ? projectCache[draftProjectId]?.name : ''}</span>
+                </h4>
+              </div>
+
               <Input
-                label="ชื่อแคมเปญ"
+                label="ชื่อลิงก์"
                 value={draftCampaignName}
                 onChange={setDraftCampaignName}
                 placeholder="กรอกชื่อแคมเปญ"
                 required
               />
 
-              <div>
-                <label className="block text-sm mb-2 text-foreground">โครงการ</label>
-                <Select
-                  value={draftProjectId || '__none__'}
-                  onValueChange={(value) => setDraftProjectId(value === '__none__' ? '' : value)}
-                >
-                  <SelectTrigger className="border-border">
-                    <SelectValue placeholder="ไม่เลือกโครงการ" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">ไม่เลือกโครงการ</SelectItem>
-                    {projects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
               <Input
-                label="URL ลิงค์ Affiliate"
+                label="URL"
                 value={draftUrl}
                 onChange={setDraftUrl}
                 placeholder="https://example.com/?ref=..."
                 required
               />
 
-              <div className="text-xs text-muted-foreground">
-                สร้างเมื่อ:{' '}
+              <div className="text-sm text-muted-foreground flex items-center gap-2">
+                <CalendarIcon className="w-4 h-4" />
                 {new Date(selectedLink.createdAt).toLocaleDateString('th-TH', {
                   year: 'numeric',
                   month: 'long',
@@ -335,27 +345,51 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
                   minute: '2-digit',
                 })}
               </div>
+
+              <div className="h-10"></div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <h4 className="block text-lg text-foreground">ลิงก์โพสต์ของคุณ (สำหรับแอดมินตรวจสอบ)</h4>
+                  <Button type="button" variant="outline" onClick={handleAddPostLink} className="cursor-pointer flex items-center gap-2">
+                    เพิ่ม
+                    <PlusIcon className="w-5 h-5" />
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {draftPostLinks.map((postLink, index) => (
+                    <div key={`post-link-${index}`} className="flex items-end gap-2">
+                      <div className="flex-1">
+                        <Input
+                          label={`Post Link ${index + 1}`}
+                          value={postLink}
+                          onChange={(value) => handlePostLinkChange(index, value)}
+                          placeholder="https://facebook.com/... หรือ https://tiktok.com/..."
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => handleRemovePostLink(index)}
+                        className="cursor-pointer rounded-full p-2"
+                        disabled={draftPostLinks.length === 1 && !draftPostLinks[0].trim()}
+                      >
+                        <FaRegTrashAlt className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
           <DrawerFooter>
             <div className="w-full flex flex-col md:flex-row gap-2 justify-center">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  if (selectedLink) {
-                    copyToClipboard(draftUrl || selectedLink.url, selectedLink.id);
-                  }
-                }}
-                className="cursor-pointer"
-              >
-                {selectedLink && copiedId === selectedLink.id ? '✓ คัดลอกแล้ว' : 'คัดลอกลิงค์'}
-              </Button>
               <Button onClick={handleSaveLink} disabled={saving} className="cursor-pointer">
                 {saving ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข'}
               </Button>
               <DrawerClose asChild>
-                <Button variant="outline" className="cursor-pointer">
+                <Button variant="errorTransparent" className="cursor-pointer border-destructive text-destructive">
                   ปิด
                 </Button>
               </DrawerClose>

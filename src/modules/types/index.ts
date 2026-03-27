@@ -76,6 +76,7 @@ export interface AffiliateLink {
   projectId?: string;
   campaignId?: string;
   url: string;
+  postLinks?: string[];
   createdAt: string;
 }
 

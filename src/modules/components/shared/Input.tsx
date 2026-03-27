@@ -63,11 +63,11 @@ export function Input({
           onBlur={onBlur}
           //placeholder={placeholder ?? ' '}
           required={required}
-          className={`peer w-full border-b border-neutral-400 bg-input-background px-0 pb-1.5 pt-2.5 text-foreground focus:border-primary focus:outline-none ${icon ? 'pl-7' : ''} ${className} ${hideLabel ? 'pt-0' : 'pt-4'}`}
+          className={`peer w-full border-b border-neutral-400 bg-input-background px-0 pb-1.5 pt-2.5 text-foreground focus:border-primary focus:outline-none ${icon ? 'pl-7' : ''} ${className} ${hideLabel ? 'pt-0' : 'pt-6'}`}
         />
         <label
           htmlFor={resolvedId}
-          className={`pointer-events-none absolute ${icon ? 'left-7' : 'left-0'} top-3 origin-left transform text-neutral-400 font-normal transition-all duration-150
+          className={`pointer-events-none absolute ${icon ? 'left-7' : 'left-0'} top-5 origin-left transform text-neutral-400 font-normal transition-all duration-150
           peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-neutral-500
           peer-focus:-top-1 peer-focus:text-sm peer-focus:text-primary
           ${value ? '!-top-1 text-primary' : ''} ${hideLabel ? 'hidden' : ''}`}
