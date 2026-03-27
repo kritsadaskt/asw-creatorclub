@@ -12,6 +12,15 @@ import { LayoutGrid, Loader2, MailIcon, MoreVertical, Table } from 'lucide-react
 import { FaPhone } from 'react-icons/fa6';
 import { BASE_PATH } from '@/lib/publicPath';
 import Select from 'react-select';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '../ui/drawer';
 
 const CATEGORIES = [
   'ทั้งหมด',
@@ -658,60 +667,53 @@ export function AdminDashboard() {
         )}
       </div>
 
-      {/* Detail Modal */}
-      {selectedCreator && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-          onClick={() => setSelectedCreator(null)}
-        >
-          <div
-            className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-start mb-6">
-              <h3 className="text-primary">รายละเอียด Creator</h3>
-              <button
-                onClick={() => setSelectedCreator(null)}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                ✕
-              </button>
-            </div>
+      <Drawer
+        direction="right"
+        open={!!selectedCreator}
+        onOpenChange={(open) => {
+          if (!open) setSelectedCreator(null);
+        }}
+      >
+        <DrawerContent className="overflow-y-auto">
+          {selectedCreator && (
+            <>
+              <DrawerHeader className="p-7">
+                <DrawerTitle>รายละเอียด Creator</DrawerTitle>
+                <DrawerDescription>ข้อมูลครีเอเตอร์สำหรับตรวจสอบและติดต่อ</DrawerDescription>
+              </DrawerHeader>
 
-            {/* Profile Image in Modal */}
-            <div className="flex justify-center mb-6">
-              {getProfileImageUrl(selectedCreator) ? (
-                <ImageWithFallback
-                  src={getProfileImageUrl(selectedCreator)!}
-                  alt={selectedCreator.name}
-                  className="w-32 h-32 rounded-full object-cover border-4 border-primary/20"
-                />
-              ) : (
-                <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center border-4 border-primary/20">
-                  <span className="text-primary text-5xl">
-                    {selectedCreator.name.charAt(0).toUpperCase()}
-                  </span>
+              <div className="px-7 pb-7 space-y-4">
+                <div className="flex justify-center mb-2">
+                  {getProfileImageUrl(selectedCreator) ? (
+                    <ImageWithFallback
+                      src={getProfileImageUrl(selectedCreator)!}
+                      alt={selectedCreator.name}
+                      className="w-32 h-32 rounded-full object-cover border-4 border-primary/20"
+                    />
+                  ) : (
+                    <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center border-4 border-primary/20">
+                      <span className="text-primary text-5xl">
+                        {selectedCreator.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="text-muted-foreground">ชื่อ-นามสกุล</label>
-                <p className="text-foreground">{selectedCreator.name}</p>
-              </div>
+                <div>
+                  <label className="text-muted-foreground">ชื่อ-นามสกุล</label>
+                  <p className="text-foreground">{selectedCreator.name}</p>
+                </div>
 
-              <div>
-                <label className="text-muted-foreground">อีเมล</label>
-                <p className="text-foreground">{selectedCreator.email}</p>
-              </div>
+                <div>
+                  <label className="text-muted-foreground">อีเมล</label>
+                  <p className="text-foreground">{selectedCreator.email}</p>
+                </div>
 
-              <div>
-                <label className="text-muted-foreground">เบอร์โทรศัพท์</label>
-                <p className="text-foreground">{selectedCreator.phone}</p>
-              </div>
+                <div>
+                  <label className="text-muted-foreground">เบอร์โทรศัพท์</label>
+                  <p className="text-foreground">{selectedCreator.phone}</p>
+                </div>
 
-              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-muted-foreground">หมวดหมู่</label>
                   <p className="text-foreground">
@@ -720,57 +722,62 @@ export function AdminDashboard() {
                       : '-'}
                   </p>
                 </div>
-              </div>
 
-              <div>
-                <label className="text-muted-foreground">บัญชีโซเชียลมีเดีย</label>
-                <div className="mt-2 space-y-2">
-                  {getSocialLinks(selectedCreator).map((social, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-foreground w-24">{social.name}:</span>
-                      <a
-                        href={`https://${social.url}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-primary hover:underline break-all"
-                      >
-                        {social.url}
-                      </a>
-                    </div>
-                  ))}
-                  {getSocialLinks(selectedCreator).length === 0 && (
-                    <p className="text-sm text-muted-foreground">ยังไม่มีข้อมูล</p>
-                  )}
+                <div>
+                  <label className="text-muted-foreground">บัญชีโซเชียลมีเดีย</label>
+                  <div className="mt-2 space-y-2">
+                    {getSocialLinks(selectedCreator).map((social, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-foreground w-24">{social.name}:</span>
+                        <a
+                          href={`https://${social.url}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline break-all"
+                        >
+                          {social.url}
+                        </a>
+                      </div>
+                    ))}
+                    {getSocialLinks(selectedCreator).length === 0 && (
+                      <p className="text-sm text-muted-foreground">ยังไม่มีข้อมูล</p>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-muted-foreground">วันที่ลงทะเบียน</label>
+                  <p className="text-foreground">
+                    {new Date(selectedCreator.createdAt).toLocaleDateString('th-TH', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
                 </div>
               </div>
 
-              <div>
-                <label className="text-muted-foreground">วันที่ลงทะเบียน</label>
-                <p className="text-foreground">
-                  {new Date(selectedCreator.createdAt).toLocaleDateString('th-TH', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-6 flex gap-3">
-              <Button
-                onClick={() => window.location.href = `tel:${selectedCreator.phone}`}
-                variant="outline"
-                center
-              >
-                <FaPhone className="w-5 h-5" />
-                ติดต่อ
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+              <DrawerFooter>
+                <div className="w-full flex flex-col md:flex-row gap-2 justify-center">
+                  <Button
+                    onClick={() => window.location.href = `tel:${selectedCreator.phone}`}
+                    variant="outline"
+                    center
+                  >
+                    <FaPhone className="w-5 h-5" />
+                    ติดต่อ
+                  </Button>
+                  <DrawerClose asChild>
+                    <Button variant="outline">ปิด</Button>
+                  </DrawerClose>
+                </div>
+              </DrawerFooter>
+            </>
+          )}
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }
