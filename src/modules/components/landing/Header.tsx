@@ -214,7 +214,7 @@ export function Header({
                 <Link
                   key={link.to}
                   href={link.to}
-                  className={`cursor-pointer hover:text-primary ${idx < navLinks.length - 1 ? 'border-r border-border pr-4' : ''}`}
+                  className={`cursor-pointer hover:text-primary border-r border-border pr-4`}
                 >
                   {link.label}
                 </Link>
