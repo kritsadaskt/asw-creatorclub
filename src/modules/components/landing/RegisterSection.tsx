@@ -873,7 +873,6 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                   />
                   <span className='font-normal'>ลูกบ้านแอสเซทไวส์</span>
                 </label>
-                
               </div>
 
               {status === 'resident' && (
@@ -946,13 +945,6 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
                     </p>
                   )}
                 </div>
-              )}
-
-              {status === 'partner' && (
-                <Select 
-                    instanceId="register-partner-type"
-                  options={PARTNERS_TYPE} 
-                />
               )}
               
             </div>

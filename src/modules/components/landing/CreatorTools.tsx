@@ -4,7 +4,7 @@ import Image from 'next/image';
 
 export function CreatorTools() {
   return (
-    <section id="creator_tools" className="relative bg-primary text-white pt-17 pb-14">
+    <section id="creator_tools" className="relative bg-primary text-white pt-10 pb-10">
       <div className="container mx-auto px-6">
         <h3 className="text-3xl lg:text-5xl font-medium text-center mb-2">เป็นครีเอเตอร์กับเราวันนี้</h3>
         <p className="text-center text-neutral-50 font-light text-base lg:text-xl">รับโอกาสในการเข้าถึงเครื่องมือสร้างรายได้<br className="block lg:hidden" />จากคอนเท้นของแอสเซทไวส์</p>
