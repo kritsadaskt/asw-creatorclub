@@ -54,11 +54,10 @@ function DialogContent({
   // Radix UI recommends explicitly setting `aria-describedby={undefined}` when
   // there is no description to avoid console warnings. Our wrapper enforces
   // that default while still allowing consumers to override the attribute.
-  const ariaDescribedBy =
-    Object.prototype.hasOwnProperty.call(props, "aria-describedby") ?
-      // @ts-expect-error - allow string | undefined passthrough
-      props["aria-describedby"] :
-      undefined;
+  const { ["aria-describedby"]: ariaDescribedBy, ...restProps } = props as
+    React.ComponentProps<typeof DialogPrimitive.Content> & {
+      "aria-describedby"?: string;
+    };
 
   return (
     <DialogPortal data-slot="dialog-portal">
@@ -70,7 +69,7 @@ function DialogContent({
           className,
         )}
         aria-describedby={ariaDescribedBy}
-        {...props}
+        {...restProps}
       >
         {children}
         <DialogPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 cursor-pointer">
