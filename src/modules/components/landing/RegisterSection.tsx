@@ -14,8 +14,15 @@ import SocialAccounts from '../layout/SocialAccounts';
 import { BASE_PATH } from '@/lib/publicPath';
 import { Switch } from '../ui/switch';
 
+import { CREATOR_CATEGORIES } from './registerInviteCategories';
+
+type SelectOption = { value: string; label: string };
+
 interface RegisterSectionProps {
   onLogin: (id: string, role: 'creator' | 'admin') => void;
+  /** When set, the category field is hidden and these labels are saved (invite link flow). */
+  fixedCategoryLabels?: string[];
+  variant?: 'landing' | 'standalone';
 }
 
 const BANGKOK_PROVINCES = [
@@ -27,7 +34,6 @@ const BANGKOK_PROVINCES = [
   'นครปฐม'
 ];
 
-type SelectOption = { value: string; label: string };
 type ProjectGroup = { label: string; options: SelectOption[] };
 
 const fetchProjectOptions = async (): Promise<ProjectGroup[]> => {
@@ -52,7 +58,11 @@ const fetchProjectOptions = async (): Promise<ProjectGroup[]> => {
   }));
 };
 
-export function RegisterSection({ onLogin }: RegisterSectionProps) {
+export function RegisterSection({
+  onLogin,
+  fixedCategoryLabels,
+  variant = 'landing',
+}: RegisterSectionProps) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -98,32 +108,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
   // Budget fields
   const [budget, setBudget] = useState('');
 
-  // Creator Category
   const [creatorCategory, setCreatorCategory] = useState<SelectOption[]>([]);
-  const CREATOR_CATEGORIES = [
-    { value: 'lifestyle', label: 'Lifestyle - ไลฟส์สไตล์ / การใช้ชีวิต' },
-    { value: 'food', label: 'Food - อาหาร' },
-    { value: 'travel', label: 'Travel - ท่องเที่ยว' },
-    { value: 'beauty', label: 'Beauty - ความงาม' },
-    { value: 'fashion', label: 'Fashion - แฟชั่น' },
-    { value: 'entertainment', label: 'Entertainment - ความบันเทิง' },
-    { value: 'sports', label: 'Sports - กีฬา' },
-    { value: 'music', label: 'Music - เพลง' },
-    { value: 'art', label: 'Art - ศิลปะ' },
-    { value: 'gaming', label: 'Gaming - เกม' },
-    { value: 'fitness', label: 'Fitness - การออกกำลังกาย' },
-    { value: 'family', label: 'Family - ครอบครัว' },
-    { value: 'technology', label: 'Technology - เทคโนโลยี' },
-    { value: 'health', label: 'Health - สุขภาพ' },
-    { value: 'education', label: 'Education - การศึกษา' },
-    { value: 'news', label: 'News - ข่าว' },
-    { value: 'pet', label: 'Pet - สัตว์เลี้ยง' },
-    { value: 'science', label: 'Science - วิทยาศาสตร์' },
-    { value: 'design', label: 'Design - การออกแบบ' },
-    { value: 'architecture', label: 'Architecture - การออกแบบ' },
-    { value: 'other', label: 'Other - อื่นๆ' },
-  ];
-
 
   const PARTNERS_TYPE = [
     { value: 'MUT', label: 'MUT' },
@@ -184,13 +169,6 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
         console.error('Failed to load project options', err);
         setProjectOptions([]);
       });
-  }, []);
-
-  useEffect(() => {
-    fetchProjectOptions().then(setProjectOptions).catch((err) => {
-      console.error('Failed to load project options', err);
-      setProjectOptions([]);
-    });
   }, []);
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -434,7 +412,7 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
         phone,
         baseLocation,
         province: baseLocation === 'ต่างจังหวัด' ? province : undefined,
-        categories: creatorCategory.map((c) => c.label),
+        categories: fixedCategoryLabels ?? creatorCategory.map((c) => c.label),
         followers: 0,
         profileImage: pendingFacebookPicture || undefined,
         socialAccounts: {
@@ -489,8 +467,10 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
   // Check if Facebook data is pending
   const hasPendingFacebook = typeof window !== 'undefined' && sessionStorage.getItem('pendingFacebookId');
 
+  const sectionId = variant === 'landing' ? 'register-section' : undefined;
+
   return (
-    <section id="register-section" className="py-16 bg-primary/10">
+    <section id={sectionId} className="py-16 bg-primary/10">
       <div className="max-w-3xl mx-auto px-4 md:px-6">
         <div className="bg-white rounded-2xl shadow-xl p-5 md:p-10">
           <div className="text-center mb-3">
@@ -808,19 +788,20 @@ export function RegisterSection({ onLogin }: RegisterSectionProps) {
               )}
             </div>
 
-            {/* Creator Category */}
-            <div className="space-y-3">
-              <h3 className="font-semibold text-primary">คุณเป็นครีเอเตอร์สายไหน ?</h3>
-              <Select
+            {fixedCategoryLabels === undefined && (
+              <div className="space-y-3">
+                <h3 className="font-semibold text-primary">คุณเป็นครีเอเตอร์สายไหน ?</h3>
+                <Select
                   instanceId="register-creator-category"
-                options={CREATOR_CATEGORIES}
-                isMulti
-                value={creatorCategory}
-                onChange={(selected) =>
-                  setCreatorCategory(selected ? [...selected] : [])
-                }
-              />
-            </div>
+                  options={CREATOR_CATEGORIES}
+                  isMulti
+                  value={creatorCategory}
+                  onChange={(selected) =>
+                    setCreatorCategory(selected ? [...selected] : [])
+                  }
+                />
+              </div>
+            )}
 
             <SocialAccounts
               initialSocialAccounts={socialData.socialAccounts}
