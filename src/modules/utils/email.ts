@@ -21,11 +21,11 @@ const buildApprovalEmailHtml = (creator: CreatorProfile) => {
         <meta charset="UTF-8" />
         <title>CONGRATULATIONS! คุณได้รับคัดเลือกให้เข้าร่วม AssetWise Creator Club</title>
       </head>
-      <body style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 32px;">
+      <body style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0;">
         <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
           <tr>
             <td align="center">
-              <table width="600" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #ffffff; border-radius: 16px; padding: 32px;">
+              <table width="750" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #ffffff; border-radius: 16px;">
                 <tr>
                   <td align="center">
                     <img style="max-width: 100%;" src="https://assetwise.co.th/wp-content/uploads/2026/03/asw-creatorclub_approved_email_1080px.jpg" alt="CONGRATULATIONS! คุณได้รับคัดเลือกให้เข้าร่วม AssetWise Creator Club" />
@@ -48,7 +48,7 @@ const buildRejectionEmailHtml = (creator: CreatorProfile) => {
         <meta charset="UTF-8" />
         <title>ขอขอบคุณท่านที่ให้ความสนใจเข้าร่วม AssetWise Creator Club</title>
       </head>
-      <body style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 32px;">
+      <body style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0;">
         <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
           <tr>
             <td align="center">
@@ -69,11 +69,11 @@ const buildRegistrationPendingEmailHtml = (recipient: RegistrationPendingEmailIn
         <meta charset="UTF-8" />
         <title>ขอบคุณที่สนใจสมัครเข้าร่วม AssetWise CREATOR CLUB</title>
       </head>
-      <body style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 32px;">
+      <body style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0;">
         <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
           <tr>
             <td align="center">
-              <table cellpadding="0" cellspacing="0" role="presentation" style="background-color: #ffffff; border-radius: 16px; padding: 32px;">
+              <table cellpadding="0" cellspacing="0" role="presentation" style="background-color: #ffffff; border-radius: 16px;">
                 <tr>
                   <td>
                     <h1 style="margin: 0 0 16px; font-size: 24px; color: #111827; text-align: center; font-weight: bold;">บริษัท แอสเซทไวส์ จำกัด (มหาชน) ขอขอบคุณคุณ ${recipient.name}</h1>
@@ -85,13 +85,13 @@ const buildRegistrationPendingEmailHtml = (recipient: RegistrationPendingEmailIn
                     <p style="margin: 0 0 12px; font-size: 15px; color: #374151; text-align: center;">
                       ท่านสามารถสอบถามข้อมูลเรื่อง AssetWise CREATOR CLUB ผ่านช่องทาง
                     </p>
-                    <p style="margin: 24px 0 0; font-size: 13px; color: #6b7280; text-align: center; display: flex; justify-content: center; align-items: center; gap: 16px;">
-                      <a href="https://line.me/" title="AssetWise Crator Club" style="display: inline-flex; gap: 8px;">
-                        <img src="https://assetwise.co.th/wp-content/uploads/2026/03/lineoa-icon.png" style="width: 20px; height: 20px;" alt="AssetWise Crator Club" />
+                    <p style="margin: 24px 0 0; font-size: 13px; color: #6b7280; text-align: center;">
+                      <a href="https://line.me/" title="AssetWise Crator Club" style="margin-right: 16px;">
+                        <img src="https://assetwise.co.th/wp-content/uploads/2026/03/lineoa-icon.png" style="width: 20px; height: 20px; margin-right: 8px;" alt="AssetWise Crator Club" />
                         <span>@AssetWiseCratorclub</span>
                       </a>
-                      <a href="tel:021680000" title="ติดต่อ AssetWise" style="display: inline-flex; gap: 8px;">
-                        <img src="https://assetwise.co.th/wp-content/uploads/2026/03/tel-icon.png" style="width: 20px; height: 20px;" alt="ติดต่อ AssetWise" />
+                      <a href="tel:021680000" title="ติดต่อ AssetWise" style="margin-right: 16px;">
+                        <img src="https://assetwise.co.th/wp-content/uploads/2026/03/tel-icon.png" style="width: 20px; height: 20px; margin-right: 8px;" alt="ติดต่อ AssetWise" />
                         <span>02-168-0000</span>
                       </a>
                     </p>
