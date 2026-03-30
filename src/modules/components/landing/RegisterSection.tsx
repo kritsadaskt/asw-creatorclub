@@ -715,8 +715,8 @@ export function RegisterSection({
               <div className="h-5"></div>
 
               {/* Base Location */}
-              <div className="space-y-3">
-                <h3 className="font-semibold text-primary">
+              <div className="mb-5">
+                <h3 className="font-semibold text-primary mb-2">
                   จังหวัดที่คุณอยู่ปัจจุบัน <span className="text-destructive">*</span>
                 </h3>
                 <Select
@@ -789,8 +789,9 @@ export function RegisterSection({
             </div>
 
             {fixedCategoryLabels === undefined && (
-              <div className="space-y-3">
-                <h3 className="font-semibold text-primary">คุณเป็นครีเอเตอร์สายไหน ?</h3>
+              <div className="mb-5">
+                <h3 className="font-semibold text-primary mb-0">คุณเป็นครีเอเตอร์สายไหน ?</h3>
+                <div className="block"><span className="text-muted-foreground text-sm">เลือกได้มากกว่า 1 รายการ</span></div>
                 <Select
                   instanceId="register-creator-category"
                   options={CREATOR_CATEGORIES}

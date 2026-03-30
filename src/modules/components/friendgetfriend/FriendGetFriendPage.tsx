@@ -146,38 +146,8 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
         }}
       />
 
-      <section id="friendgetfriend-form" className="py-16">
-        <div className="max-w-3xl mx-auto px-6">
-          <div className="bg-white rounded-2xl shadow-xl p-8 md:p-10">
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-semibold mb-3 text-primary">Friend Get Friend</h1>
-              <p className="text-muted-foreground mb-2">
-                แคมเปญพิเศษสำหรับ Creator Club ชวนเพื่อนมาร่วมเป็นครีเอเตอร์กับเรา
-                ยิ่งชวนมาก ยิ่งมีโอกาสได้รับสิทธิพิเศษและของรางวัลจาก ASW
-              </p>
-              <p className="text-muted-foreground">ทุกคนสามารถกรอกฟอร์มแนะนำเพื่อนได้ทันที โดยไม่จำเป็นต้องเข้าสู่ระบบ</p>
-              <div className="mt-3">
-                <Link
-                  href="/"
-                  title="กลับสู่หน้า Creator Club"
-                  className="inline-flex text-primary hover:underline cursor-pointer"
-                >
-                  กลับสู่หน้า Creator Club
-                </Link>
-              </div>
-            </div>
-
-            <div className="mt-8 border-t border-border pt-8 text-muted-foreground">
-              เลือกโครงการจากตารางด้านบน แล้วกดปุ่ม `แนะนำเพื่อน` เพื่อกรอกฟอร์ม
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <IntroSection />
-
       <Drawer direction="right" open={isRecommendDrawerOpen} onOpenChange={handleDrawerOpenChange}>
-        <DrawerContent>
+        <DrawerContent className='overflow-y-auto'>
           <DrawerHeader className="p-7">
             <div className="flex items-start justify-between gap-4">
               <DrawerTitle>แนะนำเพื่อน</DrawerTitle>
