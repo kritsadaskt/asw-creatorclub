@@ -9,9 +9,9 @@ import { IntroSection } from '../landing/IntroSection';
 import Footer from '../landing/Footer';
 import { Input } from '../shared/Input';
 import { Button } from '../shared/Button';
-import { getSession } from '../../utils/auth';
 import { useSession } from '../../context/SessionContext';
-import { getCreatorById } from '../../utils/storage';
+import { createFgfLeadWithProjects, getCreatorById } from '../../utils/storage';
+import type { AffiliateProject } from '../../utils/affiliate';
 import fgfDesktopBanner from '@/assets/fgf_desktop_banner.png';
 import fgfMobileBanner from '@/assets/fgf_mobile_banner.png';
 import { FriendGetFriendProjectList } from './FriendGetFriendProjectList';
@@ -30,7 +30,7 @@ interface FriendGetFriendPageProps {
 
 export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
   const { handleLogin: sessionLogin, currentUserId } = useSession();
-  const isLoggedIn = !!currentUserId || !!getSession();
+  const isLoggedIn = !!currentUserId;
   const [isRecommendDrawerOpen, setIsRecommendDrawerOpen] = useState(false);
   const [prefillLoaded, setPrefillLoaded] = useState(false);
 
@@ -43,7 +43,8 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
   const [leadLastName, setLeadLastName] = useState('');
   const [leadEmail, setLeadEmail] = useState('');
   const [leadPhone, setLeadPhone] = useState('');
-  const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
+  const [selectedProjects, setSelectedProjects] = useState<Array<{ id: string; name: string }>>([]);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const loadCreatorProfile = async () => {
@@ -69,15 +70,15 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
     void loadCreatorProfile();
   }, [currentUserId]);
 
-  const addProjectIfMissing = (projectName: string) => {
+  const addProjectIfMissing = (project: AffiliateProject) => {
     setSelectedProjects((prev) => {
-      if (prev.includes(projectName)) return prev;
-      return [...prev, projectName];
+      if (prev.some((p) => p.id === project.id)) return prev;
+      return [...prev, { id: project.id, name: project.name }];
     });
   };
 
-  const removeProject = (projectName: string) => {
-    setSelectedProjects((prev) => prev.filter((item) => item !== projectName));
+  const removeProject = (projectId: string) => {
+    setSelectedProjects((prev) => prev.filter((item) => item.id !== projectId));
   };
 
   const clearReferredLeadForm = () => {
@@ -95,35 +96,37 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
     }
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (selectedProjects.length === 0) {
       toast.error('กรุณาเลือกโครงการอย่างน้อย 1 โครงการ');
       return;
     }
 
-    const payload = {
-      referrer: {
-        name: referrerName,
-        lastName: referrerLastName,
-        email: referrerEmail,
-        tel: referrerPhone,
-      },
-      referredLead: {
-        name: leadName,
-        lastName: leadLastName,
-        email: leadEmail,
-        tel: leadPhone,
-      },
-      projects: selectedProjects,
-      createdAt: new Date().toISOString(),
-    };
-
-    // TODO: connect to API endpoint when backend table is ready
-    console.log('Friend Get Friend submission', payload);
-    toast.success('ส่งข้อมูลแนะนำเพื่อนเรียบร้อยแล้ว');
-    clearReferredLeadForm();
-    setIsRecommendDrawerOpen(false);
+    try {
+      setSubmitting(true);
+      await createFgfLeadWithProjects({
+        referrerName: referrerName.trim(),
+        referrerLastName: referrerLastName.trim(),
+        referrerEmail: referrerEmail.trim(),
+        referrerTel: referrerPhone.trim(),
+        refUid: currentUserId ?? undefined,
+        referrerCreatorId: currentUserId ?? undefined,
+        leadName: leadName.trim(),
+        leadLastName: leadLastName.trim(),
+        leadEmail: leadEmail.trim(),
+        leadTel: leadPhone.trim(),
+        projectIds: selectedProjects.map((p) => p.id),
+      });
+      toast.success('ส่งข้อมูลเรียบร้อยแล้ว ทีมงานจะติดต่อกลับภายใน 24 ชั่วโมง');
+      clearReferredLeadForm();
+      setIsRecommendDrawerOpen(false);
+    } catch (error) {
+      console.error('FGF lead submit failed', error);
+      toast.error('ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const referrerHelperText = isLoggedIn
@@ -138,7 +141,7 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
       <FriendGetFriendProjectList
         onLogin={onLogin ?? sessionLogin}
         onRecommend={(project) => {
-          addProjectIfMissing(project.name);
+          addProjectIfMissing(project);
           setIsRecommendDrawerOpen(true);
         }}
       />
@@ -215,17 +218,17 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
                   </p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
-                    {selectedProjects.map((projectName) => (
+                    {selectedProjects.map((project) => (
                       <div
-                        key={projectName}
+                        key={project.id}
                         className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-sm text-foreground"
                       >
-                        <span>{projectName}</span>
+                        <span>{project.name}</span>
                         <button
                           type="button"
-                          onClick={() => removeProject(projectName)}
+                          onClick={() => removeProject(project.id)}
                           className="text-muted-foreground hover:text-foreground cursor-pointer"
-                          aria-label={`ลบโครงการ ${projectName}`}
+                          aria-label={`ลบโครงการ ${project.name}`}
                         >
                           ×
                         </button>
@@ -257,8 +260,8 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
                 </label>
               </div>
 
-              <Button type="submit" fullWidth disabled={isLoggedIn && !prefillLoaded}>
-                SUBMIT
+              <Button type="submit" fullWidth disabled={(isLoggedIn && !prefillLoaded) || submitting}>
+                {submitting ? 'กำลังส่ง...' : 'SUBMIT'}
               </Button>
             </form>
           </div>

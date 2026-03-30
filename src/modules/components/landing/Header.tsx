@@ -1,9 +1,16 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, LogIn, LogOut, Menu, User, X } from 'lucide-react';
+import { LayoutDashboard, LogOut, Menu, User, X } from 'lucide-react';
 import { LoginModal } from './LoginModal';
 import { BASE_PATH } from '@/lib/publicPath';
 import { useSession } from '@/modules/context/SessionContext';
@@ -38,6 +45,153 @@ interface HeaderProps {
   navTabs?: NavLinkItem[];
   /** Fix the header to the top of the viewport. Defaults to true. */
   fixed?: boolean;
+}
+
+type HeaderNavRouter = { push: (href: string) => void };
+
+/** Stable component identity — avoids remounting Radix menus every Header render. */
+function HeaderUserDropdownMenu({
+  avatarUrl,
+  displayName,
+  role,
+  onAvatarLoadError,
+  onLogout,
+  router,
+}: {
+  avatarUrl: string | null;
+  displayName: string | null;
+  role: 'creator' | 'admin' | null;
+  onAvatarLoadError: () => void;
+  onLogout: () => void;
+  router: HeaderNavRouter;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="focus:outline-none hover:ring-2 hover:ring-primary/30 rounded-full transition-all cursor-pointer"
+          aria-label="User menu"
+        >
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={displayName || 'Profile'}
+              className="w-9 h-9 rounded-full object-cover border border-border"
+              onError={onAvatarLoadError}
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-medium">
+              {displayName ? displayName.charAt(0).toUpperCase() : 'U'}
+            </div>
+          )}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex flex-col gap-0.5">
+            <span className="font-semibold text-foreground truncate">{displayName ?? 'User'}</span>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {role === 'admin' && (
+          <DropdownMenuItem
+            onClick={() => {
+              router.push('/admin/dashboard');
+            }}
+            className="cursor-pointer group"
+          >
+            <LayoutDashboard className="w-4 h-4 mr-2 group-hover:stroke-white" />
+            Dashboard
+          </DropdownMenuItem>
+        )}
+        {role === 'creator' && (
+          <DropdownMenuItem
+            onClick={() => {
+              router.push('/profile');
+            }}
+            className="cursor-pointer group"
+          >
+            <User className="w-4 h-4 mr-2 group-hover:stroke-white" />
+            โปรไฟล์ของฉัน
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={onLogout}
+          className="cursor-pointer text-destructive focus:text-destructive group"
+        >
+          <LogOut className="w-4 h-4 mr-2 group-hover:stroke-white" />
+          <span className="group-hover:text-white">ออกจากระบบ</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function HeaderMainMenu({
+  navLinks,
+  isLoggedIn,
+  isMobileMenuOpen,
+  setIsMobileMenuOpen,
+  onOpenLoginModal,
+  userDropdown,
+}: {
+  navLinks: NavLinkItem[];
+  isLoggedIn: boolean;
+  isMobileMenuOpen: boolean;
+  setIsMobileMenuOpen: Dispatch<SetStateAction<boolean>>;
+  onOpenLoginModal: () => void;
+  userDropdown: ReactNode;
+}) {
+  return (
+    <>
+      <div className="hidden md:flex items-center gap-4">
+        {navLinks.length > 0 && (
+          <div className="flex items-center gap-4">
+            {navLinks.map((link) => (
+              <Link
+                key={link.to}
+                href={link.to}
+                className="cursor-pointer hover:text-primary border-r border-border pr-4"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {isLoggedIn ? (
+          userDropdown
+        ) : (
+          <>
+            <Link href="/#register-section" className="cursor-pointer hover:text-primary">
+              ลงทะเบียน
+            </Link>
+            <button
+              type="button"
+              onClick={onOpenLoginModal}
+              className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 cursor-pointer"
+            >
+              เข้าสู่ระบบ
+            </button>
+          </>
+        )}
+      </div>
+
+      <div className="md:hidden flex items-center">
+        <button
+          type="button"
+          onClick={() => setIsMobileMenuOpen((v) => !v)}
+          className="inline-flex items-center justify-center rounded-md p-2 hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/30"
+          aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={isMobileMenuOpen}
+        >
+          {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+      </div>
+    </>
+  );
 }
 
 export function Header({
@@ -115,13 +269,6 @@ export function Header({
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
-  const scrollToRegister = () => {
-    const registerSection = document.getElementById('register-section');
-    if (registerSection) {
-      registerSection.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
   const handleLogout = () => {
     setDisplayName(null);
     setAvatarUrl(null);
@@ -140,121 +287,16 @@ export function Header({
 
   const hasNavTabs = navTabs && navTabs.length > 0;
 
-  const UserDropdownMenu = () => {
-    return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            className="focus:outline-none hover:ring-2 hover:ring-primary/30 rounded-full transition-all cursor-pointer"
-            aria-label="User menu"
-          >
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt={displayName || 'Profile'}
-                className="w-9 h-9 rounded-full object-cover border border-border"
-                onError={() => setAvatarUrl(null)}
-              />
-            ) : (
-              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-medium">
-                {displayName ? displayName.charAt(0).toUpperCase() : 'U'}
-              </div>
-            )}
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-52">
-          <DropdownMenuLabel className="font-normal">
-            <div className="flex flex-col gap-0.5">
-              <span className="font-semibold text-foreground truncate">
-                {displayName ?? 'User'}
-              </span>
-            </div>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {role === 'admin' && (
-            <DropdownMenuItem
-              onClick={() => { router.push('/admin/dashboard'); }}
-              className="cursor-pointer group"
-            >
-              <LayoutDashboard className="w-4 h-4 mr-2 group-hover:stroke-white" />
-              Dashboard
-            </DropdownMenuItem>
-          )}
-          {role === 'creator' && (
-            <DropdownMenuItem
-              onClick={() => { router.push('/profile'); }}
-              className="cursor-pointer group"
-            >
-              <User className="w-4 h-4 mr-2 group-hover:stroke-white" />
-              โปรไฟล์ของฉัน
-            </DropdownMenuItem>
-          )}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={handleLogout}
-            className="cursor-pointer text-destructive focus:text-destructive group"
-          >
-            <LogOut className="w-4 h-4 mr-2 group-hover:stroke-white" />
-            <span className="group-hover:text-white">ออกจากระบบ</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    )
-  }
-
-  const MainMenu = ({ isLoggedIn }: { isLoggedIn: boolean }) => {
-    return (
-      <>
-        {/* Desktop */}
-        <div className="hidden md:flex items-center gap-4">
-          {navLinks && navLinks.length > 0 && (
-            <div className="flex items-center gap-4">
-              {navLinks.map((link, idx) => (
-                <Link
-                  key={link.to}
-                  href={link.to}
-                  className={`cursor-pointer hover:text-primary border-r border-border pr-4`}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-          )}
-
-          {isLoggedIn ? (
-            <UserDropdownMenu />
-          ) : (
-            <>
-              <Link href="/#register-section" className="cursor-pointer hover:text-primary">
-                ลงทะเบียน
-              </Link>
-              <button
-                type="button"
-                onClick={() => setShowLoginModal(true)}
-                className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 cursor-pointer"
-              >
-                เข้าสู่ระบบ
-              </button>
-            </>
-          )}
-        </div>
-
-        {/* Mobile hamburger */}
-        <div className="md:hidden flex items-center">
-          <button
-            type="button"
-            onClick={() => setIsMobileMenuOpen((v) => !v)}
-            className="inline-flex items-center justify-center rounded-md p-2 hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/30"
-            aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={isMobileMenuOpen}
-          >
-            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
-        </div>
-      </>
-    );
-  };
+  const userDropdown = (
+    <HeaderUserDropdownMenu
+      avatarUrl={avatarUrl}
+      displayName={displayName}
+      role={role}
+      onAvatarLoadError={() => setAvatarUrl(null)}
+      onLogout={handleLogout}
+      router={router}
+    />
+  );
 
   return (
     <>
@@ -279,7 +321,14 @@ export function Header({
 
             {/* Right section */}
             <div className="flex gap-4 items-center">
-              <MainMenu isLoggedIn={isLoggedIn} />
+              <HeaderMainMenu
+                navLinks={navLinks}
+                isLoggedIn={isLoggedIn}
+                isMobileMenuOpen={isMobileMenuOpen}
+                setIsMobileMenuOpen={setIsMobileMenuOpen}
+                onOpenLoginModal={() => setShowLoginModal(true)}
+                userDropdown={userDropdown}
+              />
             </div>
           </div>
 
@@ -318,7 +367,7 @@ export function Header({
                     <span className="text-sm text-muted-foreground truncate">
                       {isLoadingProfile ? 'Loading…' : displayName ?? 'User'}
                     </span>
-                    <UserDropdownMenu />
+                    {userDropdown}
                   </div>
                 ) : (
                   <>

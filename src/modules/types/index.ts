@@ -104,6 +104,8 @@ export interface FgfLead {
   referrerLastName: string;
   referrerEmail: string;
   referrerTel: string;
+  /** Session / app user id when submitter was logged in (matches DB `ref_uid`). */
+  refUid?: string;
   referrerCreatorId?: string;
   leadName: string;
   leadLastName: string;
@@ -111,9 +113,11 @@ export interface FgfLead {
   leadTel: string;
   status: FgfLeadStatus;
   chosenProjectId?: string;
+  /** Whether this lead was pushed to CIS (DB column `uploaded_to_crm`). */
   uploadedToCrm: boolean;
   uploadedAt?: string;
   uploadedBy?: string;
+  /** Last CIS API response (DB column `crm_response`). */
   crmResponse?: unknown;
   createdAt: string;
   updatedAt: string;
