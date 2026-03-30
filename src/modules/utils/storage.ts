@@ -452,7 +452,7 @@ export const deleteCampaign = async (id: string): Promise<void> => {
   }
 };
 
-// ===== Friend Get Friend Lead Operations =====
+// ===== Friend Get Friends Lead Operations =====
 
 export type CreateFgfLeadInput = {
   referrerName: string;

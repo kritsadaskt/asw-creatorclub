@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * Proxies Friend Get Friend lead payload to AssetWise CIS (SaveOtherSource).
+ * Proxies Friend Get Friends lead payload to AssetWise CIS (SaveOtherSource).
  * Configure CIS_API_UAT or CIS_API_PROD and optional CIS_TOKEN in env.
  */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

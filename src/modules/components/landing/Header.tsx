@@ -222,7 +222,7 @@ export function Header({
 
   if (!navLinks || navLinks.length < 1) {
     navLinks = [
-      { label: 'Friend Get Friend', to: '/friendgetfriend' },
+      { label: 'Friend Get Friends', to: '/friendgetfriend' },
       { label: 'Affiliate', to: '/affiliate' },
     ];
   }
