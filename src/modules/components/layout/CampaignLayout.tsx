@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Header } from '../landing/Header';
 import Footer from '../landing/Footer';
 import { HeroBanner } from '../landing/HeroBanner';
-import affDesktopBanner from '@/assets/aff_desktop_banner.jpg';
-import affMobileBanner from '@/assets/aff_mobile_banner.jpg';
+import affDesktopBanner from '@/assets/aff_desktop_banner_rv1.jpg';
+import affMobileBanner from '@/assets/aff_mobile_banner_rv1.jpg';
 
 interface CampaignLayoutProps {
   children: ReactNode;
