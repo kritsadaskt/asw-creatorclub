@@ -33,6 +33,10 @@ import {
 import { FaGoogleDrive, FaLink } from "react-icons/fa";
 import { Loader2 } from 'lucide-react';
 import { HeroBanner } from '../landing/HeroBanner';
+import { StatusBadge } from '../ui/status-badge';
+import { LoginModal } from '../landing/LoginModal';
+import { useSession } from '@/modules/context/SessionContext';
+import { getSession } from '@/modules/utils/auth';
 
 const DEFAULT_ITEMS_PER_PAGE = 10;
 const STATUS_FILTER_ALL = 'all';
@@ -48,11 +52,14 @@ export function AffiliatePage() {
 }
 
 function AffiliateProjectList() {
+  const { currentUserId, handleLogin: sessionLogin } = useSession();
+  const isLoggedIn = !!currentUserId || !!getSession();
   const [projects, setProjects] = useState<AffiliateProject[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<AffiliateProject | null>(null);
   const [isMaterialsOpen, setIsMaterialsOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>(STATUS_FILTER_ALL);
   const [page, setPage] = useState(1);
@@ -207,7 +214,6 @@ function AffiliateProjectList() {
                           ค่าแนะนำ
                         </th>
                         <th className="px-4 w-1/5 md:px-6 py-3 text-center font-medium text-foreground">
-                          View Materials
                         </th>
                       </tr>
                     </thead>
@@ -216,7 +222,7 @@ function AffiliateProjectList() {
                         <tr key={project.id} className="hover:bg-muted/30">
                           <td className="px-4 md:px-6 py-4">
                             <div className="flex items-center gap-7">
-                              <div className="w-50 h-auto rounded-lg bg-muted overflow-hidden flex items-center justify-center text-xs text-muted-foreground aspect-square flex-shrink-0">
+                              <div className="w-30 h-auto rounded-lg bg-muted overflow-hidden flex items-center justify-center text-xs text-muted-foreground aspect-square flex-shrink-0">
                                 {project.imageUrl || project.thumbUrl ? (
                                   // eslint-disable-next-line @next/next/no-img-element
                                   <img
@@ -231,19 +237,15 @@ function AffiliateProjectList() {
                                 )}
                               </div>
                               <div>
-                                <h4 className="text-xl mb-2 font-medium text-foreground">
+                                <h4 className="text-xl mb-2 font-medium text-foreground flex items-center gap-2">
                                   {project.name}
+                                  {getStatusLabel(project.projectStatus) && (
+                                    <StatusBadge status={project.projectStatus ?? null} />
+                                  )}
                                 </h4>
                                 <p className="text-neutral-500">
                                   {project.description}
                                 </p>
-                                {getStatusLabel(project.projectStatus) && (
-                                  <div className={`mt-1 project-status-badge ${project.projectStatus}`}>
-                                    <span>
-                                      {getStatusLabel(project.projectStatus)}
-                                    </span>
-                                  </div>
-                                )}
                               </div>
                             </div>
                           </td>
@@ -257,12 +259,16 @@ function AffiliateProjectList() {
                               <button
                                 type="button"
                                 onClick={() => {
+                                  if (!isLoggedIn) {
+                                    setIsLoginModalOpen(true);
+                                    return;
+                                  }
                                   setSelectedProject(project);
                                   setIsMaterialsOpen(true);
                                 }}
                                 className="inline-flex items-center justify-center rounded-lg border border-primary px-3 py-1.5 font-medium text-primary hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
                               >
-                                View Materials
+                                Get Link
                               </button>
                             </div>
                           </td>
@@ -466,6 +472,13 @@ function AffiliateProjectList() {
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
+
+      {isLoginModalOpen && (
+        <LoginModal
+          onClose={() => setIsLoginModalOpen(false)}
+          onLogin={(id, role) => sessionLogin(id, role)}
+        />
+      )}
     </div>
   );
 }

@@ -7,9 +7,6 @@ import { Loader2 } from 'lucide-react';
 import { fetchFriendGetFriendProjects } from '@/modules/utils/friendgetfriend';
 import type { AffiliateProject } from '@/modules/utils/affiliate';
 
-import { LoginModal } from '../landing/LoginModal';
-import { useSession } from '@/modules/context/SessionContext';
-import { getSession } from '@/modules/utils/auth';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import {
@@ -28,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select';
+import { StatusBadge } from '../ui/status-badge';
 
 const DEFAULT_ITEMS_PER_PAGE = 10;
 const STATUS_FILTER_ALL = 'all';
@@ -40,19 +38,11 @@ type FriendGetFriendProjectListProps = {
 };
 
 export function FriendGetFriendProjectList({
-  onLogin,
   onRecommend,
 }: FriendGetFriendProjectListProps) {
-  const { currentUserId, userRole, handleLogin: sessionLogin } = useSession();
-  const cookieSession = getSession();
-
-  const isLoggedIn = !!currentUserId || !!cookieSession;
-  const effectiveRole = userRole ?? cookieSession?.role ?? null;
-
   const [projects, setProjects] = useState<AffiliateProject[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>(STATUS_FILTER_ALL);
@@ -117,16 +107,6 @@ export function FriendGetFriendProjectList({
   }, []);
 
   const handleRecommend = (project: AffiliateProject) => {
-    if (!isLoggedIn || !effectiveRole) {
-      setIsLoginModalOpen(true);
-      return;
-    }
-
-    if (effectiveRole !== 'creator') {
-      toast.error('เฉพาะ Creator Club ที่ลงทะเบียนเท่านั้นจึงจะแนะนำเพื่อนได้');
-      return;
-    }
-
     onRecommend?.(project);
   };
 
@@ -236,15 +216,9 @@ export function FriendGetFriendProjectList({
                                 )}
                               </div>
                               <div className="min-w-0">
-                                <h4 className="text-lg font-medium text-foreground truncate mb-4">
+                                <h4 className="text-lg font-medium text-foreground truncate mb-4 flex items-center gap-2">
                                   {project.name}
-                                  {getStatusLabel(project.projectStatus) && (
-                                    <div
-                                      className={`project-status-badge inline-block ml-2 ${project.projectStatus}`}
-                                    >
-                                      <span className="text-xs font-light">{getStatusLabel(project.projectStatus)}</span>
-                                    </div>
-                                  )}
+                                  <StatusBadge status={project.projectStatus ?? null} />
                                 </h4>
                                 <p className="text-sm text-neutral-500 line-clamp-2">
                                   {project.description}
@@ -390,13 +364,6 @@ export function FriendGetFriendProjectList({
               </>
             )}
           </>
-        )}
-
-        {isLoginModalOpen && (
-          <LoginModal
-            onClose={() => setIsLoginModalOpen(false)}
-            onLogin={(id, role) => (onLogin ? onLogin(id, role) : sessionLogin(id, role))}
-          />
         )}
       </div>
     </div>

@@ -1,14 +1,24 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
 import { AffiliateLink, Project, Campaign } from '../../types';
-import { getAffiliateLinksByCreator, getProjects, getCampaigns, saveAffiliateLink, generateUUID } from '../../utils/storage';
-import { Building2, Home, Megaphone, Link2, Plus, Loader2 } from 'lucide-react';
+import { getAffiliateLinksByCreator, getProjects, getCampaigns, updateAffiliateLink } from '../../utils/storage';
+import { Building2, CalendarIcon, Home, HomeIcon, Link2, Loader2, PencilIcon, PlusIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '../ui/drawer';
+import { FaRegTrashAlt } from 'react-icons/fa';
 
 interface AffiliateGeneratorProps {
   creatorId: string;
@@ -16,17 +26,21 @@ interface AffiliateGeneratorProps {
 }
 
 export function AffiliateGenerator({ creatorId, showBackButton = true }: AffiliateGeneratorProps) {
-  const [campaignName, setCampaignName] = useState('');
-  const [baseUrl, setBaseUrl] = useState('');
-  const [selectedProjectId, setSelectedProjectId] = useState('');
   const [projects, setProjects] = useState<Project[]>([]);
   const [links, setLinks] = useState<AffiliateLink[]>([]);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  // Cache project and campaign data for display
+  const [searchQuery, setSearchQuery] = useState('');
+  const [projectFilter, setProjectFilter] = useState<string>('all');
+  const [selectedLink, setSelectedLink] = useState<AffiliateLink | null>(null);
+  const [draftCampaignName, setDraftCampaignName] = useState('');
+  const [draftUrl, setDraftUrl] = useState('');
+  const [draftProjectId, setDraftProjectId] = useState<string>('');
+  const [draftPostLinks, setDraftPostLinks] = useState<string[]>(['']);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [projectCache, setProjectCache] = useState<Record<string, Project>>({});
   const [campaignCache, setCampaignCache] = useState<Record<string, Campaign>>({});
-  const [saving, setSaving] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -59,47 +73,79 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
     }
   };
 
-  const handleProjectSelect = (projectId: string) => {
-    setSelectedProjectId(projectId);
-    const project = projects.find((p) => p.id === projectId);
-    if (project?.baseUrl) {
-      setBaseUrl(project.baseUrl);
-    } else if (!projectId) {
-      setBaseUrl('');
-    }
+  const filteredLinks = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    const selectedProject = projectFilter === 'all' ? null : projectFilter;
+
+    return links.filter((link) => {
+      const project = link.projectId ? projectCache[link.projectId] : undefined;
+      const matchesProject = selectedProject === null || link.projectId === selectedProject;
+      const matchesSearch =
+        !query ||
+        link.campaignName.toLowerCase().includes(query) ||
+        link.url.toLowerCase().includes(query) ||
+        (project?.name?.toLowerCase().includes(query) ?? false);
+
+      return matchesProject && matchesSearch;
+    });
+  }, [links, searchQuery, projectFilter, projectCache]);
+
+  const openDetailDrawer = (link: AffiliateLink) => {
+    setSelectedLink(link);
+    setDraftCampaignName(link.campaignName);
+    setDraftUrl(link.url);
+    setDraftProjectId(link.projectId ?? '');
+    setDraftPostLinks(link.postLinks && link.postLinks.length > 0 ? link.postLinks : ['']);
+    setIsDetailOpen(true);
   };
 
-  const generateLink = async () => {
-    if (!campaignName.trim()) {
+  const handlePostLinkChange = (index: number, value: string) => {
+    setDraftPostLinks((prev) => prev.map((item, i) => (i === index ? value : item)));
+  };
+
+  const handleAddPostLink = () => {
+    setDraftPostLinks((prev) => [...prev, '']);
+  };
+
+  const handleRemovePostLink = (index: number) => {
+    setDraftPostLinks((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      return next.length > 0 ? next : [''];
+    });
+  };
+
+  const handleSaveLink = async () => {
+    if (!selectedLink) return;
+    if (!draftCampaignName.trim()) {
       toast.error('กรุณากรอกชื่อแคมเปญ');
       return;
     }
-    if (!baseUrl.trim()) {
+    if (!draftUrl.trim()) {
       toast.error('กรุณากรอก URL ปลายทาง');
       return;
     }
+
     try {
       setSaving(true);
-      const affiliateCode = `${creatorId}_${Date.now()}`;
-      const separator = baseUrl.includes('?') ? '&' : '?';
-      const generatedUrl = `${baseUrl}${separator}ref=${affiliateCode}`;
-      const newLink: AffiliateLink = {
-        id: generateUUID(),
-        creatorId,
-        campaignName: campaignName.trim(),
-        projectId: selectedProjectId || undefined,
-        url: generatedUrl,
-        createdAt: new Date().toISOString()
+      const normalizedPostLinks = draftPostLinks
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0);
+
+      const updatedLink: AffiliateLink = {
+        ...selectedLink,
+        campaignName: draftCampaignName.trim(),
+        url: draftUrl.trim(),
+        projectId: draftProjectId || undefined,
+        postLinks: normalizedPostLinks,
       };
-      await saveAffiliateLink(newLink);
+
+      await updateAffiliateLink(updatedLink);
       await loadData();
-      setCampaignName('');
-      setBaseUrl('');
-      setSelectedProjectId('');
-      toast.success('สร้างลิงค์สำเร็จ!');
+      setSelectedLink(updatedLink);
+      toast.success('บันทึกการแก้ไขสำเร็จ!');
     } catch (error) {
-      console.error('Error generating link:', error);
-      toast.error('ไม่สามารถสร้างลิงค์ได้');
+      console.error('Error updating link:', error);
+      toast.error('ไม่สามารถบันทึกการแก้ไขได้');
     } finally {
       setSaving(false);
     }
@@ -114,62 +160,8 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
   return (
     <div className="max-w-4xl mx-auto px-0 py-4 md:p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2>สร้าง Affiliate Link</h2>
-        {showBackButton && (
-          <Button onClick={() => router.push('/profile')} variant="outline">
-            กลับไปโปรไฟล์
-          </Button>
-        )}
-      </div>
-
-      {/* Generator Form */}
-      <div className="bg-white rounded-xl shadow-sm border border-border px-4 py-4 md:p-6 mb-6">
-        <h3 className="text-primary">สร้างลิงค์ใหม่</h3>
-        
-        <div className="space-y-4">
-          <Input
-            label="ชื่อแคมเปญ"
-            value={campaignName}
-            onChange={setCampaignName}
-            placeholder="เช่น โปรโมชั่นสินค้า A"
-            required
-          />
-
-          <div>
-            <label className="block text-sm mb-2 text-foreground">
-              เลือกโครงการ (ไม่บังคับ)
-            </label>
-            <Select
-              value={selectedProjectId || undefined}
-              onValueChange={(value) => handleProjectSelect(value === '__none__' ? '' : value)}
-            >
-              <SelectTrigger className="border-border">
-                <SelectValue placeholder="ไม่เลือกโครงการ" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">ไม่เลือกโครงการ</SelectItem>
-                {projects.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    {`${project.type === 'condo' ? '🏢' : '🏠'} ${project.name} - ${project.location}`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Input
-            label="URL ปลายทาง"
-            value={baseUrl}
-            onChange={setBaseUrl}
-            placeholder="https://example.com/product"
-            required
-          />
-
-          <Button onClick={generateLink} fullWidth disabled={saving} className="flex items-center justify-center cursor-pointer">
-            <Plus className="w-4 h-4 mr-2" />
-            {saving ? 'Generating...' : 'Create Link'}
-          </Button>
-        </div>
+        <h2>ลิงค์ Affiliate ของฉัน</h2>
+        <Button onClick={() => router.push('/affiliate')} variant="outline">สร้างลิงก์ Affiliate</Button>
       </div>
 
       {/* Links List */}
@@ -181,71 +173,230 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
         
         {loading ? (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">กำลังโหลดข้อมูล...</p>
+            <p className="text-muted-foreground flex items-center justify-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>กำลังโหลดข้อมูล...</span>
+            </p>
           </div>
         ) : links.length === 0 ? (
           <div className="text-center py-12">
             <Link2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground mb-4">ยังไม่มีลิงค์</p>
             <Button onClick={() => router.push('/affiliate')} variant="outline">
-              <Plus className="w-4 h-4 mr-2" />
               สร้างลิงค์แรกของคุณ
             </Button>
           </div>
         ) : (
-          <div className="space-y-3">
-            {links.map((link) => {
-              const project = link.projectId ? projectCache[link.projectId] : null;
-              const campaign = link.campaignId ? campaignCache[link.campaignId] : null;
-              return (
-                <div
-                  key={link.id}
-                  className="p-4 bg-muted/30 rounded-lg border border-border hover:border-primary/30 transition-colors"
+          <>
+            <div className="flex flex-col md:flex-row md:items-end gap-7 mb-5">
+              <div className="flex-1">
+                <Input
+                  label="ค้นหา"
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  placeholder="ค้นหาจากชื่อแคมเปญ ชื่อโครงการ หรือ URL"
+                />
+              </div>
+              <div className="w-full md:w-[280px]">
+                <label className="block text-sm mb-2 text-foreground">โครงการ</label>
+                <Select value={projectFilter} onValueChange={setProjectFilter}>
+                  <SelectTrigger className="border-border">
+                    <SelectValue placeholder="ทุกโครงการ" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">ทุกโครงการ</SelectItem>
+                    {projects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {(searchQuery.trim() || projectFilter !== 'all') && (
+              <div className="mb-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setProjectFilter('all');
+                  }}
+                  className="text-sm text-muted-foreground hover:text-foreground underline cursor-pointer"
                 >
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-foreground mb-1">{link.campaignName}</h4>
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        {project && (
-                          <div className="text-sm text-primary flex items-center gap-1 bg-primary/5 px-2 py-0.5 rounded">
-                            {project.type === 'condo' ? <Building2 className="w-3 h-3" /> : <Home className="w-3 h-3" />}
-                            <span>{project.name}</span>
-                          </div>
-                        )}
-                        {campaign && (
-                          <div className="text-sm text-accent flex items-center gap-1 bg-accent/5 px-2 py-0.5 rounded">
-                            <Megaphone className="w-3 h-3" />
-                            <span>{campaign.name}</span>
-                          </div>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground break-all">
-                        {link.url}
-                      </p>
-                    </div>
-                    <Button
-                      onClick={() => copyToClipboard(link.url, link.id)}
-                      variant="outline"
-                      className="ml-4 flex-shrink-0"
-                    >
-                      {copiedId === link.id ? '✓ คัดลอกแล้ว' : 'คัดลอก'}
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    สร้างเมื่อ: {new Date(link.createdAt).toLocaleDateString('th-TH', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
+                  ล้างตัวกรอง
+                </button>
+              </div>
+            )}
+
+            {filteredLinks.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                ไม่พบลิงค์ที่ตรงกับตัวกรอง
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-muted/40">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-medium text-foreground">ชื่อลิ้งก์</th>
+                      <th className="px-4 py-3 text-left font-medium text-foreground">โครงการ</th>
+                      <th className="px-4 py-3 text-left font-medium text-foreground">วันที่สร้าง</th>
+                      <th className="px-4 py-3 text-center font-medium text-foreground">จัดการ</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {filteredLinks.map((link) => {
+                      const project = link.projectId ? projectCache[link.projectId] : null;
+                      const campaign = link.campaignId ? campaignCache[link.campaignId] : null;
+                      return (
+                        <tr key={link.id} className="hover:bg-muted/20">
+                          <td className="px-4 py-4">
+                            <div className="font-medium text-foreground">{link.campaignName}</div>
+                            {campaign?.name && (
+                              <div className="text-xs text-muted-foreground mt-1">{campaign.name}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-4">
+                            {project ? (
+                              <div className="inline-flex items-center gap-1.5 text-sm text-primary bg-primary/5 px-2 py-1 rounded">
+                                {project.type === 'condo' ? <Building2 className="w-3.5 h-3.5" /> : <Home className="w-3.5 h-3.5" />}
+                                <span>{project.name}</span>
+                              </div>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">-</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-4 text-sm text-muted-foreground whitespace-nowrap">
+                            {new Date(link.createdAt).toLocaleDateString('th-TH', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            })}
+                          </td>
+                          <td className="p-4 text-center">
+                            <Button
+                              onClick={() => openDetailDrawer(link)}
+                              variant="ghost"
+                              className="cursor-pointer rounded-full p-2"
+                            >
+                              <PencilIcon className="w-4 h-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      );
                     })}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
         )}
       </div>
+
+      <Drawer
+        direction="right"
+        open={isDetailOpen && !!selectedLink}
+        onOpenChange={(open) => {
+          setIsDetailOpen(open);
+          if (!open) {
+            setSelectedLink(null);
+          }
+        }}
+      >
+        <DrawerContent>
+          <DrawerHeader className="p-7">
+            <DrawerTitle>รายละเอียดลิงค์ Affiliate</DrawerTitle>
+            <DrawerDescription>แก้ไขข้อมูลลิงค์ของคุณ แล้วบันทึกการเปลี่ยนแปลง</DrawerDescription>
+          </DrawerHeader>
+
+          {selectedLink && (
+            <div className="px-7 pb-7 space-y-4">
+              <div>
+                <h4 className="text-xl font-semibold text-neutral-700 flex items-center gap-2">
+                  <HomeIcon className="w-4 h-4" />
+                  <span>{draftProjectId ? projectCache[draftProjectId]?.name : ''}</span>
+                </h4>
+              </div>
+
+              <Input
+                label="ชื่อลิงก์"
+                value={draftCampaignName}
+                onChange={setDraftCampaignName}
+                placeholder="กรอกชื่อแคมเปญ"
+                required
+              />
+
+              <Input
+                label="URL"
+                value={draftUrl}
+                onChange={setDraftUrl}
+                placeholder="https://example.com/?ref=..."
+                required
+              />
+
+              <div className="text-sm text-muted-foreground flex items-center gap-2">
+                <CalendarIcon className="w-4 h-4" />
+                {new Date(selectedLink.createdAt).toLocaleDateString('th-TH', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </div>
+
+              <div className="h-10"></div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <h4 className="block text-lg text-foreground">ลิงก์โพสต์ของคุณ (สำหรับแอดมินตรวจสอบ)</h4>
+                  <Button type="button" variant="outline" onClick={handleAddPostLink} className="cursor-pointer flex items-center gap-2">
+                    เพิ่ม
+                    <PlusIcon className="w-5 h-5" />
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {draftPostLinks.map((postLink, index) => (
+                    <div key={`post-link-${index}`} className="flex items-end gap-2">
+                      <div className="flex-1">
+                        <Input
+                          label={`Post Link ${index + 1}`}
+                          value={postLink}
+                          onChange={(value) => handlePostLinkChange(index, value)}
+                          placeholder="https://facebook.com/... หรือ https://tiktok.com/..."
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => handleRemovePostLink(index)}
+                        className="cursor-pointer rounded-full p-2"
+                        disabled={draftPostLinks.length === 1 && !draftPostLinks[0].trim()}
+                      >
+                        <FaRegTrashAlt className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DrawerFooter>
+            <div className="w-full flex flex-col md:flex-row gap-2 justify-center">
+              <Button onClick={handleSaveLink} disabled={saving} className="cursor-pointer">
+                {saving ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข'}
+              </Button>
+              <DrawerClose asChild>
+                <Button variant="errorTransparent" className="cursor-pointer border-destructive text-destructive">
+                  ปิด
+                </Button>
+              </DrawerClose>
+            </div>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }

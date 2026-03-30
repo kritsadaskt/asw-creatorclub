@@ -6,7 +6,11 @@ import '@/styles/index.css';
 export const metadata: Metadata = {
   title: 'AssetWise Creators Club',
   description: 'AssetWise Creator Club',
-  icons: [{ rel: 'icon', url: '/asw-favicon.png' }],
+  icons: {
+    icon: '/creatorclub/asw-favicon.png',
+    shortcut: '/creatorclub/asw-favicon.png',
+    apple: '/creatorclub/asw-favicon.png',
+  },
 };
 
 const GTM_ID = 'GTM-MM872QW';
