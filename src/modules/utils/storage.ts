@@ -459,6 +459,8 @@ export type CreateFgfLeadInput = {
   referrerLastName: string;
   referrerEmail: string;
   referrerTel: string;
+  /** Current user id for reference when defined (DB column `ref_uid`). */
+  refUid?: string;
   referrerCreatorId?: string;
   leadName: string;
   leadLastName: string;
@@ -473,6 +475,7 @@ const mapDbToFgfLead = (row: any): FgfLead => ({
   referrerLastName: row.referrer_last_name || '',
   referrerEmail: row.referrer_email || '',
   referrerTel: row.referrer_tel || '',
+  refUid: row.ref_uid || undefined,
   referrerCreatorId: row.referrer_creator_id || undefined,
   leadName: row.lead_name || '',
   leadLastName: row.lead_last_name || '',
@@ -529,6 +532,7 @@ export const createFgfLeadWithProjects = async (
       referrer_last_name: input.referrerLastName,
       referrer_email: input.referrerEmail,
       referrer_tel: input.referrerTel,
+      ref_uid: input.refUid ?? null,
       referrer_creator_id: input.referrerCreatorId ?? null,
       lead_name: input.leadName,
       lead_last_name: input.leadLastName,
@@ -619,17 +623,15 @@ export const updateFgfLeadStatusAndChoice = async (
     crmResponse?: unknown;
   }
 ): Promise<void> => {
-  const { error } = await supabase
-    .from('fgf_leads')
-    .update({
-      status: payload.status,
-      chosen_project_id: payload.chosenProjectId,
-      uploaded_to_crm: payload.uploadedToCrm,
-      uploaded_at: payload.uploadedAt,
-      uploaded_by: payload.uploadedBy,
-      crm_response: payload.crmResponse,
-    })
-    .eq('id', fgfLeadId);
+  const patch: Record<string, unknown> = {};
+  if (payload.status !== undefined) patch.status = payload.status;
+  if (payload.chosenProjectId !== undefined) patch.chosen_project_id = payload.chosenProjectId;
+  if (payload.uploadedToCrm !== undefined) patch.uploaded_to_crm = payload.uploadedToCrm;
+  if (payload.uploadedAt !== undefined) patch.uploaded_at = payload.uploadedAt;
+  if (payload.uploadedBy !== undefined) patch.uploaded_by = payload.uploadedBy;
+  if (payload.crmResponse !== undefined) patch.crm_response = payload.crmResponse;
+
+  const { error } = await supabase.from('fgf_leads').update(patch).eq('id', fgfLeadId);
 
   if (error) {
     console.error('Error updating FGF lead:', error);

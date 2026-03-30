@@ -1,17 +1,39 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
 import { Button } from '../shared/Button';
-import { AffiliateLink, CreatorProfile } from '../../types';
-import { getAffiliateLinksByCreator, getCreators } from '../../utils/storage';
+import {
+  AffiliateLink,
+  CreatorProfile,
+  type FgfLeadWithProjects,
+} from '../../types';
+import {
+  getAffiliateLinksByCreator,
+  getCreatorById,
+  getCreators,
+  getCurrentUser,
+  getFgfLeadsWithProjects,
+  getProjects,
+  updateFgfLeadStatusAndChoice,
+} from '../../utils/storage';
 import { supabase } from '../../utils/supabase';
 import { getProfileImageUrl } from '../../utils/profileImage';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
-import { ChevronRight, Eye, LayoutGrid, Loader2, MailIcon, Table } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  LayoutGrid,
+  Loader2,
+  MailIcon,
+  SendHorizontal,
+  Table,
+  UserRound,
+} from 'lucide-react';
 import { FaPhone } from 'react-icons/fa6';
 import { BASE_PATH } from '@/lib/publicPath';
-import Select from 'react-select';
 import {
   Drawer,
   DrawerClose,
@@ -23,6 +45,23 @@ import {
 } from '../ui/drawer';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { cn } from '../ui/utils';
+
+/** react-select only on client — avoids SSR/hydration drift and mount swap vs skeleton. */
+function ReactSelectSkeleton() {
+  return (
+    <div
+      className="min-h-[38px] w-full rounded-md border border-border bg-input-background"
+      aria-hidden
+    />
+  );
+}
+
+const Select = dynamic(() => import('react-select').then((mod) => mod.default), {
+  ssr: false,
+  loading: () => <ReactSelectSkeleton />,
+}) as typeof import('react-select').default;
 
 const CATEGORIES = [
   'ทั้งหมด',
@@ -60,6 +99,17 @@ export function AdminDashboard() {
   /** `${creatorId}:approval` | `${creatorId}:rejection` while that request is in flight */
   const [emailSendKey, setEmailSendKey] = useState<string | null>(null);
 
+  const [adminTab, setAdminTab] = useState<'creators' | 'fgf'>('creators');
+  const [fgfLeads, setFgfLeads] = useState<FgfLeadWithProjects[]>([]);
+  const [fgfLoading, setFgfLoading] = useState(false);
+  const [fgfSearch, setFgfSearch] = useState('');
+  const [fgfCisFilter, setFgfCisFilter] = useState<'all' | 'uploaded' | 'pending'>('all');
+  const [selectedFgf, setSelectedFgf] = useState<FgfLeadWithProjects | null>(null);
+  const [fgfNestedCreator, setFgfNestedCreator] = useState<CreatorProfile | null>(null);
+  const [fgfNestedCreatorLoading, setFgfNestedCreatorLoading] = useState(false);
+  const [fgfCisSubmitting, setFgfCisSubmitting] = useState(false);
+  const [projectNameById, setProjectNameById] = useState<Record<string, string>>({});
+
   const approvalOptions: Array<{
     value: typeof approvalFilter;
     label: string;
@@ -72,6 +122,41 @@ export function AdminDashboard() {
   ];
 
   const categoryOptions = CATEGORIES.map((cat) => ({ value: cat, label: cat }));
+
+  const fgfCisOptions: Array<{ value: typeof fgfCisFilter; label: string }> = [
+    { value: 'all', label: 'ทั้งหมด' },
+    { value: 'pending', label: 'ยังไม่ส่ง CIS' },
+    { value: 'uploaded', label: 'ส่ง CIS แล้ว' },
+  ];
+
+  const filteredFgfLeads = useMemo(() => {
+    let rows = fgfLeads;
+    if (fgfCisFilter === 'uploaded') {
+      rows = rows.filter((row) => row.lead.uploadedToCrm);
+    } else if (fgfCisFilter === 'pending') {
+      rows = rows.filter((row) => !row.lead.uploadedToCrm);
+    }
+    const q = fgfSearch.trim().toLowerCase();
+    if (q) {
+      rows = rows.filter(({ lead }) => {
+        const pool = [
+          lead.leadName,
+          lead.leadLastName,
+          lead.leadEmail,
+          lead.leadTel,
+          lead.referrerName,
+          lead.referrerLastName,
+          lead.referrerEmail,
+          lead.referrerTel,
+          lead.refUid ?? '',
+        ]
+          .join(' ')
+          .toLowerCase();
+        return pool.includes(q);
+      });
+    }
+    return rows;
+  }, [fgfLeads, fgfCisFilter, fgfSearch]);
 
   const followerOptions: Array<{ value: string; label: string }> = [
     { value: 'all', label: 'ทั้งหมด' },
@@ -89,19 +174,51 @@ export function AdminDashboard() {
   }, []);
 
   useEffect(() => {
+    if (adminTab === 'creators') {
+      setSelectedFgf(null);
+      setFgfNestedCreator(null);
+    }
+    if (adminTab === 'fgf') setSelectedCreator(null);
+  }, [adminTab]);
+
+  useEffect(() => {
+    if (adminTab !== 'fgf') return;
+    let cancelled = false;
+    (async () => {
+      try {
+        setFgfLoading(true);
+        const [leads, projects] = await Promise.all([getFgfLeadsWithProjects(), getProjects()]);
+        if (cancelled) return;
+        setFgfLeads(leads);
+        setProjectNameById(Object.fromEntries(projects.map((p) => [p.id, p.name])));
+      } catch (error) {
+        console.error('Error loading FGF leads:', error);
+        if (!cancelled) toast.error('ไม่สามารถโหลดลีด Friend Get Friend ได้');
+      } finally {
+        if (!cancelled) setFgfLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [adminTab]);
+
+  useEffect(() => {
     filterCreators();
   }, [creators, selectedCategory, searchQuery, followerRange, customFollowers, approvalFilter]);
 
+  const affiliateDrawerCreator = selectedCreator ?? fgfNestedCreator;
+
   useEffect(() => {
     const loadCreatorAffiliateLinks = async () => {
-      if (!selectedCreator) {
+      if (!affiliateDrawerCreator) {
         setCreatorAffiliateLinks([]);
         return;
       }
 
       try {
         setAffiliateLinksLoading(true);
-        const links = await getAffiliateLinksByCreator(selectedCreator.id);
+        const links = await getAffiliateLinksByCreator(affiliateDrawerCreator.id);
         setCreatorAffiliateLinks(links);
       } catch (error) {
         console.error('Error loading affiliate links by creator:', error);
@@ -112,7 +229,7 @@ export function AdminDashboard() {
     };
 
     void loadCreatorAffiliateLinks();
-  }, [selectedCreator]);
+  }, [affiliateDrawerCreator]);
 
   const loadCreators = async () => {
     try {
@@ -202,6 +319,102 @@ export function AdminDashboard() {
     return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700">รอการอนุมัติ</span>;
   };
 
+  const openReferrerCreatorFromFgf = async (referrerCreatorId: string) => {
+    try {
+      setFgfNestedCreatorLoading(true);
+      const profile = await getCreatorById(referrerCreatorId);
+      if (!profile) {
+        toast.error('ไม่พบโปรไฟล์ครีเอเตอร์');
+        return;
+      }
+      setFgfNestedCreator(profile);
+    } catch (e) {
+      console.error('openReferrerCreatorFromFgf', e);
+      toast.error('ไม่สามารถโหลดโปรไฟล์ครีเอเตอร์ได้');
+    } finally {
+      setFgfNestedCreatorLoading(false);
+    }
+  };
+
+  const buildFgfCisPayload = (row: FgfLeadWithProjects) => {
+    const { lead, projectIds } = row;
+    return {
+      fgfLeadId: lead.id,
+      source: 'creatorclub_friend_get_friend',
+      referred: {
+        firstName: lead.leadName,
+        lastName: lead.leadLastName,
+        email: lead.leadEmail,
+        telephone: lead.leadTel,
+      },
+      referrer: {
+        firstName: lead.referrerName,
+        lastName: lead.referrerLastName,
+        email: lead.referrerEmail,
+        telephone: lead.referrerTel,
+        creatorId: lead.referrerCreatorId ?? null,
+        refUid: lead.refUid ?? null,
+      },
+      projectIds,
+      projectNames: projectIds.map((id) => projectNameById[id] || id),
+      chosenProjectId: lead.chosenProjectId ?? null,
+      createdAt: lead.createdAt,
+    };
+  };
+
+  const handleSendFgfLeadToCis = async () => {
+    if (!selectedFgf) return;
+    if (selectedFgf.lead.uploadedToCrm) {
+      toast.info('ลีดนี้ส่งเข้า CIS แล้ว');
+      return;
+    }
+    try {
+      setFgfCisSubmitting(true);
+      const payload = buildFgfCisPayload(selectedFgf);
+      const res = await fetch(`${BASE_PATH}/api/admin/fgf-leads/${selectedFgf.lead.id}/cis`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payload }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        success?: boolean;
+        cis?: unknown;
+        error?: string;
+      };
+      if (!res.ok) {
+        toast.error(typeof data.error === 'string' ? data.error : 'ส่งข้อมูลเข้า CIS ไม่สำเร็จ');
+        return;
+      }
+      const uploadedAt = new Date().toISOString();
+      const admin = getCurrentUser();
+      await updateFgfLeadStatusAndChoice(selectedFgf.lead.id, {
+        status: 'uploaded',
+        uploadedToCrm: true,
+        uploadedAt,
+        uploadedBy: admin?.id ?? null,
+        crmResponse: data.cis ?? null,
+      });
+      const nextLead = {
+        ...selectedFgf.lead,
+        uploadedToCrm: true,
+        status: 'uploaded' as const,
+        uploadedAt,
+        uploadedBy: admin?.id,
+        crmResponse: data.cis ?? null,
+        updatedAt: uploadedAt,
+      };
+      const leadId = selectedFgf.lead.id;
+      setFgfLeads((prev) => prev.map((r) => (r.lead.id === leadId ? { ...r, lead: nextLead } : r)));
+      setSelectedFgf((prev) => (prev && prev.lead.id === leadId ? { ...prev, lead: nextLead } : prev));
+      toast.success('ส่งข้อมูลเข้า CIS สำเร็จ');
+    } catch (e) {
+      console.error('handleSendFgfLeadToCis', e);
+      toast.error('เกิดข้อผิดพลาด กรุณาลองใหม่');
+    } finally {
+      setFgfCisSubmitting(false);
+    }
+  };
+
   const updateApprovalStatus = async (creator: CreatorProfile, status: 0 | 1 | 2 | 3): Promise<boolean> => {
     try {
       const { error } = await supabase
@@ -221,6 +434,9 @@ export function AdminDashboard() {
         prev.map((c) => (c.id === creator.id ? { ...c, approvalStatus: status } : c)),
       );
       setSelectedCreator((prev) =>
+        prev && prev.id === creator.id ? { ...prev, approvalStatus: status } : prev,
+      );
+      setFgfNestedCreator((prev) =>
         prev && prev.id === creator.id ? { ...prev, approvalStatus: status } : prev,
       );
       return true;
@@ -326,12 +542,176 @@ export function AdminDashboard() {
     return links;
   };
 
+  const formatFgfProjectCell = (projectIds: string[]) => {
+    if (projectIds.length === 0) return '—';
+    const names = projectIds.map((id) => projectNameById[id] || id.slice(0, 8));
+    if (names.length === 1) return names[0];
+    if (names.length === 2) return `${names[0]}, ${names[1]}`;
+    return `${names[0]} +${names.length - 1}`;
+  };
+
+  const renderCreatorProfileFields = (creator: CreatorProfile) => (
+    <>
+      <div className="flex justify-center mb-2">
+        {getProfileImageUrl(creator) ? (
+          <ImageWithFallback
+            src={getProfileImageUrl(creator)!}
+            alt={creator.name}
+            className="w-32 h-32 rounded-full object-cover border-4 border-primary/20"
+          />
+        ) : (
+          <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center border-4 border-primary/20">
+            <span className="text-primary text-5xl">{creator.name.charAt(0).toUpperCase()}</span>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <label className="text-muted-foreground">ชื่อ-นามสกุล</label>
+        <p className="text-foreground">
+          {creator.name} {creator.lastName}
+        </p>
+      </div>
+
+      <div>
+        <label className="text-muted-foreground">อีเมล</label>
+        <p className="text-foreground">{creator.email}</p>
+      </div>
+
+      <div>
+        <label className="text-muted-foreground">เบอร์โทรศัพท์</label>
+        <p className="text-foreground">{creator.phone}</p>
+      </div>
+
+      <div>
+        <label className="text-muted-foreground">หมวดหมู่</label>
+        <p className="text-foreground">
+          {creator.categories && creator.categories.length > 0 ? creator.categories.join(', ') : '-'}
+        </p>
+      </div>
+
+      <div>
+        <label className="text-muted-foreground">บัญชีโซเชียลมีเดีย</label>
+        <div className="flex flex-col gap-2">
+          {getSocialLinks(creator).map((social, idx) => (
+            <div key={idx} className="flex items-center gap-2">
+              <span className="font-medium text-foreground w-24">{social.name}:</span>
+              <a
+                href={`https://${social.url}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline break-all"
+              >
+                {social.url}
+              </a>
+            </div>
+          ))}
+          {getSocialLinks(creator).length === 0 && <p className="text-muted-foreground">ยังไม่มีข้อมูล</p>}
+        </div>
+      </div>
+
+      {creator.approvalStatus === 3 && (
+        <>
+          <h4 className="text-muted-foreground mb-2">การพิจารณา</h4>
+          <div className="w-full flex flex-col md:flex-row gap-2">
+            <Button onClick={() => openDecisionDialog(creator, 'approve')} variant="success" fullWidth>
+              อนุมัติ
+            </Button>
+            <Button onClick={() => openDecisionDialog(creator, 'reject')} variant="error" fullWidth>
+              ปฏิเสธ
+            </Button>
+          </div>
+        </>
+      )}
+
+      <div>
+        <label className="text-muted-foreground">Affiliate Links</label>
+        <div className="mt-2 rounded-lg border border-border">
+          {affiliateLinksLoading ? (
+            <div className="py-4 text-muted-foreground flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>กำลังโหลดลิงก์ Affiliate...</span>
+            </div>
+          ) : creatorAffiliateLinks.length === 0 ? (
+            <div className="p-4 text-muted-foreground">ยังไม่มีลิงก์ Affiliate</div>
+          ) : (
+            <Accordion type="single" collapsible>
+              {creatorAffiliateLinks.map((link) => (
+                <AccordionItem key={link.id} value={link.id}>
+                  <AccordionTrigger className="hover:no-underline px-4">
+                    <div className="flex flex-col text-left">
+                      <span className="font-medium text-foreground">{link.campaignName}</span>
+                      <span className="text-muted-foreground">
+                        {new Date(link.createdAt).toLocaleDateString('th-TH', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4">
+                    <div className="space-y-2">
+                      {!link.postLinks || link.postLinks.length === 0 ? (
+                        <p className="text-muted-foreground">ยังไม่มีลิงก์โพสต์ที่ครีเอเตอร์ส่งมา</p>
+                      ) : (
+                        link.postLinks.map((postLink, index) => (
+                          <a
+                            key={`${link.id}-post-${index}`}
+                            href={postLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block text-sm text-primary hover:underline break-all"
+                          >
+                            {postLink}
+                          </a>
+                        ))
+                      )}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <label className="text-muted-foreground">วันที่ลงทะเบียน</label>
+        <p className="text-foreground">
+          {new Date(creator.createdAt).toLocaleDateString('th-TH', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
+        </p>
+      </div>
+    </>
+  );
+
   return (
     <div className="container mx-auto p-6">
-      <h2 className="mb-6">แดชบอร์ดจัดการ Creators</h2>
+      <h2 className="mb-4">แดชบอร์ดผู้ดูแลระบบ</h2>
 
+      <Tabs
+        value={adminTab}
+        onValueChange={(value) => setAdminTab(value as 'creators' | 'fgf')}
+        className="gap-6"
+      >
+        <TabsList className="mb-2">
+          <TabsTrigger value="creators">ครีเอเตอร์</TabsTrigger>
+          <TabsTrigger value="fgf">Friend Get Friend</TabsTrigger>
+        </TabsList>
+
+        <TabsContent
+          value="creators"
+          forceMount
+          className="mt-0 flex flex-col gap-6 data-[state=inactive]:hidden"
+        >
       {/* Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-border p-6 mb-6">
+      <div className="bg-white rounded-xl shadow-sm border border-border p-6">
         <h3 className="text-neutral-700 text-xl font-medium mb-4">ค้นหาและกรองข้อมูล</h3>
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
@@ -588,6 +968,117 @@ export function AdminDashboard() {
           </div>
         )}
       </div>
+        </TabsContent>
+
+        <TabsContent
+          value="fgf"
+          forceMount
+          className="mt-0 flex flex-col gap-6 data-[state=inactive]:hidden"
+        >
+          <div className="bg-white rounded-xl shadow-sm border border-border p-6">
+            <h3 className="text-neutral-700 text-xl font-medium mb-4">ค้นหาและกรองลีด</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl">
+              <div className="flex flex-col gap-1.5">
+                <label>ค้นหา (ชื่อ / อีเมล / เบอร์ / ref)</label>
+                <input
+                  type="text"
+                  value={fgfSearch}
+                  onChange={(e) => setFgfSearch(e.target.value)}
+                  placeholder="ค้นหา..."
+                  className="px-4 py-2.5 bg-input-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label>สถานะ CIS</label>
+                <Select
+                  options={fgfCisOptions}
+                  value={fgfCisOptions.find((o) => o.value === fgfCisFilter)}
+                  onChange={(option) => {
+                    setFgfCisFilter((option?.value ?? 'all') as typeof fgfCisFilter);
+                  }}
+                  isClearable={false}
+                  classNamePrefix="react-select"
+                  placeholder="ทั้งหมด"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-border p-6">
+            <h3 className="text-primary mb-4">ลีด Friend Get Friend ({filteredFgfLeads.length})</h3>
+            {fgfLoading ? (
+              <p className="text-muted-foreground text-center py-8 flex items-center gap-2 justify-center">
+                <Loader2 className="w-8 h-8 animate-spin" />
+                กำลังโหลดข้อมูล
+              </p>
+            ) : filteredFgfLeads.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">ไม่พบลีด</p>
+            ) : (
+              <div className="overflow-x-auto overflow-y-visible">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">วันที่</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">ผู้ถูกแนะนำ</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">อีเมล</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">ผู้แนะนำ</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">โครงการ</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">CIS</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredFgfLeads.map(({ lead, projectIds }) => (
+                      <tr
+                        key={lead.id}
+                        className="border-b border-border hover:bg-input-background/30 transition-colors"
+                      >
+                        <td className="py-3 px-4 text-sm text-foreground whitespace-nowrap">
+                          {new Date(lead.createdAt).toLocaleDateString('th-TH', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-foreground">
+                          {[lead.leadName, lead.leadLastName].filter(Boolean).join(' ') || '—'}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-foreground">{lead.leadEmail}</td>
+                        <td className="py-3 px-4 text-sm text-foreground">
+                          {[lead.referrerName, lead.referrerLastName].filter(Boolean).join(' ') || '—'}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-foreground max-w-[200px] truncate" title={projectIds.map((id) => projectNameById[id] || id).join(', ')}>
+                          {formatFgfProjectCell(projectIds)}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-foreground">
+                          {lead.uploadedToCrm ? (
+                            <span className="text-emerald-700">ส่ง CIS แล้ว</span>
+                          ) : (
+                            <span className="text-muted-foreground">ยังไม่ส่ง</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          <Button
+                            type="button"
+                            onClick={() => setSelectedFgf({ lead, projectIds })}
+                            variant="ghost"
+                            className="cursor-pointer rounded-full p-2"
+                            aria-label="ดูรายละเอียดลีด"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
 
       <Drawer
         direction="right"
@@ -604,160 +1095,7 @@ export function AdminDashboard() {
                 <DrawerDescription>ข้อมูลครีเอเตอร์สำหรับตรวจสอบและติดต่อ</DrawerDescription>
               </DrawerHeader>
 
-              <div className="px-7 pb-7 space-y-4">
-                <div className="flex justify-center mb-2">
-                  {getProfileImageUrl(selectedCreator) ? (
-                    <ImageWithFallback
-                      src={getProfileImageUrl(selectedCreator)!}
-                      alt={selectedCreator.name}
-                      className="w-32 h-32 rounded-full object-cover border-4 border-primary/20"
-                    />
-                  ) : (
-                    <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center border-4 border-primary/20">
-                      <span className="text-primary text-5xl">
-                        {selectedCreator.name.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-muted-foreground">ชื่อ-นามสกุล</label>
-                  <p className="text-foreground">{selectedCreator.name} {selectedCreator.lastName}</p>
-                </div>
-
-                <div>
-                  <label className="text-muted-foreground">อีเมล</label>
-                  <p className="text-foreground">{selectedCreator.email}</p>
-                </div>
-
-                <div>
-                  <label className="text-muted-foreground">เบอร์โทรศัพท์</label>
-                  <p className="text-foreground">{selectedCreator.phone}</p>
-                </div>
-
-                <div>
-                  <label className="text-muted-foreground">หมวดหมู่</label>
-                  <p className="text-foreground">
-                    {selectedCreator.categories && selectedCreator.categories.length > 1
-                      ? selectedCreator.categories.join(', ')
-                      : '-'}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="text-muted-foreground">บัญชีโซเชียลมีเดีย</label>
-                  <div className="flex flex-col gap-2">
-                    {getSocialLinks(selectedCreator).map((social, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <span className="font-medium text-foreground w-24">{social.name}:</span>
-                        <a
-                          href={`https://${social.url}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline break-all"
-                        >
-                          {social.url}
-                        </a>
-                      </div>
-                    ))}
-                    {getSocialLinks(selectedCreator).length === 0 && (
-                      <p className="text-muted-foreground">ยังไม่มีข้อมูล</p>
-                    )}
-                  </div>
-                </div>
-
-                {selectedCreator.approvalStatus === 3 && (
-                  <>
-                    <h4 className="text-muted-foreground mb-2">การพิจารณา</h4>
-                    <div className="w-full flex flex-col md:flex-row gap-2">
-                      <Button
-                        onClick={() => openDecisionDialog(selectedCreator, 'approve')}
-                        variant="success"
-                        fullWidth
-                      >
-                        อนุมัติ
-                      </Button>
-                      <Button
-                        onClick={() => openDecisionDialog(selectedCreator, 'reject')}
-                        variant="error"
-                        fullWidth
-                      >
-                        ปฏิเสธ
-                      </Button>
-                    </div>
-                  </>
-                )}
-
-                <div>
-                  <label className="text-muted-foreground">Affiliate Links</label>
-                  <div className="mt-2 rounded-lg border border-border">
-                    {affiliateLinksLoading ? (
-                      <div className="py-4 text-muted-foreground flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>กำลังโหลดลิงก์ Affiliate...</span>
-                      </div>
-                    ) : creatorAffiliateLinks.length === 0 ? (
-                      <div className="p-4 text-muted-foreground">
-                        ยังไม่มีลิงก์ Affiliate
-                      </div>
-                    ) : (
-                      <Accordion type="single" collapsible>
-                        {creatorAffiliateLinks.map((link) => (
-                          <AccordionItem key={link.id} value={link.id}>
-                            <AccordionTrigger className="hover:no-underline px-4">
-                              <div className="flex flex-col text-left">
-                                <span className="font-medium text-foreground">{link.campaignName}</span>
-                                <span className="text-muted-foreground">
-                                  {new Date(link.createdAt).toLocaleDateString('th-TH', {
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric',
-                                  })}
-                                </span>
-                              </div>
-                            </AccordionTrigger>
-                            <AccordionContent className="px-4">
-                              <div className="space-y-2">
-                                {!link.postLinks || link.postLinks.length === 0 ? (
-                                  <p className="text-muted-foreground">
-                                    ยังไม่มีลิงก์โพสต์ที่ครีเอเตอร์ส่งมา
-                                  </p>
-                                ) : (
-                                  link.postLinks.map((postLink, index) => (
-                                    <a
-                                      key={`${link.id}-post-${index}`}
-                                      href={postLink}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="block text-sm text-primary hover:underline break-all"
-                                    >
-                                      {postLink}
-                                    </a>
-                                  ))
-                                )}
-                              </div>
-                            </AccordionContent>
-                          </AccordionItem>
-                        ))}
-                      </Accordion>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-muted-foreground">วันที่ลงทะเบียน</label>
-                  <p className="text-foreground">
-                    {new Date(selectedCreator.createdAt).toLocaleDateString('th-TH', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </p>
-                </div>
-              </div>
+              <div className="px-7 pb-7 space-y-4">{renderCreatorProfileFields(selectedCreator)}</div>
 
               <DrawerFooter>
                 <div className="w-full flex flex-col gap-2">
@@ -778,6 +1116,203 @@ export function AdminDashboard() {
               </DrawerFooter>
             </>
           )}
+        </DrawerContent>
+      </Drawer>
+
+      {/* Single FGF drawer: referrer profile swaps content in the same panel; back returns to lead detail. */}
+      <Drawer
+        direction="right"
+        open={!!selectedFgf}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedFgf(null);
+            setFgfNestedCreator(null);
+          }
+        }}
+      >
+        <DrawerContent className="overflow-y-auto">
+          {selectedFgf &&
+            (fgfNestedCreator ? (
+              <>
+                <DrawerHeader className="p-7 pb-4 space-y-3 text-left">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="-ml-2 w-fit gap-1 px-2 text-muted-foreground hover:text-foreground"
+                    onClick={() => setFgfNestedCreator(null)}
+                  >
+                    <ChevronLeft className="h-4 w-4 shrink-0" />
+                    กลับไปรายละเอียดลีด
+                  </Button>
+                  <DrawerTitle>โปรไฟล์ผู้แนะนำ (Creator)</DrawerTitle>
+                  <DrawerDescription>
+                    {fgfNestedCreator.name} · {fgfNestedCreator.email}
+                  </DrawerDescription>
+                </DrawerHeader>
+
+                <div className="px-7 pb-7 space-y-4">{renderCreatorProfileFields(fgfNestedCreator)}</div>
+
+                <DrawerFooter className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    center
+                    className="w-full gap-2 sm:w-auto"
+                    onClick={() => {
+                      window.location.href = `tel:${fgfNestedCreator.phone}`;
+                    }}
+                  >
+                    <FaPhone className="h-5 w-5 shrink-0" />
+                    ติดต่อ
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full sm:w-auto"
+                    onClick={() => setFgfNestedCreator(null)}
+                  >
+                    กลับไปลีด
+                  </Button>
+                  <DrawerClose asChild>
+                    <Button variant="outline" className="w-full sm:w-auto">
+                      ปิดแผง
+                    </Button>
+                  </DrawerClose>
+                </DrawerFooter>
+              </>
+            ) : (
+              <>
+                <DrawerHeader className="p-7 pb-4">
+                  <DrawerTitle>Friend Get Friends | Lead Detail</DrawerTitle>
+                </DrawerHeader>
+
+                <div className="px-7 pb-7 space-y-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {selectedFgf.lead.uploadedToCrm ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
+                        ส่ง CIS แล้ว
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
+                        ยังไม่ส่ง CIS
+                      </span>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-muted-foreground text-sm">ผู้ถูกแนะนำ</label>
+                    <p className="text-foreground font-medium">
+                      {[selectedFgf.lead.leadName, selectedFgf.lead.leadLastName].filter(Boolean).join(' ') || '—'}
+                    </p>
+                    <p className="text-sm text-foreground">{selectedFgf.lead.leadEmail}</p>
+                    <p className="text-sm text-muted-foreground">{selectedFgf.lead.leadTel || '—'}</p>
+                  </div>
+
+                  <div>
+                    <label className="text-muted-foreground text-sm">ผู้แนะนำ</label>
+                    <p className="text-foreground font-medium">
+                      {[selectedFgf.lead.referrerName, selectedFgf.lead.referrerLastName].filter(Boolean).join(' ') ||
+                        '—'}
+                    </p>
+                    <p className="text-sm text-foreground">{selectedFgf.lead.referrerEmail}</p>
+                    <p className="text-sm text-muted-foreground">{selectedFgf.lead.referrerTel || '—'}</p>
+                    {selectedFgf.lead.referrerCreatorId ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="mt-3 gap-2"
+                        center
+                        disabled={fgfNestedCreatorLoading}
+                        onClick={() => void openReferrerCreatorFromFgf(selectedFgf.lead.referrerCreatorId!)}
+                      >
+                        {fgfNestedCreatorLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <UserRound className="w-4 h-4" />
+                        )}
+                        ดูโปรไฟล์ครีเอเตอร์
+                      </Button>
+                    ) : (
+                      <p className="text-muted-foreground text-sm mt-2">
+                        ไม่มีบัญชีครีเอเตอร์ผูกกับผู้แนะนำ (ลีดจากผู้ไม่ล็อกอิน)
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-muted-foreground text-sm">โครงการที่สนใจ</label>
+                    {selectedFgf.projectIds.length === 0 ? (
+                      <p className="text-muted-foreground text-sm">—</p>
+                    ) : (
+                      <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-foreground">
+                        {selectedFgf.projectIds.map((id) => (
+                          <li key={id}>{projectNameById[id] || id}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {selectedFgf.lead.chosenProjectId ? (
+                    <div>
+                      <label className="text-muted-foreground text-sm">โครงการที่เลือก (chosen)</label>
+                      <p className="text-foreground text-sm">
+                        {projectNameById[selectedFgf.lead.chosenProjectId] || selectedFgf.lead.chosenProjectId}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  <div>
+                    <label className="text-muted-foreground text-sm">สร้างเมื่อ</label>
+                    <p className="text-foreground text-sm">
+                      {new Date(selectedFgf.lead.createdAt).toLocaleString('th-TH', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-muted-foreground text-sm">อัปเดตล่าสุด</label>
+                    <p className="text-foreground text-sm">
+                      {new Date(selectedFgf.lead.updatedAt).toLocaleString('th-TH', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                  </div>
+                </div>
+
+                <DrawerFooter className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+                  <Button
+                    type="button"
+                    center
+                    variant="primary"
+                    className="w-full gap-2 sm:w-auto"
+                    disabled={fgfCisSubmitting || selectedFgf.lead.uploadedToCrm}
+                    onClick={() => void handleSendFgfLeadToCis()}
+                  >
+                    {fgfCisSubmitting ? (
+                      <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                    ) : (
+                      <SendHorizontal className="h-4 w-4 shrink-0" />
+                    )}
+                    ส่งข้อมูลเข้า CIS
+                  </Button>
+                  <DrawerClose asChild>
+                    <Button variant="outline" className="w-full sm:w-auto">
+                      ปิด
+                    </Button>
+                  </DrawerClose>
+                </DrawerFooter>
+              </>
+            ))}
         </DrawerContent>
       </Drawer>
 

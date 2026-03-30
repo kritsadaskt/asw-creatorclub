@@ -27,12 +27,17 @@ const SessionContext = createContext<SessionContextValue | null>(null);
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [currentUserId, setCurrentUserId] = useState<string | null>(
-    () => getSession()?.id ?? null,
-  );
-  const [userRole, setUserRole] = useState<UserRole | null>(
-    () => getSession()?.role ?? null,
-  );
+  /** Never read cookies in useState initializers: server has no `document`, client would diverge. */
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
+
+  useEffect(() => {
+    const session = getSession();
+    if (session) {
+      setCurrentUserId(session.id);
+      setUserRole(session.role);
+    }
+  }, []);
 
   useEffect(() => {
     installLocalStorageSafeGuard();

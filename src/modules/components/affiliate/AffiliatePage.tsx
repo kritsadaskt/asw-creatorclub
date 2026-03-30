@@ -36,7 +36,6 @@ import { HeroBanner } from '../landing/HeroBanner';
 import { StatusBadge } from '../ui/status-badge';
 import { LoginModal } from '../landing/LoginModal';
 import { useSession } from '@/modules/context/SessionContext';
-import { getSession } from '@/modules/utils/auth';
 
 const DEFAULT_ITEMS_PER_PAGE = 10;
 const STATUS_FILTER_ALL = 'all';
@@ -53,7 +52,7 @@ export function AffiliatePage() {
 
 function AffiliateProjectList() {
   const { currentUserId, handleLogin: sessionLogin } = useSession();
-  const isLoggedIn = !!currentUserId || !!getSession();
+  const isLoggedIn = !!currentUserId;
   const [projects, setProjects] = useState<AffiliateProject[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
