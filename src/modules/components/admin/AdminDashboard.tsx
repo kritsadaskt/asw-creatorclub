@@ -79,7 +79,7 @@ const CATEGORIES = [
 export function AdminDashboard() {
   const [creators, setCreators] = useState<CreatorProfile[]>([]);
   const [filteredCreators, setFilteredCreators] = useState<CreatorProfile[]>([]);
-  const [approvalFilter, setApprovalFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'inactive'>('all');
+  const [approvalFilter, setApprovalFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'inactive'>('pending');
   const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
   const [searchQuery, setSearchQuery] = useState('');
   const [minFollowers, setMinFollowers] = useState('');
@@ -114,11 +114,7 @@ export function AdminDashboard() {
     value: typeof approvalFilter;
     label: string;
   }> = [
-    { value: 'all', label: 'ทั้งหมด' },
     { value: 'pending', label: 'คำขอเข้าร่วม (รอการอนุมัติ)' },
-    { value: 'approved', label: 'อนุมัติแล้ว' },
-    { value: 'rejected', label: 'ถูกปฏิเสธ' },
-    { value: 'inactive', label: 'ไม่ใช้งาน' },
   ];
 
   const categoryOptions = CATEGORIES.map((cat) => ({ value: cat, label: cat }));
