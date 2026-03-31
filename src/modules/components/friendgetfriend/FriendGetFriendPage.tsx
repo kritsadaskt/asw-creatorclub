@@ -10,7 +10,8 @@ import Footer from '../landing/Footer';
 import { Input } from '../shared/Input';
 import { Button } from '../shared/Button';
 import { useSession } from '../../context/SessionContext';
-import { createFgfLeadWithProjects, getCreatorById } from '../../utils/storage';
+import { getCreatorById } from '../../utils/storage';
+import { BASE_PATH } from '@/lib/publicPath';
 import type { AffiliateProject } from '../../utils/affiliate';
 import fgfDesktopBanner from '@/assets/fgf_desktop_banner.png';
 import fgfMobileBanner from '@/assets/fgf_mobile_banner.png';
@@ -105,25 +106,33 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
 
     try {
       setSubmitting(true);
-      await createFgfLeadWithProjects({
-        referrerName: referrerName.trim(),
-        referrerLastName: referrerLastName.trim(),
-        referrerEmail: referrerEmail.trim(),
-        referrerTel: referrerPhone.trim(),
-        refUid: currentUserId ?? undefined,
-        referrerCreatorId: currentUserId ?? undefined,
-        leadName: leadName.trim(),
-        leadLastName: leadLastName.trim(),
-        leadEmail: leadEmail.trim(),
-        leadTel: leadPhone.trim(),
-        projectIds: selectedProjects.map((p) => p.id),
+      const res = await fetch(`${BASE_PATH}/api/fgf/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          referrerName: referrerName.trim(),
+          referrerLastName: referrerLastName.trim(),
+          referrerEmail: referrerEmail.trim(),
+          referrerTel: referrerPhone.trim(),
+          leadName: leadName.trim(),
+          leadLastName: leadLastName.trim(),
+          leadEmail: leadEmail.trim(),
+          leadTel: leadPhone.trim(),
+          projectIds: selectedProjects.map((p) => p.id),
+        }),
       });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: string };
+        console.error('FGF submit failed', body);
+        toast.error('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+        return;
+      }
       toast.success('ส่งข้อมูลเรียบร้อยแล้ว ทีมงานจะติดต่อกลับภายใน 24 ชั่วโมง');
       clearReferredLeadForm();
       setIsRecommendDrawerOpen(false);
     } catch (error) {
       console.error('FGF lead submit failed', error);
-      toast.error('ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่');
+      toast.error('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
     } finally {
       setSubmitting(false);
     }

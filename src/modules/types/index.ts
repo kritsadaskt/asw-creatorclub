@@ -138,3 +138,13 @@ export interface FgfLeadWithProjects {
 }
 
 export type UserRole = 'creator' | 'admin';
+
+export interface AffiliateMaterial {
+  id: string;
+  projectId?: string;
+  title: string;
+  description?: string;
+  fileUrl: string;            // AWS S3 public URL
+  fileType: 'image' | 'pdf' | 'video';
+  createdAt: string;
+}

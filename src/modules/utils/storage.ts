@@ -673,3 +673,82 @@ export const logout = (): void => {
   clearSession();
 };
 
+// ===== Affiliate Materials Operations =====
+
+export const saveAffiliateMaterial = async (material: import('../types').AffiliateMaterial): Promise<void> => {
+  const { error } = await supabase
+    .from('affiliate_materials')
+    .upsert({
+      id:          material.id,
+      project_id:  material.projectId ?? null,
+      title:       material.title,
+      description: material.description ?? null,
+      file_url:    material.fileUrl,
+      file_type:   material.fileType,
+    }, { onConflict: 'id' });
+
+  if (error) {
+    console.error('Error saving affiliate material:', error);
+    throw error;
+  }
+};
+
+export const getAffiliateMaterials = async (): Promise<import('../types').AffiliateMaterial[]> => {
+  const { data, error } = await supabase
+    .from('affiliate_materials')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching affiliate materials:', error);
+    throw error;
+  }
+
+  return (data ?? []).map((row) => ({
+    id:          row.id,
+    projectId:   row.project_id ?? undefined,
+    title:       row.title,
+    description: row.description ?? undefined,
+    fileUrl:     row.file_url,
+    fileType:    row.file_type as 'image' | 'pdf' | 'video',
+    createdAt:   row.created_at,
+  }));
+};
+
+export const getAffiliateMaterialsByProject = async (
+  projectId: string
+): Promise<import('../types').AffiliateMaterial[]> => {
+  const { data, error } = await supabase
+    .from('affiliate_materials')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching affiliate materials by project:', error);
+    throw error;
+  }
+
+  return (data ?? []).map((row) => ({
+    id:          row.id,
+    projectId:   row.project_id ?? undefined,
+    title:       row.title,
+    description: row.description ?? undefined,
+    fileUrl:     row.file_url,
+    fileType:    row.file_type as 'image' | 'pdf' | 'video',
+    createdAt:   row.created_at,
+  }));
+};
+
+export const deleteAffiliateMaterial = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('affiliate_materials')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deleting affiliate material:', error);
+    throw error;
+  }
+};
+
