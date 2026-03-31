@@ -112,6 +112,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, leadId });
   } catch (error) {
+    if (error instanceof Error && error.message === 'DUPLICATE_LEAD') {
+      return NextResponse.json(
+        { error: 'มีการส่งข้อมูลนี้แล้วในช่วง 24 ชั่วโมงที่ผ่านมา' },
+        { status: 409 },
+      );
+    }
     console.error('FGF submit error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

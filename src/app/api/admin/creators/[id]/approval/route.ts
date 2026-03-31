@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCreatorById } from '@/modules/utils/storage';
-import { supabase } from '@/modules/utils/supabase';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 type ApprovalStatus = 0 | 1 | 2 | 3;
 
@@ -22,7 +22,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Creator not found' }, { status: 404 });
     }
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('profiles')
       .update({ approval_status: status })
       .eq('id', id);
