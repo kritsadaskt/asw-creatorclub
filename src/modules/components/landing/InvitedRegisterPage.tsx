@@ -6,7 +6,13 @@ import { Header } from './Header';
 import { RegisterSection } from './RegisterSection';
 import { HeroBanner } from './HeroBanner';
 
-export function InvitedRegisterPage({ inviteLabels }: { inviteLabels: string[] | null }) {
+export function InvitedRegisterPage({
+  inviteLabels,
+  inviteType,
+}: {
+  inviteLabels: string[] | null;
+  inviteType: string | null;
+}) {
   const categoryLabels = inviteLabels;
   const { handleLogin, currentUserId } = useSession();
   const isLoggedIn = !!currentUserId;
@@ -56,6 +62,7 @@ export function InvitedRegisterPage({ inviteLabels }: { inviteLabels: string[] |
       <RegisterSection
         onLogin={handleLogin}
         fixedCategoryLabels={categoryLabels}
+        inviteType={inviteType ?? undefined}
         variant="standalone"
       />
     </div>

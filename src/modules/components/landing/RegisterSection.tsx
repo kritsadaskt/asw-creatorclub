@@ -24,6 +24,8 @@ interface RegisterSectionProps {
   /** When set, the category field is hidden and these labels are saved (invite link flow). */
   fixedCategoryLabels?: string[];
   variant?: 'landing' | 'standalone';
+  /** Raw invite type from register URL (e.g. MUT, MI_THAILAND). */
+  inviteType?: string;
 }
 
 const BANGKOK_PROVINCES = [
@@ -63,6 +65,7 @@ export function RegisterSection({
   onLogin,
   fixedCategoryLabels,
   variant = 'landing',
+  inviteType,
 }: RegisterSectionProps) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -424,7 +427,7 @@ export function RegisterSection({
         phone,
         baseLocation,
         province: baseLocation === 'ต่างจังหวัด' ? province : undefined,
-        categories: fixedCategoryLabels ?? creatorCategory.map((c) => c.label),
+        categories: creatorCategory.map((c) => c.label),
         followers: 0,
         profileImage: pendingFacebookPicture || undefined,
         socialAccounts: {
@@ -450,6 +453,7 @@ export function RegisterSection({
         approvalStatus: 3,
         status,
         projectName: status === 'resident' ? projectName : undefined,
+        type: inviteType,
         createdAt: new Date().toISOString(),
         facebookId: pendingFacebookId || undefined,
         passwordHash,
@@ -457,6 +461,24 @@ export function RegisterSection({
 
       await saveCreator(newCreator);
       await sendRegistrationPendingEmail(newCreator);
+      
+      // Fire-and-forget webhook to external analyst endpoint
+      try {
+        await fetch(`${BASE_PATH}/api/creators/webhook-test`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            uid: newCreator.id,
+            socialAccounts: newCreator.socialAccounts ?? {},
+            email: newCreator.email,
+            name: newCreator.name,
+          }),
+        });
+      } catch (webhookError) {
+        console.error('creator webhook-test error:', webhookError);
+      }
       
       // Clear pending Facebook data
       sessionStorage.removeItem('pendingFacebookId');

@@ -63,6 +63,7 @@ export const saveCreator = async (creator: CreatorProfile): Promise<void> => {
       phone: creator.phone,
       base_location: creator.baseLocation,
       province: creator.province,
+      type: creator.type,
       // Keep legacy `category` (single string) for backward compatibility,
       // but store the real source of truth in `categories` (text[]) as multiple values.
       category: creator.categories && creator.categories.length > 0 ? creator.categories[0] : null,
@@ -156,6 +157,7 @@ const mapDbToCreatorProfile = (row: any): CreatorProfile => ({
   approvalStatus: typeof row.approval_status === 'number' ? (row.approval_status as 0 | 1 | 2 | 3) : 3,
   status: row.status || 'general',
   projectName: row.project_name,
+  type: row.type || undefined,
   createdAt: row.created_at || new Date().toISOString(),
   facebookId: row.facebook_id,
   passwordHash: row.password_hash,
