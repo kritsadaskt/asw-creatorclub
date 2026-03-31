@@ -8,10 +8,7 @@ import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
 import type { AffiliateMaterial, Project } from '../../types';
 import {
-  saveAffiliateMaterial,
   getAffiliateMaterials,
-  updateAffiliateMaterial,
-  deleteAffiliateMaterial,
   getProjects,
   generateUUID,
 } from '../../utils/storage';
@@ -139,15 +136,22 @@ export function AffiliateMaterialsAdmin() {
 
       const { url } = await uploadRes.json();
 
-      await saveAffiliateMaterial({
-        id: materialId,
-        title: title.trim(),
-        description: description.trim() || undefined,
-        projectId: projectId || undefined,
-        fileUrl: url,
-        fileType,
-        createdAt: new Date().toISOString(),
+      const saveRes = await fetch(`${BASE_PATH}/api/admin/materials`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: materialId,
+          title: title.trim(),
+          description: description.trim() || undefined,
+          projectId: projectId || undefined,
+          fileUrl: url,
+          fileType,
+        }),
       });
+      if (!saveRes.ok) {
+        const err = await saveRes.json().catch(() => ({}));
+        throw new Error(err.error ?? 'บันทึกข้อมูลไม่สำเร็จ');
+      }
 
       toast.success('เพิ่มสื่อสำเร็จ');
       resetForm();
@@ -163,7 +167,11 @@ export function AffiliateMaterialsAdmin() {
   const handleDelete = async (id: string) => {
     if (!confirm('ต้องการลบสื่อนี้ใช่หรือไม่?')) return;
     try {
-      await deleteAffiliateMaterial(id);
+      const delRes = await fetch(`${BASE_PATH}/api/admin/materials/${id}`, { method: 'DELETE' });
+      if (!delRes.ok) {
+        const err = await delRes.json().catch(() => ({}));
+        throw new Error(err.error ?? 'ลบไม่สำเร็จ');
+      }
       toast.success('ลบสื่อเรียบร้อย');
       setMaterials((prev) => prev.filter((m) => m.id !== id));
       setTotalCount((prev) => prev - 1);
