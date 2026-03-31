@@ -5,7 +5,7 @@ import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client
 //   Local dev:           AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY   → direct credentials
 //   LocalStack:          AWS_ENDPOINT_URL=http://localhost:4566       → local S3 emulation
 export const s3 = new S3Client({
-  region: process.env.AWS_REGION ?? 'ap-southeast-1',
+  region: process.env.AWS_REGION ?? 'ap-southeast-7',
   ...(process.env.AWS_ENDPOINT_URL && {
     endpoint: process.env.AWS_ENDPOINT_URL,
     forcePathStyle: true,
