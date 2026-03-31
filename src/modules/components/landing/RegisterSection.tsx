@@ -15,6 +15,7 @@ import { BASE_PATH } from '@/lib/publicPath';
 import { Switch } from '../ui/switch';
 
 import { CREATOR_CATEGORIES } from './registerInviteCategories';
+import Link from 'next/link';
 
 type SelectOption = { value: string; label: string };
 
@@ -23,6 +24,8 @@ interface RegisterSectionProps {
   /** When set, the category field is hidden and these labels are saved (invite link flow). */
   fixedCategoryLabels?: string[];
   variant?: 'landing' | 'standalone';
+  /** Raw invite type from register URL (e.g. MUT, MI_THAILAND). */
+  inviteType?: string;
 }
 
 const BANGKOK_PROVINCES = [
@@ -62,6 +65,7 @@ export function RegisterSection({
   onLogin,
   fixedCategoryLabels,
   variant = 'landing',
+  inviteType,
 }: RegisterSectionProps) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -133,6 +137,7 @@ export function RegisterSection({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | ''>('');
+  const [hideStatusField, setHideStatusField] = useState(false);
 
   const sendRegistrationPendingEmail = async (creator: Pick<CreatorProfile, 'name' | 'email'>) => {
     try {
@@ -169,6 +174,16 @@ export function RegisterSection({
         console.error('Failed to load project options', err);
         setProjectOptions([]);
       });
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const href = window.location.href;
+    const shouldHideStatus =
+      href.includes('/register?type=') || href.includes('/register/?type=');
+
+    setHideStatusField(shouldHideStatus);
   }, []);
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -412,7 +427,7 @@ export function RegisterSection({
         phone,
         baseLocation,
         province: baseLocation === 'ต่างจังหวัด' ? province : undefined,
-        categories: fixedCategoryLabels ?? creatorCategory.map((c) => c.label),
+        categories: creatorCategory.map((c) => c.label),
         followers: 0,
         profileImage: pendingFacebookPicture || undefined,
         socialAccounts: {
@@ -438,6 +453,7 @@ export function RegisterSection({
         approvalStatus: 3,
         status,
         projectName: status === 'resident' ? projectName : undefined,
+        type: inviteType,
         createdAt: new Date().toISOString(),
         facebookId: pendingFacebookId || undefined,
         passwordHash,
@@ -445,6 +461,24 @@ export function RegisterSection({
 
       await saveCreator(newCreator);
       await sendRegistrationPendingEmail(newCreator);
+      
+      // Fire-and-forget webhook to external analyst endpoint
+      try {
+        await fetch(`${BASE_PATH}/api/creators/webhook-test`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            uid: newCreator.id,
+            socialAccounts: newCreator.socialAccounts ?? {},
+            email: newCreator.email,
+            name: newCreator.name,
+          }),
+        });
+      } catch (webhookError) {
+        console.error('creator webhook-test error:', webhookError);
+      }
       
       // Clear pending Facebook data
       sessionStorage.removeItem('pendingFacebookId');
@@ -788,21 +822,19 @@ export function RegisterSection({
               )}
             </div>
 
-            {fixedCategoryLabels === undefined && (
-              <div className="mb-5">
-                <h3 className="font-semibold text-primary mb-0">คุณเป็นครีเอเตอร์สายไหน ?</h3>
-                <div className="block"><span className="text-muted-foreground text-sm">เลือกได้มากกว่า 1 รายการ</span></div>
-                <Select
-                  instanceId="register-creator-category"
-                  options={CREATOR_CATEGORIES}
-                  isMulti
-                  value={creatorCategory}
-                  onChange={(selected) =>
-                    setCreatorCategory(selected ? [...selected] : [])
-                  }
-                />
-              </div>
-            )}
+            <div className="mb-5">
+              <h3 className="font-semibold text-primary mb-0">คุณเป็นครีเอเตอร์สายไหน ?</h3>
+              <div className="block"><span className="text-muted-foreground text-sm">เลือกได้มากกว่า 1 รายการ</span></div>
+              <Select
+                instanceId="register-creator-category"
+                options={CREATOR_CATEGORIES}
+                isMulti
+                value={creatorCategory}
+                onChange={(selected) =>
+                  setCreatorCategory(selected ? [...selected] : [])
+                }
+              />
+            </div>
 
             <SocialAccounts
               initialSocialAccounts={socialData.socialAccounts}
@@ -826,87 +858,91 @@ export function RegisterSection({
               </div>
             </div>
 
-            {/* Status */}
-            <div className="flex flex-col gap-1">
-              <h3 className="font-semibold text-primary">คุณเป็นลูกบ้านแอสเซทไวส์หรือไม่ ?</h3>
-              <div className="flex items-start gap-4 pt-2">
-                <span className="font-normal text-neutral-600">ไม่ใช่</span>
-                <Switch checked={status === 'resident'} onCheckedChange={(checked) => setStatus(checked ? 'resident' : 'general')} size="lg" />
-                <span className="font-normal text-neutral-600">ใช่</span>
-              </div>
-            </div>
+            {!hideStatusField && (
+              <>
+                {/* Status */}
+                <div className="flex flex-col gap-1">
+                  <h3 className="font-semibold text-primary">คุณเป็นลูกบ้านแอสเซทไวส์หรือไม่ ?</h3>
+                  <div className="flex items-start gap-4 pt-2">
+                    <span className="font-normal text-neutral-600">ไม่ใช่</span>
+                    <Switch checked={status === 'resident'} onCheckedChange={(checked) => setStatus(checked ? 'resident' : 'general')} size="lg" />
+                    <span className="font-normal text-neutral-600">ใช่</span>
+                  </div>
+                </div>
 
-            {status === 'resident' && (
-              <div className="flex flex-col gap-2">
-                <h3 className="font-semibold text-primary">โปรดระบุโครงการ</h3>
-                <Select
-                  instanceId="register-project-name"
-                  options={projectOptions}
-                  value={
-                    projectName
-                      ? projectOptions
-                        .flatMap((group) => group.options)
-                        .find((option) => option.value === projectName) ?? null
-                      : null
-                  }
-                  onChange={(option: any) => {
-                    const value = option ? option.value : '';
-                    setProjectName(value);
-                    if (touchedFields.projectName) {
-                      setFieldErrors((prev) => ({
-                        ...prev,
-                        projectName: validateField('projectName', value),
-                      }));
-                    }
-                  }}
-                  onBlur={() => {
-                    setTouchedFields((prev) => ({ ...prev, projectName: true }));
-                    setFieldErrors((prev) => ({
-                      ...prev,
-                      projectName: validateField('projectName', projectName),
-                    }));
-                  }}
-                  placeholder="เลือกโครงการ"
-                  formatGroupLabel={(group) => (
-                    <div
-                      style={{
-                        fontSize: 16,
-                        color: 'var(--primary)',
-                        fontWeight: 500,
+                {status === 'resident' && (
+                  <div className="flex flex-col gap-2">
+                    <h3 className="font-semibold text-primary">โปรดระบุโครงการ</h3>
+                    <Select
+                      instanceId="register-project-name"
+                      options={projectOptions}
+                      value={
+                        projectName
+                          ? projectOptions
+                            .flatMap((group) => group.options)
+                            .find((option) => option.value === projectName) ?? null
+                          : null
+                      }
+                      onChange={(option: any) => {
+                        const value = option ? option.value : '';
+                        setProjectName(value);
+                        if (touchedFields.projectName) {
+                          setFieldErrors((prev) => ({
+                            ...prev,
+                            projectName: validateField('projectName', value),
+                          }));
+                        }
                       }}
-                    >
-                      {group.label}
-                    </div>
-                  )}
-                  formatOptionLabel={(option, { context }) =>
-                    context === 'menu' ? (
-                      <div
-                        style={{
-                          fontSize: 16,
-                          paddingLeft: 20,
-                        }}
-                      >
-                        {option.label}
-                      </div>
-                    ) : (
-                      option.label
-                    )
-                  }
-                  styles={{
-                    option: (base, state) => ({
-                      ...base,
-                      cursor: 'pointer',
-                      color: state.isFocused ? '#fff' : '#333',
-                      backgroundColor: state.isFocused ? 'var(--accent)' : '#fff',
-                    }),
-                  }}
-                />
-                {touchedFields.projectName && fieldErrors.projectName && (
-                  <p className="mt-2 text-xs text-destructive">
-                    {fieldErrors.projectName}
-                  </p>
+                      onBlur={() => {
+                        setTouchedFields((prev) => ({ ...prev, projectName: true }));
+                        setFieldErrors((prev) => ({
+                          ...prev,
+                          projectName: validateField('projectName', projectName),
+                        }));
+                      }}
+                      placeholder="เลือกโครงการ"
+                      formatGroupLabel={(group) => (
+                        <div
+                          style={{
+                            fontSize: 16,
+                            color: 'var(--primary)',
+                            fontWeight: 500,
+                          }}
+                        >
+                          {group.label}
+                        </div>
+                      )}
+                      formatOptionLabel={(option, { context }) =>
+                        context === 'menu' ? (
+                          <div
+                            style={{
+                              fontSize: 16,
+                              paddingLeft: 20,
+                            }}
+                          >
+                            {option.label}
+                          </div>
+                        ) : (
+                          option.label
+                        )
+                      }
+                      styles={{
+                        option: (base, state) => ({
+                          ...base,
+                          cursor: 'pointer',
+                          color: state.isFocused ? '#fff' : '#333',
+                          backgroundColor: state.isFocused ? 'var(--accent)' : '#fff',
+                        }),
+                      }}
+                    />
+                    {touchedFields.projectName && fieldErrors.projectName && (
+                      <p className="mt-2 text-xs text-destructive">
+                        {fieldErrors.projectName}
+                      </p>
+                    )}
+                  </div>
                 )}
-              </div>
+              </>
             )}
 
             <div className="mt-4 flex items-start gap-2">
@@ -926,8 +962,8 @@ export function RegisterSection({
                 }}
                 className="mt-1"
               />
-              <label htmlFor="accepted-terms" className="text-sm text-muted-foreground">
-                ฉันยอมรับข้อกำหนดการใช้บริการ (Terms and Conditions) และนโยบายความเป็นส่วนตัว (Privacy Policy)
+              <label htmlFor="accepted-terms" className="text-sm font-normal text-muted-foreground">
+                ฉันยอมรับ<Link href="/terms-and-conditions" className="text-primary underline">ข้อกำหนดการใช้บริการ</Link> (Terms and Conditions) และ<Link href="/privacy-policy" className="text-primary underline">นโยบายความเป็นส่วนตัว</Link> (Privacy Policy)
               </label>
             </div>
             {fieldErrors.acceptedTerms && (
@@ -942,22 +978,24 @@ export function RegisterSection({
 
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-muted-foreground">
-              เป็นสมาชิกอยู่แล้ว? 
-              <button
-                onClick={() => {
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                  // Trigger login modal from header
-                  const loginButton = document.querySelector('header button[class*="bg-primary"]') as HTMLButtonElement;
-                  loginButton?.click();
-                }}
-                className="text-primary hover:underline ml-1 cursor-pointer"
-              >
-                เข้าสู่ระบบที่นี่
-              </button>
-            </p>
-          </div>
+          {!hideStatusField && (
+            <div className="mt-6 text-center">
+              <p className="text-muted-foreground">
+                เป็นสมาชิกอยู่แล้ว? 
+                <button
+                  onClick={() => {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    // Trigger login modal from header
+                    const loginButton = document.querySelector('header button[class*="bg-primary"]') as HTMLButtonElement;
+                    loginButton?.click();
+                  }}
+                  className="text-primary hover:underline ml-1 cursor-pointer"
+                >
+                  เข้าสู่ระบบที่นี่
+                </button>
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </section>
