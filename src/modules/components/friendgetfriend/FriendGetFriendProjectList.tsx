@@ -126,7 +126,7 @@ export function FriendGetFriendProjectList({
           </div>
         ) : projects.length === 0 ? (
           <div className="py-16 text-center text-muted-foreground">
-            ขณะนี้ยังไม่มีโครงการสำหรับ Friend Get Friend
+            ขณะนี้ยังไม่มีโครงการสำหรับ Friend Get Friends
           </div>
         ) : (
           <>

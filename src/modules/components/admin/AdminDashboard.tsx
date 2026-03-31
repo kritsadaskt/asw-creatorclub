@@ -79,7 +79,7 @@ const CATEGORIES = [
 export function AdminDashboard() {
   const [creators, setCreators] = useState<CreatorProfile[]>([]);
   const [filteredCreators, setFilteredCreators] = useState<CreatorProfile[]>([]);
-  const [approvalFilter, setApprovalFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'inactive'>('all');
+  const [approvalFilter, setApprovalFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'inactive'>('pending');
   const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
   const [searchQuery, setSearchQuery] = useState('');
   const [minFollowers, setMinFollowers] = useState('');
@@ -114,11 +114,7 @@ export function AdminDashboard() {
     value: typeof approvalFilter;
     label: string;
   }> = [
-    { value: 'all', label: 'ทั้งหมด' },
     { value: 'pending', label: 'คำขอเข้าร่วม (รอการอนุมัติ)' },
-    { value: 'approved', label: 'อนุมัติแล้ว' },
-    { value: 'rejected', label: 'ถูกปฏิเสธ' },
-    { value: 'inactive', label: 'ไม่ใช้งาน' },
   ];
 
   const categoryOptions = CATEGORIES.map((cat) => ({ value: cat, label: cat }));
@@ -193,7 +189,7 @@ export function AdminDashboard() {
         setProjectNameById(Object.fromEntries(projects.map((p) => [p.id, p.name])));
       } catch (error) {
         console.error('Error loading FGF leads:', error);
-        if (!cancelled) toast.error('ไม่สามารถโหลดลีด Friend Get Friend ได้');
+        if (!cancelled) toast.error('ไม่สามารถโหลดลีด Friend Get Friends ได้');
       } finally {
         if (!cancelled) setFgfLoading(false);
       }
@@ -340,7 +336,7 @@ export function AdminDashboard() {
     const { lead, projectIds } = row;
     return {
       fgfLeadId: lead.id,
-      source: 'creatorclub_friend_get_friend',
+      source: 'creatorclub_friend_get_friends',
       referred: {
         firstName: lead.leadName,
         lastName: lead.leadLastName,
@@ -702,7 +698,7 @@ export function AdminDashboard() {
       >
         <TabsList className="mb-2">
           <TabsTrigger value="creators">ครีเอเตอร์</TabsTrigger>
-          <TabsTrigger value="fgf">Friend Get Friend</TabsTrigger>
+          <TabsTrigger value="fgf">Friend Get Friends</TabsTrigger>
         </TabsList>
 
         <TabsContent
@@ -1005,7 +1001,7 @@ export function AdminDashboard() {
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-border p-6">
-            <h3 className="text-primary mb-4">ลีด Friend Get Friend ({filteredFgfLeads.length})</h3>
+            <h3 className="text-primary mb-4">ลีด Friend Get Friends ({filteredFgfLeads.length})</h3>
             {fgfLoading ? (
               <p className="text-muted-foreground text-center py-8 flex items-center gap-2 justify-center">
                 <Loader2 className="w-8 h-8 animate-spin" />
