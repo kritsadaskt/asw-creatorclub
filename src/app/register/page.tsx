@@ -13,7 +13,8 @@ export default async function RegisterRoutePage({
   searchParams: Promise<{ type?: string | string[] }>;
 }) {
   const sp = await searchParams;
-  const inviteLabels = parseInviteTypeParam(normalizeTypeQuery(sp.type));
+  const rawType = normalizeTypeQuery(sp.type);
+  const inviteLabels = parseInviteTypeParam(rawType);
 
-  return <InvitedRegisterPage inviteLabels={inviteLabels} />;
+  return <InvitedRegisterPage inviteLabels={inviteLabels} inviteType={rawType} />;
 }
