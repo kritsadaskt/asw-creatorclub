@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { FocusEventHandler, ReactNode } from 'react';
 import { useId } from 'react';
 
 interface InputProps {
@@ -13,9 +13,11 @@ interface InputProps {
   className?: string;
   hideLabel?: boolean;
   onBlur?: () => void;
+  onFocus?: FocusEventHandler<HTMLInputElement>;
   error?: string;
   rightIcon?: ReactNode;
   onRightIconClick?: () => void;
+  [key: string]: any;
 }
 
 export function Input({
@@ -30,9 +32,11 @@ export function Input({
   hideLabel = false,
   icon,
   onBlur,
+  onFocus,
   error,
   rightIcon,
   onRightIconClick,
+  ...props
 }: InputProps) {
   // Deterministic across SSR + hydration (fixes "id/htmlFor did not match" warnings).
   const reactId = useId();
@@ -61,9 +65,11 @@ export function Input({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onBlur={onBlur}
+          onFocus={onFocus}
           //placeholder={placeholder ?? ' '}
           required={required}
           className={`peer w-full border-b border-neutral-400 bg-input-background px-0 pb-1.5 pt-2.5 text-foreground focus:border-primary focus:outline-none ${icon ? 'pl-7' : ''} ${className} ${hideLabel ? 'pt-0' : 'pt-6'}`}
+          {...props}
         />
         <label
           htmlFor={resolvedId}
