@@ -42,6 +42,8 @@ export interface CreatorProfile {
   approvalStatus: 0 | 1 | 2 | 3;
   status: 'general' | 'resident' | 'partner'; // บุคคลทั่วไป or ลูกบ้านแอสเซทไวส์ or แอสเซทไวส์ พาร์ทเนอร์
   projectName?: string; // For when status is 'resident'
+  /** Raw invite type from register URL (stored in Supabase `profiles.type`). */
+  type?: string;
   createdAt: string;
   // Authentication fields
   facebookId?: string; // Facebook user ID (for Facebook login)
@@ -136,3 +138,15 @@ export interface FgfLeadWithProjects {
 }
 
 export type UserRole = 'creator' | 'admin';
+
+export interface AffiliateMaterial {
+  id: string;
+  projectId?: string;
+  title: string;
+  description?: string;
+  fileUrl: string;            // AWS S3 public URL
+  fileType: 'image' | 'pdf' | 'video';
+  createdAt: string;
+  updatedAt?: string;
+  s3Key?: string;
+}

@@ -6,6 +6,7 @@ import { CreatorProfile as CreatorProfileType } from '../../types';
 import { getCreatorById, saveCreator } from '../../utils/storage';
 import { getProfileImageUrl } from '../../utils/profileImage';
 import { AffiliateGenerator } from './AffiliateGenerator';
+import { GetLinkCard } from './GetLinkCard';
 import { supabase } from '../../utils/supabase';
 import { hashPassword, validatePassword, validatePasswordConfirm } from '../../utils/password';
 import Select from 'react-select';
@@ -321,7 +322,12 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
               </div>
             </>
           ) : (
-            <AffiliateGenerator creatorId={creatorId} showBackButton={false} />
+            <div className="space-y-6">
+              {profile.approvalStatus === 1 && (
+                <GetLinkCard creatorId={profile.id} />
+              )}
+              <AffiliateGenerator creatorId={creatorId} showBackButton={false} />
+            </div>
           )}
         </div>
       </div>

@@ -39,13 +39,22 @@ type SocialAccountsProps = {
 
 const urlRegex = /^https:\/\/.+/;
 
+const SOCIAL_URL_PREFIXES: Record<keyof SocialAccountsMap, string> = {
+  facebook: "https://facebook.com/",
+  instagram: "https://www.instagram.com/",
+  tiktok: "https://www.tiktok.com/@",
+  youtube: "https://www.youtube.com/",
+  twitter: "https://x.com/",
+  lemon8: "https://lemon8.com/",
+};
+
 export default function SocialAccounts({
   initialSocialAccounts,
   initialFollowerCounts,
   requireAtLeastOne = true,
   showErrors = false,
-  label = "Social Media",
-  description = "กรอกข้อมูลอย่างน้อย 1 แพลตฟอร์ม",
+  label = "ลิงก์ URL โซเชียลมีเดีย",
+  description = "กรอกข้อมูล URL หรือ Username ของ Social Media ของคุณ อย่างน้อย 1 แพลตฟอร์ม และระบุจำนวน Follower ในปัจจุบัน",
   onChange,
 }: SocialAccountsProps) {
   const [socialAccounts, setSocialAccounts] = useState<SocialAccountsMap>(
@@ -134,6 +143,12 @@ export default function SocialAccounts({
     validate(next);
   };
 
+  const handleUrlFocus = (key: keyof SocialAccountsMap) => {
+    const current = socialAccounts[key]?.trim();
+    if (current) return;
+    handleUrlChange(key, SOCIAL_URL_PREFIXES[key]);
+  };
+
   const handleFollowersChange = (key: keyof FollowerCountsMap, value: string) => {
     const numeric = value ? parseInt(value, 10) : undefined;
     const next = { ...followerCounts, [key]: isNaN(Number(numeric)) ? undefined : numeric };
@@ -176,6 +191,7 @@ export default function SocialAccounts({
             icon={<FaFacebook className="h-5 w-5 text-[#1877F2]" />}
             value={socialAccounts.facebook || ""}
             onChange={(value) => handleUrlChange("facebook", value)}
+            onFocus={() => handleUrlFocus("facebook")}
             placeholder="https://facebook.com/..."
             onBlur={() => handleBlur("facebookUrl")}
             error={errors.facebookUrl}
@@ -188,6 +204,7 @@ export default function SocialAccounts({
             value={followerCounts.facebook?.toString() || ""}
             onChange={(value) => handleFollowersChange("facebook", value)}
             placeholder="0"
+            min={0}
           />
         </div>
       </div>
@@ -200,6 +217,7 @@ export default function SocialAccounts({
             icon={<FaInstagram className="h-5 w-5 text-pink-500" />}
             value={socialAccounts.instagram || ""}
             onChange={(value) => handleUrlChange("instagram", value)}
+            onFocus={() => handleUrlFocus("instagram")}
             placeholder="https://instagram.com/..."
             onBlur={() => handleBlur("instagramUrl")}
             error={errors.instagramUrl}
@@ -212,6 +230,7 @@ export default function SocialAccounts({
             value={followerCounts.instagram?.toString() || ""}
             onChange={(value) => handleFollowersChange("instagram", value)}
             placeholder="0"
+            min={0}
           />
         </div>
       </div>
@@ -224,6 +243,7 @@ export default function SocialAccounts({
             icon={<FaTiktok className="h-5 w-5 text-black" />}
             value={socialAccounts.tiktok || ""}
             onChange={(value) => handleUrlChange("tiktok", value)}
+            onFocus={() => handleUrlFocus("tiktok")}
             placeholder="https://tiktok.com/@..."
             onBlur={() => handleBlur("tiktokUrl")}
             error={errors.tiktokUrl}
@@ -248,6 +268,7 @@ export default function SocialAccounts({
             icon={<FaYoutube className="h-5 w-5 text-red-600" />}
             value={socialAccounts.youtube || ""}
             onChange={(value) => handleUrlChange("youtube", value)}
+            onFocus={() => handleUrlFocus("youtube")}
             placeholder="https://youtube.com/..."
             onBlur={() => handleBlur("youtubeUrl")}
             error={errors.youtubeUrl}
@@ -272,6 +293,7 @@ export default function SocialAccounts({
             icon={<FaXTwitter className="h-5 w-5 text-black" />}
             value={socialAccounts.twitter || ""}
             onChange={(value) => handleUrlChange("twitter", value)}
+            onFocus={() => handleUrlFocus("twitter")}
             placeholder="https://x.com/..."
             onBlur={() => handleBlur("twitterUrl")}
             error={errors.twitterUrl}
@@ -296,6 +318,7 @@ export default function SocialAccounts({
             icon={<Lemon8Icon className="w-5 h-5 text-yellow-500" />}
             value={socialAccounts.lemon8 || ""}
             onChange={(value) => handleUrlChange("lemon8", value)}
+            onFocus={() => handleUrlFocus("lemon8")}
             placeholder="https://lemon8.com/..."
           />
         </div>

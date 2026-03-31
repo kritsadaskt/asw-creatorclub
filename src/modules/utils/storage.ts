@@ -63,6 +63,7 @@ export const saveCreator = async (creator: CreatorProfile): Promise<void> => {
       phone: creator.phone,
       base_location: creator.baseLocation,
       province: creator.province,
+      type: creator.type,
       // Keep legacy `category` (single string) for backward compatibility,
       // but store the real source of truth in `categories` (text[]) as multiple values.
       category: creator.categories && creator.categories.length > 0 ? creator.categories[0] : null,
@@ -156,6 +157,7 @@ const mapDbToCreatorProfile = (row: any): CreatorProfile => ({
   approvalStatus: typeof row.approval_status === 'number' ? (row.approval_status as 0 | 1 | 2 | 3) : 3,
   status: row.status || 'general',
   projectName: row.project_name,
+  type: row.type || undefined,
   createdAt: row.created_at || new Date().toISOString(),
   facebookId: row.facebook_id,
   passwordHash: row.password_hash,
@@ -522,6 +524,19 @@ export const createFgfLeadWithProjects = async (
     throw new Error('At least one project is required');
   }
 
+  // Duplicate detection: same lead_email + lead_tel within 24 hours
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data: existing } = await supabase
+    .from('fgf_leads')
+    .select('id')
+    .eq('lead_email', input.leadEmail)
+    .eq('lead_tel', input.leadTel)
+    .gte('created_at', cutoff)
+    .limit(1);
+  if (existing && existing.length > 0) {
+    throw new Error('DUPLICATE_LEAD');
+  }
+
   const initialChosenProjectId = uniqueProjectIds.length === 1 ? uniqueProjectIds[0] : null;
   const initialStatus: FgfLeadStatus = uniqueProjectIds.length === 1 ? 'verified' : 'new';
 
@@ -669,5 +684,129 @@ export const getCurrentUser = (): { id: string; role: 'creator' | 'admin' } | nu
 
 export const logout = (): void => {
   clearSession();
+};
+
+// ===== Affiliate Materials Operations =====
+
+export const saveAffiliateMaterial = async (material: import('../types').AffiliateMaterial): Promise<void> => {
+  const { error } = await supabase
+    .from('affiliate_materials')
+    .upsert({
+      id:          material.id,
+      project_id:  material.projectId ?? null,
+      title:       material.title,
+      description: material.description ?? null,
+      file_url:    material.fileUrl,
+      file_type:   material.fileType,
+    }, { onConflict: 'id' });
+
+  if (error) {
+    console.error('Error saving affiliate material:', error);
+    throw error;
+  }
+};
+
+export const getAffiliateMaterials = async (
+  opts?: { limit?: number; offset?: number }
+): Promise<{ data: import('../types').AffiliateMaterial[]; count: number }> => {
+  const limit = opts?.limit ?? 20;
+  const offset = opts?.offset ?? 0;
+
+  const { data, error, count } = await supabase
+    .from('affiliate_materials')
+    .select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) {
+    console.error('Error fetching affiliate materials:', error);
+    throw error;
+  }
+
+  return {
+    data: (data ?? []).map((row) => ({
+      id:          row.id,
+      projectId:   row.project_id ?? undefined,
+      title:       row.title,
+      description: row.description ?? undefined,
+      fileUrl:     row.file_url,
+      fileType:    row.file_type as 'image' | 'pdf' | 'video',
+      createdAt:   row.created_at,
+      updatedAt:   row.updated_at,
+      s3Key:       row.s3_key ?? undefined,
+    })),
+    count: count ?? 0,
+  };
+};
+
+export const updateAffiliateMaterial = async (
+  id: string,
+  patch: Partial<Pick<import('../types').AffiliateMaterial, 'title' | 'description' | 'projectId'>>
+): Promise<import('../types').AffiliateMaterial> => {
+  const updates: Record<string, unknown> = {};
+  if (patch.title !== undefined) updates.title = patch.title;
+  if ('description' in patch) updates.description = patch.description ?? null;
+  if ('projectId' in patch) updates.project_id = patch.projectId ?? null;
+
+  const { data, error } = await supabase
+    .from('affiliate_materials')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating affiliate material:', error);
+    throw error;
+  }
+
+  return {
+    id:          data.id,
+    projectId:   data.project_id ?? undefined,
+    title:       data.title,
+    description: data.description ?? undefined,
+    fileUrl:     data.file_url,
+    fileType:    data.file_type as 'image' | 'pdf' | 'video',
+    createdAt:   data.created_at,
+    updatedAt:   data.updated_at ?? undefined,
+    s3Key:       data.s3_key ?? undefined,
+  };
+};
+
+export const getAffiliateMaterialsByProject = async (
+  projectId: string
+): Promise<import('../types').AffiliateMaterial[]> => {
+  const { data, error } = await supabase
+    .from('affiliate_materials')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching affiliate materials by project:', error);
+    throw error;
+  }
+
+  return (data ?? []).map((row) => ({
+    id:          row.id,
+    projectId:   row.project_id ?? undefined,
+    title:       row.title,
+    description: row.description ?? undefined,
+    fileUrl:     row.file_url,
+    fileType:    row.file_type as 'image' | 'pdf' | 'video',
+    createdAt:   row.created_at,
+  }));
+};
+
+export const deleteAffiliateMaterial = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('affiliate_materials')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deleting affiliate material:', error);
+    throw error;
+  }
 };
 

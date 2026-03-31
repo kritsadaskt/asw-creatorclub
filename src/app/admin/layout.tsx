@@ -15,6 +15,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           navTabs={[
             { label: 'จัดการ Creators', to: '/admin/dashboard', end: true },
             { label: 'จัดการโครงการ', to: '/admin/projects' },
+            { label: 'สื่อการตลาด', to: '/admin/materials' },
           ]}
         />
         {children}

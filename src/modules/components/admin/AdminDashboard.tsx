@@ -874,10 +874,6 @@ export function AdminDashboard() {
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">ผู้ติดตาม:</span>
-                    <span className="text-foreground">{creator.followers.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
                     <span className="text-muted-foreground">โซเชียล:</span>
                     <span className="text-foreground">{getSocialLinks(creator).length} ช่องทาง</span>
                   </div>
@@ -908,7 +904,6 @@ export function AdminDashboard() {
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">ชื่อ</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">อีเมล</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">หมวดหมู่</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">ผู้ติดตาม</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">โทรศัพท์</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">โซเชียล</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">สถานะ</th>
@@ -940,7 +935,6 @@ export function AdminDashboard() {
                         ? creator.categories.join(', ')
                         : '-'}
                     </td>
-                    <td className="py-3 px-4 text-sm text-foreground">{creator.followers.toLocaleString()}</td>
                     <td className="py-3 px-4 text-sm text-foreground">{creator.phone || '-'}</td>
                     <td className="py-3 px-4 text-sm text-foreground">{getSocialLinks(creator).length} ช่องทาง</td>
                     <td className="py-3 px-4">
@@ -1083,7 +1077,7 @@ export function AdminDashboard() {
           if (!open) setSelectedCreator(null);
         }}
       >
-        <DrawerContent className="overflow-y-auto">
+        <DrawerContent className="overflow-y-auto overflow-x-hidden">
           {selectedCreator && (
             <>
               <DrawerHeader className="p-7">
