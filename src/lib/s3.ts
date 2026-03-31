@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
 // Credentials resolved automatically by the AWS SDK default chain:
 //   Production (Vercel): AWS_ROLE_ARN + AWS_WEB_IDENTITY_TOKEN_FILE → AssumeRoleWithWebIdentity (OIDC)
@@ -29,4 +29,11 @@ export const uploadToS3 = async (
 
   const publicUrl = process.env.AWS_S3_PUBLIC_URL?.replace(/\/$/, '');
   return `${publicUrl}/${key}`;
+};
+
+export const deleteFromS3 = async (key: string): Promise<void> => {
+  const bucket = process.env.AWS_S3_BUCKET;
+  if (!bucket) throw new Error('AWS_S3_BUCKET not configured');
+
+  await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
 };

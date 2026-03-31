@@ -145,4 +145,6 @@ export interface AffiliateMaterial {
   fileUrl: string;            // AWS S3 public URL
   fileType: 'image' | 'pdf' | 'video';
   createdAt: string;
+  updatedAt?: string;
+  s3Key?: string;
 }

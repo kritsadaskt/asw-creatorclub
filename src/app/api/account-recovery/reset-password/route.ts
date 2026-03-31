@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/modules/utils/supabase';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { hashPassword, validatePassword } from '@/modules/utils/password';
 
 export async function POST(request: NextRequest) {
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     const passwordHash = await hashPassword(newPassword);
 
-    const { error: updateProfileError } = await supabase
+    const { error: updateProfileError } = await supabaseAdmin
       .from('profiles')
       .update({ password_hash: passwordHash })
       .eq('id', recoveryRequest.profile_id);
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'FAILED_TO_UPDATE_PASSWORD' }, { status: 500 });
     }
 
-    await supabase
+    await supabaseAdmin
       .from('password_recovery_requests')
       .update({
         status: 'completed',
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', recoveryRequest.id);
 
-    await supabase.from('password_recovery_logs').insert({
+    await supabaseAdmin.from('password_recovery_logs').insert({
       profile_id: recoveryRequest.profile_id,
       email,
       action: 'reset_success',

@@ -522,6 +522,19 @@ export const createFgfLeadWithProjects = async (
     throw new Error('At least one project is required');
   }
 
+  // Duplicate detection: same lead_email + lead_tel within 24 hours
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data: existing } = await supabase
+    .from('fgf_leads')
+    .select('id')
+    .eq('lead_email', input.leadEmail)
+    .eq('lead_tel', input.leadTel)
+    .gte('created_at', cutoff)
+    .limit(1);
+  if (existing && existing.length > 0) {
+    throw new Error('DUPLICATE_LEAD');
+  }
+
   const initialChosenProjectId = uniqueProjectIds.length === 1 ? uniqueProjectIds[0] : null;
   const initialStatus: FgfLeadStatus = uniqueProjectIds.length === 1 ? 'verified' : 'new';
 
@@ -691,26 +704,71 @@ export const saveAffiliateMaterial = async (material: import('../types').Affilia
   }
 };
 
-export const getAffiliateMaterials = async (): Promise<import('../types').AffiliateMaterial[]> => {
-  const { data, error } = await supabase
+export const getAffiliateMaterials = async (
+  opts?: { limit?: number; offset?: number }
+): Promise<{ data: import('../types').AffiliateMaterial[]; count: number }> => {
+  const limit = opts?.limit ?? 20;
+  const offset = opts?.offset ?? 0;
+
+  const { data, error, count } = await supabase
     .from('affiliate_materials')
-    .select('*')
-    .order('created_at', { ascending: false });
+    .select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
 
   if (error) {
     console.error('Error fetching affiliate materials:', error);
     throw error;
   }
 
-  return (data ?? []).map((row) => ({
-    id:          row.id,
-    projectId:   row.project_id ?? undefined,
-    title:       row.title,
-    description: row.description ?? undefined,
-    fileUrl:     row.file_url,
-    fileType:    row.file_type as 'image' | 'pdf' | 'video',
-    createdAt:   row.created_at,
-  }));
+  return {
+    data: (data ?? []).map((row) => ({
+      id:          row.id,
+      projectId:   row.project_id ?? undefined,
+      title:       row.title,
+      description: row.description ?? undefined,
+      fileUrl:     row.file_url,
+      fileType:    row.file_type as 'image' | 'pdf' | 'video',
+      createdAt:   row.created_at,
+      updatedAt:   row.updated_at,
+      s3Key:       row.s3_key ?? undefined,
+    })),
+    count: count ?? 0,
+  };
+};
+
+export const updateAffiliateMaterial = async (
+  id: string,
+  patch: Partial<Pick<import('../types').AffiliateMaterial, 'title' | 'description' | 'projectId'>>
+): Promise<import('../types').AffiliateMaterial> => {
+  const updates: Record<string, unknown> = {};
+  if (patch.title !== undefined) updates.title = patch.title;
+  if ('description' in patch) updates.description = patch.description ?? null;
+  if ('projectId' in patch) updates.project_id = patch.projectId ?? null;
+
+  const { data, error } = await supabase
+    .from('affiliate_materials')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating affiliate material:', error);
+    throw error;
+  }
+
+  return {
+    id:          data.id,
+    projectId:   data.project_id ?? undefined,
+    title:       data.title,
+    description: data.description ?? undefined,
+    fileUrl:     data.file_url,
+    fileType:    data.file_type as 'image' | 'pdf' | 'video',
+    createdAt:   data.created_at,
+    updatedAt:   data.updated_at ?? undefined,
+    s3Key:       data.s3_key ?? undefined,
+  };
 };
 
 export const getAffiliateMaterialsByProject = async (
