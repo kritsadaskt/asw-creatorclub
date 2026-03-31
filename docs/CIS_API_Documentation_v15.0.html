@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CIS API Documentation — Website Lead Registration v15.0</title>
+  <style>
+    :root {
+      --brand:       #1a3a6b;
+      --brand-light: #2c5fa8;
+      --accent:      #e8523a;
+      --bg:          #f4f6fb;
+      --card:        #ffffff;
+      --border:      #dde3ee;
+      --text:        #1e2535;
+      --muted:       #6b7594;
+      --get:         #0e7c47;
+      --get-bg:      #e6f5ee;
+      --post:        #1558c7;
+      --post-bg:     #e7eefa;
+      --required:    #c0392b;
+      --optional:    #555;
+      --code-bg:     #1c2133;
+      --tag-green:   #0e7c47;
+      --tag-green-bg:#e6f5ee;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: linear-gradient(135deg, var(--brand) 0%, var(--brand-light) 100%);
+      color: #fff;
+      padding: 40px 48px 36px;
+    }
+    header h1 { font-size: 1.9rem; font-weight: 700; letter-spacing: -0.4px; }
+    header p  { margin-top: 6px; opacity: .82; font-size: .95rem; }
+
+    .version-badge {
+      display: inline-block;
+      margin-top: 12px;
+      background: rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.35);
+      border-radius: 20px;
+      padding: 3px 14px;
+      font-size: .78rem;
+      letter-spacing: .5px;
+      font-weight: 600;
+    }
+
+    /* ── LAYOUT ── */
+    .container { max-width: 1050px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    /* ── SECTION HEADING ── */
+    .section-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--brand);
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin: 48px 0 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--border);
+    }
+
+    /* ── INFO CARD ── */
+    .info-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px 28px;
+      margin-bottom: 18px;
+    }
+    .env-grid {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 10px 16px;
+      align-items: center;
+    }
+    .env-label {
+      font-weight: 600;
+      font-size: .82rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+    .env-value code {
+      background: #eef1f7;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: .85rem;
+      color: var(--brand);
+      word-break: break-all;
+    }
+
+    /* ── AUTH BOX ── */
+    .auth-box {
+      background: #fff8e1;
+      border-left: 4px solid #f59e0b;
+      border-radius: 0 8px 8px 0;
+      padding: 14px 20px;
+      margin-bottom: 8px;
+      font-size: .88rem;
+    }
+    .auth-box strong { color: var(--brand); }
+    .auth-box code   { font-size: .82rem; word-break: break-all; color: #555; }
+
+    /* ── ENDPOINT CARD ── */
+    .endpoint-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 32px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .endpoint-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 24px;
+      background: #f8faff;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .method-badge {
+      display: inline-block;
+      font-size: .72rem;
+      font-weight: 800;
+      letter-spacing: .8px;
+      border-radius: 5px;
+      padding: 4px 10px;
+      text-transform: uppercase;
+    }
+    .method-get  { background: var(--get-bg);  color: var(--get);  border: 1px solid #a8dbc0; }
+    .method-post { background: var(--post-bg); color: var(--post); border: 1px solid #b3caf5; }
+
+    .endpoint-path {
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: .95rem;
+      color: var(--text);
+      font-weight: 600;
+      flex: 1;
+      word-break: break-all;
+    }
+    .endpoint-name {
+      font-size: .78rem;
+      font-weight: 700;
+      color: var(--muted);
+      background: #eef1f7;
+      border-radius: 20px;
+      padding: 3px 12px;
+    }
+
+    .endpoint-body { padding: 22px 24px; }
+
+    .sub-label {
+      font-size: .78rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin: 18px 0 8px;
+    }
+    .sub-label:first-child { margin-top: 0; }
+
+    /* ── PARAMETER TABLE ── */
+    .param-table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+    .param-table thead tr { background: #f0f3fa; }
+    .param-table th {
+      text-align: left;
+      padding: 9px 12px;
+      font-weight: 700;
+      color: var(--brand);
+      font-size: .78rem;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      border: 1px solid var(--border);
+    }
+    .param-table td {
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .param-table tbody tr:hover { background: #f8faff; }
+    .param-table code {
+      font-family: 'Consolas', monospace;
+      font-size: .84rem;
+      background: #eef1f7;
+      border-radius: 3px;
+      padding: 1px 6px;
+      color: var(--brand-light);
+      font-weight: 600;
+    }
+    .req-yes  { color: var(--required); font-weight: 700; font-size: .78rem; }
+    .req-no   { color: var(--optional); font-size: .78rem; }
+    .req-cond { color: #b45309; font-weight: 600; font-size: .78rem; }
+    .type-badge {
+      display: inline-block;
+      background: #eef1f7;
+      color: #4b5c8a;
+      border-radius: 3px;
+      padding: 1px 7px;
+      font-size: .76rem;
+      font-family: 'Consolas', monospace;
+      font-weight: 600;
+    }
+
+    /* ── CODE BLOCK ── */
+    .code-block {
+      background: var(--code-bg);
+      color: #d4e0f8;
+      border-radius: 8px;
+      padding: 16px 20px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: .84rem;
+      overflow-x: auto;
+      white-space: pre;
+      line-height: 1.65;
+    }
+    .code-block .key   { color: #79b8ff; }
+    .code-block .str   { color: #9ecbff; }
+    .code-block .bool  { color: #f97583; }
+    .code-block .num   { color: #79ffc5; }
+    .code-block .null  { color: #f97583; }
+
+    /* ── RESPONSE BOXES ── */
+    .response-success, .response-error {
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 10px;
+      font-size: .83rem;
+    }
+    .response-success {
+      background: #e6f5ee;
+      border-left: 4px solid var(--get);
+    }
+    .response-error   {
+      background: #fde8e8;
+      border-left: 4px solid var(--accent);
+    }
+    .response-label {
+      font-weight: 700;
+      font-size: .76rem;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 6px;
+    }
+    .response-success .response-label { color: var(--get);  }
+    .response-error   .response-label { color: var(--accent); }
+
+    /* ── ERROR TABLE ── */
+    .error-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+    .error-table th {
+      text-align: left;
+      padding: 8px 12px;
+      font-size: .76rem;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      font-weight: 700;
+      color: var(--brand);
+      background: #f0f3fa;
+      border: 1px solid var(--border);
+    }
+    .error-table td {
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    /* ── NOTE BOX ── */
+    .note-box {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 18px;
+      font-size: .85rem;
+      margin: 12px 0;
+      color: #1e3a5f;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: .8rem;
+      padding: 32px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── TOC ── */
+    .toc {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 12px;
+    }
+    .toc h3 { font-size: .88rem; color: var(--brand); margin-bottom: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+    .toc ul { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
+    .toc a  {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      color: var(--brand-light);
+      font-size: .84rem;
+      font-weight: 600;
+      background: #eef1f7;
+      border-radius: 6px;
+      padding: 4px 12px;
+      transition: background .15s;
+    }
+    .toc a:hover { background: #dde6f5; }
+    .toc a .badge {
+      font-size: .68rem;
+      font-weight: 800;
+      border-radius: 3px;
+      padding: 1px 5px;
+    }
+    .toc a .g { background: var(--get-bg);  color: var(--get);  border: 1px solid #a8dbc0; }
+    .toc a .p { background: var(--post-bg); color: var(--post); border: 1px solid #b3caf5; }
+
+    hr.divider { border: none; border-top: 1px solid var(--border); margin: 36px 0; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>CIS — Customer Information System</h1>
+  <p>Website Lead Registration API &nbsp;·&nbsp; Real Estate Integration</p>
+  <span class="version-badge">v15.0</span>
+</header>
+
+<div class="container">
+
+  <!-- ── OVERVIEW ── -->
+  <div class="section-title">Overview</div>
+  <div class="info-card">
+    <p style="margin-bottom:16px;font-size:.92rem;color:var(--muted);">
+      This API allows external websites and partner systems to register real-estate leads directly into the
+      CIS (Customer Information System). It provides master-data lookup endpoints and two lead-submission
+      endpoints — one for shop/partner channels and one for website-originated contacts.
+    </p>
+    <div class="env-grid">
+      <span class="env-label">Test (UAT)</span>
+      <span class="env-value"><code>http://aswinno.assetwise.co.th/CISUAT</code></span>
+
+      <span class="env-label">Production</span>
+      <span class="env-value"><code>https://api.assetwise.co.th</code></span>
+
+      <span class="env-label">Production HTTPS</span>
+      <span class="env-value"><code>https://api.assetwise.co.th/cis</code></span>
+
+      <span class="env-label">Base Path</span>
+      <span class="env-value"><code>{Url}/api/{Module}/{EndpointName}</code></span>
+
+      <span class="env-label">Modules</span>
+      <span class="env-value"><code>Master</code> &nbsp; <code>Customer</code></span>
+    </div>
+  </div>
+
+  <!-- ── AUTHENTICATION ── -->
+  <div class="section-title">Authentication</div>
+  <div class="info-card">
+    <p style="font-size:.88rem;color:var(--muted);margin-bottom:12px;">
+      All requests must include an <strong>HTTP Basic Authentication</strong> header. The credentials are
+      Base64-encoded and passed as a Bearer token.
+    </p>
+    <div class="auth-box">
+      <strong>Header:</strong>&nbsp; <code>Authorization: Basic &lt;base64-credentials&gt;</code>
+    </div>
+    <div class="auth-box" style="margin-top:8px;">
+      <strong>Master Endpoints (GetProjects — legacy token):</strong><br/>
+      <code>Authorization: Basic Y3VzdG9tZXJtYW5hZ2VtZW50OmN1c3RvbWVybWFuYWdlbWVudEAyMDE4</code>
+    </div>
+    <div class="auth-box" style="margin-top:8px;">
+      <strong>All Other Endpoints:</strong><br/>
+      <code>Authorization: Basic YXN3X2Npc19jdXN0b21lcjphc3dfY2lzX2N1c3RvbWVyQDIwMjMh</code>
+    </div>
+    <div class="note-box" style="margin-top:14px;">
+      Contact the CIS integration team to obtain the correct credentials for each environment.
+    </div>
+  </div>
+
+  <!-- ── RESPONSE FORMAT ── -->
+  <div class="section-title">Standard Response Envelope</div>
+  <div class="info-card">
+    <p style="font-size:.88rem;color:var(--muted);margin-bottom:14px;">
+      Every response is a JSON object with the following top-level structure:
+    </p>
+    <div class="code-block"><span class="key">{</span>
+  <span class="key">"Success"</span>: <span class="bool">true | false</span>,
+  <span class="key">"Message"</span>: <span class="str">"Save success." | "{error description}"</span>,
+  <span class="key">"Data"</span>:    <span class="str">{} | [] | [ {...}, ... ]</span>
+<span class="key">}</span></div>
+
+    <div class="param-table" style="margin-top:14px;">
+    <table class="param-table">
+      <thead><tr>
+        <th>Field</th><th>Type</th><th>Description</th>
+      </tr></thead>
+      <tbody>
+        <tr><td><code>Success</code></td><td><span class="type-badge">boolean</span></td><td><code>true</code> on success, <code>false</code> on failure</td></tr>
+        <tr><td><code>Message</code></td><td><span class="type-badge">string</span></td><td>Human-readable result or error description</td></tr>
+        <tr><td><code>Data</code></td><td><span class="type-badge">object | array</span></td><td>Payload for GET responses; empty <code>{}</code> or <code>[]</code> for POST responses</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- ── TOC ── -->
+  <div class="section-title">Endpoints</div>
+  <div class="toc">
+    <h3>Table of Contents</h3>
+    <ul>
+      <li><a href="#GetProjects"><span class="badge g">GET</span> GetProjects</a></li>
+      <li><a href="#GetContactChannels"><span class="badge g">GET</span> GetContactChannels</a></li>
+      <li><a href="#GetContactTypes"><span class="badge g">GET</span> GetContactTypes</a></li>
+      <li><a href="#GetFollowUps"><span class="badge g">GET</span> GetFollowUps</a></li>
+      <li><a href="#SaveShopPartner"><span class="badge p">POST</span> SaveShopPartner</a></li>
+      <li><a href="#SaveOtherSource"><span class="badge p">POST</span> SaveOtherSource</a></li>
+    </ul>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       ENDPOINT 1 — GetProjects
+  ════════════════════════════════════════════════════ -->
+  <div class="endpoint-card" id="GetProjects">
+    <div class="endpoint-header">
+      <span class="method-badge method-get">GET</span>
+      <span class="endpoint-path">{Url}/api/Master/GetProjects</span>
+      <span class="endpoint-name">GetProjects</span>
+    </div>
+    <div class="endpoint-body">
+
+      <p style="font-size:.9rem;color:var(--muted);margin-bottom:16px;">
+        Returns the list of all active real-estate projects registered in CIS. Use the returned
+        <code>ProjectID</code> when submitting leads via <a href="#SaveOtherSource">SaveOtherSource</a>.
+      </p>
+
+      <div class="sub-label">Request Headers</div>
+      <div class="auth-box">
+        <code>Authorization: Basic Y3VzdG9tZXJtYW5hZ2VtZW50OmN1c3RvbWVybWFuYWdlbWVudEAyMDE4</code>
+      </div>
+
+      <div class="sub-label">Query Parameters</div>
+      <div class="note-box">No parameters required. Send a plain GET request.</div>
+
+      <div class="sub-label">Success Response (200 OK)</div>
+      <div class="response-success">
+        <div class="response-label">✓ 200 Success</div>
+        <div class="code-block"><span class="key">{</span>
+  <span class="key">"Success"</span>: <span class="bool">true</span>,
+  <span class="key">"Message"</span>: <span class="str">"Save success."</span>,
+  <span class="key">"Data"</span>: [
+    <span class="key">{</span>
+      <span class="key">"ProjectID"</span>:   <span class="num">6</span>,
+      <span class="key">"ProjectCode"</span>: <span class="str">"CAM002"</span>,
+      <span class="key">"ProjectName"</span>: <span class="str">"ATMOZ Ladprao 71"</span>
+    <span class="key">}</span>
+  ]
+<span class="key">}</span></div>
+      </div>
+
+      <div class="sub-label">Response Fields</div>
+      <table class="param-table">
+        <thead><tr>
+          <th>#</th><th>Field</th><th>Type</th><th>Description</th><th>Example</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>1</td><td><code>ProjectID</code></td><td><span class="type-badge">int</span></td><td>Unique project identifier</td><td>6</td></tr>
+          <tr><td>2</td><td><code>ProjectCode</code></td><td><span class="type-badge">string</span></td><td>Short project code (รหัสโครงการ)</td><td>CAM002</td></tr>
+          <tr><td>3</td><td><code>ProjectName</code></td><td><span class="type-badge">string</span></td><td>Full project name (ชื่อโครงการ)</td><td>ATMOZ Ladprao 71</td></tr>
+        </tbody>
+      </table>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       ENDPOINT 2 — GetContactChannels
+  ════════════════════════════════════════════════════ -->
+  <div class="endpoint-card" id="GetContactChannels">
+    <div class="endpoint-header">
+      <span class="method-badge method-get">GET</span>
+      <span class="endpoint-path">{Url}/api/Master/GetContactChannels</span>
+      <span class="endpoint-name">GetContactChannels</span>
+    </div>
+    <div class="endpoint-body">
+
+      <p style="font-size:.9rem;color:var(--muted);margin-bottom:16px;">
+        Returns all available contact channel options. For website registrations, always use
+        <code>ID = 21</code> (Web Site) as the <code>ContactChannelID</code> in
+        <a href="#SaveOtherSource">SaveOtherSource</a>.
+      </p>
+
+      <div class="sub-label">Request Headers</div>
+      <div class="auth-box">
+        <code>Authorization: Basic YXN3X2Npc19jdXN0b21lcjphc3dfY2lzX2N1c3RvbWVyQDIwMjMh</code>
+      </div>
+
+      <div class="sub-label">Query Parameters</div>
+      <div class="note-box">No parameters required.</div>
+
+      <div class="sub-label">Success Response (200 OK)</div>
+      <div class="response-success">
+        <div class="response-label">✓ 200 Success</div>
+        <div class="code-block"><span class="key">{</span>
+  <span class="key">"Success"</span>: <span class="bool">true</span>,
+  <span class="key">"Message"</span>: <span class="str">"Save success."</span>,
+  <span class="key">"Data"</span>: [
+    <span class="key">{ "ID"</span>: <span class="num">18</span>, <span class="key">"Name"</span>: <span class="str">"Call In"</span> <span class="key">}</span>,
+    <span class="key">{ "ID"</span>: <span class="num">19</span>, <span class="key">"Name"</span>: <span class="str">"Call Out"</span> <span class="key">}</span>,
+    <span class="key">{ "ID"</span>: <span class="num">20</span>, <span class="key">"Name"</span>: <span class="str">"Walk In"</span> <span class="key">}</span>,
+    <span class="key">{ "ID"</span>: <span class="num">21</span>, <span class="key">"Name"</span>: <span class="str">"Web Site"</span> <span class="key">}</span>,  <span style="color:#6a9955;">// ← use this for website leads</span>
+    <span class="key">{ "ID"</span>: <span class="num">22</span>, <span class="key">"Name"</span>: <span class="str">"Email"</span> <span class="key">}</span>
+  ]
+<span class="key">}</span></div>
+      </div>
+
+      <div class="sub-label">Response Fields</div>
+      <table class="param-table">
+        <thead><tr>
+          <th>#</th><th>Field</th><th>Type</th><th>Description</th><th>Example</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>1</td><td><code>ID</code></td><td><span class="type-badge">int</span></td><td>Contact channel identifier (รหัส)</td><td>21</td></tr>
+          <tr><td>2</td><td><code>Name</code></td><td><span class="type-badge">string</span></td><td>Channel name (ชื่อ)</td><td>Web Site</td></tr>
+        </tbody>
+      </table>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       ENDPOINT 3 — GetContactTypes
+  ════════════════════════════════════════════════════ -->
+  <div class="endpoint-card" id="GetContactTypes">
+    <div class="endpoint-header">
+      <span class="method-badge method-get">GET</span>
+      <span class="endpoint-path">{Url}/api/Master/GetContactTypes</span>
+      <span class="endpoint-name">GetContactTypes</span>
+    </div>
+    <div class="endpoint-body">
+
+      <p style="font-size:.9rem;color:var(--muted);margin-bottom:16px;">
+        Returns all contact type options. For website registration forms, always use
+        <code>ID = 35</code> (Register) as the <code>ContactTypeID</code> in
+        <a href="#SaveOtherSource">SaveOtherSource</a>.
+      </p>
+
+      <div class="sub-label">Request Headers</div>
+      <div class="auth-box">
+        <code>Authorization: Basic YXN3X2Npc19jdXN0b21lcjphc3dfY2lzX2N1c3RvbWVyQDIwMjMh</code>
+      </div>
+
+      <div class="sub-label">Query Parameters</div>
+      <div class="note-box">No parameters required.</div>
+
+      <div class="sub-label">Success Response (200 OK)</div>
+      <div class="response-success">
+        <div class="response-label">✓ 200 Success</div>
+        <div class="code-block"><span class="key">{</span>
+  <span class="key">"Success"</span>: <span class="bool">true</span>,
+  <span class="key">"Message"</span>: <span class="str">"Save success."</span>,
+  <span class="key">"Data"</span>: [
+    <span class="key">{ "ID"</span>: <span class="num">23</span>, <span class="key">"Name"</span>: <span class="str">"Inquiry"</span> <span class="key">}</span>,
+    <span class="key">{ "ID"</span>: <span class="num">24</span>, <span class="key">"Name"</span>: <span class="str">"Call In"</span> <span class="key">}</span>,
+    <span class="key">{ "ID"</span>: <span class="num">33</span>, <span class="key">"Name"</span>: <span class="str">"Visit Site"</span> <span class="key">}</span>,
+    <span class="key">{ "ID"</span>: <span class="num">34</span>, <span class="key">"Name"</span>: <span class="str">"Booth"</span> <span class="key">}</span>,
+    <span class="key">{ "ID"</span>: <span class="num">35</span>, <span class="key">"Name"</span>: <span class="str">"Register"</span> <span class="key">}</span>  <span style="color:#6a9955;">// ← use this for website registrations</span>
+  ]
+<span class="key">}</span></div>
+      </div>
+
+      <div class="sub-label">Response Fields</div>
+      <table class="param-table">
+        <thead><tr>
+          <th>#</th><th>Field</th><th>Type</th><th>Description</th><th>Example</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>1</td><td><code>ID</code></td><td><span class="type-badge">int</span></td><td>Contact type identifier (รหัส)</td><td>35</td></tr>
+          <tr><td>2</td><td><code>Name</code></td><td><span class="type-badge">string</span></td><td>Contact type name (ชื่อ)</td><td>Register</td></tr>
+        </tbody>
+      </table>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       ENDPOINT 4 — GetFollowUps
+  ════════════════════════════════════════════════════ -->
+  <div class="endpoint-card" id="GetFollowUps">
+    <div class="endpoint-header">
+      <span class="method-badge method-get">GET</span>
+      <span class="endpoint-path">{Url}/api/Master/GetFollowUps</span>
+      <span class="endpoint-name">GetFollowUps</span>
+    </div>
+    <div class="endpoint-body">
+
+      <p style="font-size:.9rem;color:var(--muted);margin-bottom:16px;">
+        Returns the available follow-up status options. For website leads requiring follow-up, always use
+        <code>ID = 42</code> (Yes) as the <code>FollowUpID</code> in
+        <a href="#SaveOtherSource">SaveOtherSource</a>.
+      </p>
+
+      <div class="sub-label">Request Headers</div>
+      <div class="auth-box">
+        <code>Authorization: Basic YXN3X2Npc19jdXN0b21lcjphc3dfY2lzX2N1c3RvbWVyQDIwMjMh</code>
+      </div>
+
+      <div class="sub-label">Query Parameters</div>
+      <div class="note-box">No parameters required.</div>
+
+      <div class="sub-label">Success Response (200 OK)</div>
+      <div class="response-success">
+        <div class="response-label">✓ 200 Success</div>
+        <div class="code-block"><span class="key">{</span>
+  <span class="key">"Success"</span>: <span class="bool">true</span>,
+  <span class="key">"Message"</span>: <span class="str">"Save success."</span>,
+  <span class="key">"Data"</span>: [
+    <span class="key">{ "ID"</span>: <span class="num">41</span>, <span class="key">"Name"</span>: <span class="str">"None"</span> <span class="key">}</span>,
+    <span class="key">{ "ID"</span>: <span class="num">42</span>, <span class="key">"Name"</span>: <span class="str">"Yes"</span> <span class="key">}</span>   <span style="color:#6a9955;">// ← use this for website leads</span>
+  ]
+<span class="key">}</span></div>
+      </div>
+
+      <div class="sub-label">Response Fields</div>
+      <table class="param-table">
+        <thead><tr>
+          <th>#</th><th>Field</th><th>Type</th><th>Description</th><th>Example</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>1</td><td><code>ID</code></td><td><span class="type-badge">int</span></td><td>Follow-up status identifier (รหัส)</td><td>42</td></tr>
+          <tr><td>2</td><td><code>Name</code></td><td><span class="type-badge">string</span></td><td>Follow-up status name (ชื่อ)</td><td>Yes</td></tr>
+        </tbody>
+      </table>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       ENDPOINT 5 — SaveShopPartner
+  ════════════════════════════════════════════════════ -->
+  <div class="endpoint-card" id="SaveShopPartner">
+    <div class="endpoint-header">
+      <span class="method-badge method-post">POST</span>
+      <span class="endpoint-path">{Url}/api/Customer/SaveShopPartner</span>
+      <span class="endpoint-name">SaveShopPartner</span>
+    </div>
+    <div class="endpoint-body">
+
+      <p style="font-size:.9rem;color:var(--muted);margin-bottom:16px;">
+        Registers a shop or partner business as a lead. Used when a business partner — rather than an
+        individual — expresses interest. Requires the partner's contact name, phone number, and email at minimum.
+      </p>
+
+      <div class="sub-label">Request Headers</div>
+      <div class="auth-box">
+        <code>Authorization: Basic YXN3X2Npc19jdXN0b21lcjphc3dfY2lzX2N1c3RvbWVyQDIwMjMh</code><br/>
+        <code>Content-Type: application/json</code>
+      </div>
+
+      <div class="sub-label">Request Body Parameters</div>
+      <table class="param-table">
+        <thead><tr>
+          <th>#</th><th>Field</th><th>Type</th><th>Required</th><th>Description</th><th>Example</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td><code>Name</code></td>
+            <td><span class="type-badge">string</span></td>
+            <td><span class="req-yes">✓ Required</span></td>
+            <td>Shop / partner name (ชื่อ)</td>
+            <td>ร้านทดสอบ</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td><code>Phone</code></td>
+            <td><span class="type-badge">string</span></td>
+            <td><span class="req-yes">✓ Required</span></td>
+            <td>Phone number (เบอร์โทร)</td>
+            <td>0876724XXX</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td><code>Email</code></td>
+            <td><span class="type-badge">string</span></td>
+            <td><span class="req-yes">✓ Required</span></td>
+            <td>Email address (อีเมล)</td>
+            <td>partner@example.com</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td><code>ProductType</code></td>
+            <td><span class="type-badge">string</span></td>
+            <td><span class="req-no">Optional</span></td>
+            <td>Product type of interest (ประเภทสินค้า)</td>
+            <td>Test Product Type</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td><code>Promotion</code></td>
+            <td><span class="type-badge">string</span></td>
+            <td><span class="req-no">Optional</span></td>
+            <td>Promotion name (โปรโมชั่น)</td>
+            <td>Test Promotion</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td><code>PeriodStartDate</code></td>
+            <td><span class="type-badge">date</span></td>
+            <td><span class="req-no">Optional</span></td>
+            <td>Period start date — format <code>YYYY-MM-DD</code> (วันที่เริ่ม)</td>
+            <td>2025-05-14</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td><code>PeriodEndDate</code></td>
+            <td><span class="type-badge">date</span></td>
+            <td><span class="req-no">Optional</span></td>
+            <td>Period end date — format <code>YYYY-MM-DD</code> (วันที่สิ้นสุด)</td>
+            <td>2025-05-15</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="sub-label">Example Request Body</div>
+      <div class="code-block"><span class="key">{</span>
+  <span class="key">"Name"</span>:            <span class="str">"ร้านทดสอบ"</span>,
+  <span class="key">"Phone"</span>:           <span class="str">"0876724001"</span>,
+  <span class="key">"Email"</span>:           <span class="str">"partner@example.com"</span>,
+  <span class="key">"ProductType"</span>:     <span class="str">"Condo"</span>,
+  <span class="key">"Promotion"</span>:       <span class="str">"Summer Sale 2025"</span>,
+  <span class="key">"PeriodStartDate"</span>: <span class="str">"2025-05-14"</span>,
+  <span class="key">"PeriodEndDate"</span>:   <span class="str">"2025-05-15"</span>
+<span class="key">}</span></div>
+
+      <div class="sub-label">Success Response</div>
+      <div class="response-success">
+        <div class="response-label">✓ 200 Success</div>
+        <div class="code-block"><span class="key">{</span>
+  <span class="key">"Success"</span>: <span class="bool">true</span>,
+  <span class="key">"Message"</span>: <span class="str">"Save success."</span>,
+  <span class="key">"Data"</span>: <span class="key">{}</span>
+<span class="key">}</span></div>
+      </div>
+
+      <div class="sub-label">Error Response</div>
+      <div class="response-error">
+        <div class="response-label">✗ Error</div>
+        <div class="code-block"><span class="key">{</span>
+  <span class="key">"Success"</span>: <span class="bool">false</span>,
+  <span class="key">"Message"</span>: <span class="str">"{MsgError}"</span>,
+  <span class="key">"Data"</span>: []
+<span class="key">}</span></div>
+      </div>
+
+      <div class="sub-label">Error Messages</div>
+      <table class="error-table">
+        <thead><tr><th>#</th><th>Message (TH)</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>โปรดระบุข้อมูลชื่อ ,เบอร์โทร ,อีเมล ให้ครบถ้วน</td>
+            <td>Name, Phone, and Email are all required. One or more was missing.</td>
+          </tr>
+        </tbody>
+      </table>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       ENDPOINT 6 — SaveOtherSource
+  ════════════════════════════════════════════════════ -->
+  <div class="endpoint-card" id="SaveOtherSource">
+    <div class="endpoint-header">
+      <span class="method-badge method-post">POST</span>
+      <span class="endpoint-path">{Url}/api/Customer/SaveOtherSource</span>
+      <span class="endpoint-name">SaveOtherSource</span>
+    </div>
+    <div class="endpoint-body">
+
+      <p style="font-size:.9rem;color:var(--muted);margin-bottom:16px;">
+        The primary endpoint for registering individual leads captured from a real-estate website.
+        Supports UTM tracking parameters, appointment scheduling, consent flags, and an optional
+        <code>RegisterData</code> wrapper that overrides all individual fields when present.
+      </p>
+
+      <div class="note-box">
+        <strong>Fixed values for website integration:</strong><br/>
+        &nbsp;&bull;&nbsp;<code>ContactChannelID = 21</code> → Web Site<br/>
+        &nbsp;&bull;&nbsp;<code>ContactTypeID = 35</code> → Register<br/>
+        &nbsp;&bull;&nbsp;<code>FollowUpID = 42</code> → Yes
+      </div>
+
+      <div class="sub-label">Request Headers</div>
+      <div class="auth-box">
+        <code>Authorization: Basic YXN3X2Npc19jdXN0b21lcjphc3dfY2lzX2N1c3RvbWVyQDIwMjMh</code><br/>
+        <code>Content-Type: application/json</code>
+      </div>
+
+      <div class="sub-label">Request Body Parameters</div>
+      <table class="param-table">
+        <thead><tr>
+          <th>#</th><th>Field</th><th>Type</th><th>Required</th><th>Description</th><th>Example</th>
+        </tr></thead>
+        <tbody>
+          <!-- required -->
+          <tr>
+            <td>1</td>
+            <td><code>ProjectID</code></td>
+            <td><span class="type-badge">int</span></td>
+            <td><span class="req-yes">✓ Required</span></td>
+            <td>Project ID from <a href="#GetProjects">GetProjects</a> (รหัสโครงการ)</td>
+            <td>9</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td><code>ContactChannelID</code></td>
+            <td><span class="type-badge">int</span></td>
+            <td><span class="req-yes">✓ Required</span></td>
+            <td>Fixed: <code>21</code> = Web Site (รหัสช่องทางติดต่อ)</td>
+            <td>21</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td><code>ContactTypeID</code></td>
+            <td><span class="type-badge">int</span></td>
+            <td><span class="req-yes">✓ Required</span></td>
+            <td>Fixed: <code>35</code> = Register (รหัสประเภทติดต่อ)</td>
+            <td>35</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td><code>RefID</code></td>
+            <td><span class="type-badge">int</span></td>
+            <td><span class="req-yes">✓ Required</span></td>
+            <td>Reference ID / sequence number from source system (รหัสอ้างอิงจากระบบต้นทาง)</td>
+            <td>5345</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td><code>Fname</code></td>
+            <td><span class="type-badge">string</span></td>
+            <td><span class="req-yes">✓ Required</span></td>
+            <td>First name (ชื่อ)</td>
+            <td>สมชาย</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td><code>Lname</code></td>
+            <td><span class="type-badge">string</span></td>
+            <td><span class="req-yes">✓ Required</span></td>
+            <td>Last name (นามสกุล)</td>
+            <td>ใจดี</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td><code>Tel</code></td>
+            <td><span class="type-badge">string</span></td>
+            <td><span class="req-yes">✓ Required</span></td>
+            <td>Phone number — use <code>NULL</code> string if unavailable (เบอร์ติดต่อ)</td>
+            <td>0898989888</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td><code>Email</code></td>
+            <td><span class="type-badge">string</span></td>
+            <td><span class="req-yes">✓ Required</span></td>
+            <td>Email — use <code>NULL</code> string if unavailable (Email)</td>
+            <td>user@yahoo.com</td>
+          </tr>
+          <tr>
+            <td>9</td>
+            <td><code>Ref</code></td>
+            <td><span class="type-badge">string</span></td>
+            <td><span class="req-yes">✓ Required</span></td>
+            <td>Contact detail / source description (รายละเอียดของการติดต่อ)</td>
+            <td>direct</td>
+          </tr>
+          <tr>
+            <td>10</td>
+            <td><code>RefDate</code></td>
+            <td><span class="type-badge">datetime</span></td>
+            <td><span class="req-yes">✓ Required</span></td>
+            <td>Date and time of contact — format <code>YYYY-MM-DD HH:mm:ss</code> (วันที่ติดต่อ)</td>
+            <td>2024-10-08 14:06:39</td>
+          </tr>
+          <tr>
+            <td>11</td>
+            <td><code>FollowUpID</code></td>
+            <td><span class="type-badge">int</span></td>
+            <td><span class="req-yes">✓ Required</span></td>
+            <td>Fixed: <code>42</code> = Yes (ประเภทการติดตาม)</td>
+            <td>42</td>
+          </tr>
+
+          <!-- optional -->
+          <tr>
+            <td>12</td>
+            <td><code>utm_source</code></td>
+            <td><span class="type-badge">string</span></td>
+            <td><span class="req-no">Optional</span></td>
+            <td>UTM source parameter</td>
+            <td>FB_Atmoz15_Work02</td>
+          </tr>
+          <tr>
+            <td>13</td>
+            <td><code>utm_medium</code></td>
+            <td><span class="type-badge">string</span></td>
+            <td><span class="req-no">Optional</span></td>
+            <td>UTM medium parameter</td>
+            <td>cpc</td>
+          </tr>
+          <tr>
+            <td>14</td>
+            <td><code>utm_campaign</code></td>
+            <td><span class="type-badge">string</span></td>
+            <td><span class="req-no">Optional</span></td>
+            <td>UTM campaign parameter</td>
+            <td>summer2025</td>
+          </tr>
+          <tr>
+            <td>15</td>
+            <td><code>utm_term</code></td>
+            <td><span class="type-badge">string</span></td>
+            <td><span class="req-no">Optional</span></td>
+            <td>UTM term parameter</td>
+            <td>condo bangkok</td>
+          </tr>
+          <tr>
+            <td>16</td>
+            <td><code>utm_content</code></td>
+            <td><span class="type-badge">string</span></td>
+            <td><span class="req-no">Optional</span></td>
+            <td>UTM content parameter</td>
+            <td>banner_hero</td>
+          </tr>
+          <tr>
+            <td>17</td>
+            <td><code>PriceInterest</code></td>
+            <td><span class="type-badge">string</span></td>
+            <td><span class="req-no">Optional</span></td>
+            <td>Price range of interest (ราคาห้องที่สนใจ)</td>
+            <td>1,200,000 - 1,500,000</td>
+          </tr>
+          <tr>
+            <td>18</td>
+            <td><code>ModelInterest</code></td>
+            <td><span class="type-badge">string</span></td>
+            <td><span class="req-no">Optional</span></td>
+            <td>Unit model / room type of interest (รูปแบบห้องที่สนใจ)</td>
+            <td>1 Bedroom</td>
+          </tr>
+          <tr>
+            <td>19</td>
+            <td><code>PromoCode</code></td>
+            <td><span class="type-badge">string</span></td>
+            <td><span class="req-no">Optional</span></td>
+            <td>Promotion code applied (Promo Code)</td>
+            <td>SUMMER25</td>
+          </tr>
+          <tr>
+            <td>20</td>
+            <td><code>PurchasePurpose</code></td>
+            <td><span class="type-badge">string</span></td>
+            <td><span class="req-no">Optional</span></td>
+            <td>Reason for purchase interest (วัตถุประสงค์ในการซื้อ)</td>
+            <td>ปล่อยเช่า</td>
+          </tr>
+          <tr>
+            <td>21</td>
+            <td><code>FlagPersonalAccept</code></td>
+            <td><span class="type-badge">boolean</span></td>
+            <td><span class="req-no">Optional</span></td>
+            <td>Personal data consent flag (ความยินยอมในการให้ข้อมูลส่วนตัว)</td>
+            <td>true</td>
+          </tr>
+          <tr>
+            <td>22</td>
+            <td><code>FlagContactAccept</code></td>
+            <td><span class="type-badge">boolean</span></td>
+            <td><span class="req-no">Optional</span></td>
+            <td>Marketing contact consent flag (ความยินยอมในการให้ติดต่อกลับ)</td>
+            <td>true</td>
+          </tr>
+          <tr>
+            <td>23</td>
+            <td><code>AppointDate</code></td>
+            <td><span class="type-badge">datetime</span></td>
+            <td><span class="req-no">Optional</span></td>
+            <td>Appointment visit date — format <code>YYYY-MM-DD</code> (วันที่นัดเยี่ยมชม)</td>
+            <td>2025-06-30</td>
+          </tr>
+          <tr>
+            <td>24</td>
+            <td><code>AppointTime</code></td>
+            <td><span class="type-badge">string</span></td>
+            <td><span class="req-cond">⚡ Conditionally Required<br/>(if AppointDate is set)</span></td>
+            <td>Appointment start time — format <code>HH:mm</code> (เวลาที่เริ่ม)</td>
+            <td>15:05</td>
+          </tr>
+          <tr>
+            <td>25</td>
+            <td><code>AppointTimeEnd</code></td>
+            <td><span class="type-badge">string</span></td>
+            <td><span class="req-cond">⚡ Conditionally Required<br/>(if AppointDate is set)</span></td>
+            <td>Appointment end time — format <code>HH:mm</code> (เวลาที่สิ้นสุด)</td>
+            <td>16:05</td>
+          </tr>
+          <tr>
+            <td>26</td>
+            <td><code>LineID</code></td>
+            <td><span class="type-badge">string</span></td>
+            <td><span class="req-no">Optional</span></td>
+            <td>Customer's LINE ID</td>
+            <td>line_user_xyz</td>
+          </tr>
+          <tr>
+            <td>27</td>
+            <td><code>RegisterData</code></td>
+            <td><span class="type-badge">string</span></td>
+            <td><span class="req-no">Optional</span></td>
+            <td>
+              JSON-encoded string containing all lead fields. <strong>When present, this field's content
+              overrides all other individual fields.</strong> Must be a stringified JSON object.
+              (ข้อมูล JSON ที่ส่งเข้ามา — ถ้ามีข้อมูล field นี้จะนำไปบันทึกแทนข้อมูลของ field อื่นๆ)
+            </td>
+            <td><em>see example below</em></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="note-box" style="margin-top:14px;">
+        <strong>RegisterData override behaviour:</strong> If <code>RegisterData</code> is included, the
+        system ignores all other top-level fields and uses only the JSON encoded inside
+        <code>RegisterData</code>. The inner JSON uses the same field names listed above.
+      </div>
+
+      <div class="sub-label">Example Request Body — Standard</div>
+      <div class="code-block"><span class="key">{</span>
+  <span class="key">"ProjectID"</span>:          <span class="num">9</span>,
+  <span class="key">"ContactChannelID"</span>:    <span class="num">21</span>,
+  <span class="key">"ContactTypeID"</span>:       <span class="num">35</span>,
+  <span class="key">"RefID"</span>:               <span class="num">5345</span>,
+  <span class="key">"Fname"</span>:               <span class="str">"สมชาย"</span>,
+  <span class="key">"Lname"</span>:               <span class="str">"ใจดี"</span>,
+  <span class="key">"Tel"</span>:                 <span class="str">"0898989888"</span>,
+  <span class="key">"Email"</span>:               <span class="str">"user@example.com"</span>,
+  <span class="key">"Ref"</span>:                 <span class="str">"direct"</span>,
+  <span class="key">"RefDate"</span>:             <span class="str">"2024-10-08 14:06:39"</span>,
+  <span class="key">"FollowUpID"</span>:          <span class="num">42</span>,
+  <span class="key">"utm_source"</span>:          <span class="str">"facebook"</span>,
+  <span class="key">"utm_medium"</span>:          <span class="str">"cpc"</span>,
+  <span class="key">"utm_campaign"</span>:        <span class="str">"atmoz_summer25"</span>,
+  <span class="key">"PriceInterest"</span>:       <span class="str">"1,200,000 - 1,500,000"</span>,
+  <span class="key">"ModelInterest"</span>:       <span class="str">"1 Bedroom"</span>,
+  <span class="key">"PromoCode"</span>:           <span class="str">"SUMMER25"</span>,
+  <span class="key">"FlagPersonalAccept"</span>:  <span class="bool">true</span>,
+  <span class="key">"FlagContactAccept"</span>:   <span class="bool">true</span>,
+  <span class="key">"AppointDate"</span>:         <span class="str">"2025-06-30"</span>,
+  <span class="key">"AppointTime"</span>:         <span class="str">"10:00"</span>,
+  <span class="key">"AppointTimeEnd"</span>:      <span class="str">"11:00"</span>,
+  <span class="key">"LineID"</span>:              <span class="str">"line_user_xyz"</span>
+<span class="key">}</span></div>
+
+      <div class="sub-label">Example Request Body — Using RegisterData Wrapper</div>
+      <div class="code-block"><span class="key">{</span>
+  <span class="key">"RegisterData"</span>: <span class="str">"{\"ProjectID\":32,\"ContactChannelID\":21,\"ContactTypeID\":35,\"RefID\":1,\"Fname\":\"ศิริพจน์\",\"Lname\":\"เสริมเกียรติสกุล\",\"Tel\":\"0899999999\",\"Email\":\"user@assetwise.co.th\",\"Ref\":\"direct\",\"RefDate\":\"2023-05-16 14:30:00\",\"LineID\":\"supershin1999\",\"utm_source\":null,\"utm_medium\":null,\"utm_campaign\":null,\"PriceInterest\":\"1 - 3 ล้านบาท\",\"ModelInterest\":\"2C2 30 SQ.M.\",\"PromoCode\":\"UPZTEST_PROMO\",\"AppointDate\":\"2023-04-30T00:00:00\",\"AppointTime\":\"9:00\",\"AppointTimeEnd\":\"12:00\",\"FlagPersonalAccept\":true,\"FlagContactAccept\":true,\"PurchasePurpose\":\"เก็งกำไร\",\"FollowUpID\":41}"</span>
+<span class="key">}</span></div>
+
+      <div class="sub-label">Success Response</div>
+      <div class="response-success">
+        <div class="response-label">✓ 200 Success</div>
+        <div class="code-block"><span class="key">{</span>
+  <span class="key">"Success"</span>: <span class="bool">true</span>,
+  <span class="key">"Message"</span>: <span class="str">"Save success."</span>,
+  <span class="key">"Data"</span>: <span class="key">{}</span>
+<span class="key">}</span></div>
+      </div>
+
+      <div class="sub-label">Error Response</div>
+      <div class="response-error">
+        <div class="response-label">✗ Error</div>
+        <div class="code-block"><span class="key">{</span>
+  <span class="key">"Success"</span>: <span class="bool">false</span>,
+  <span class="key">"Message"</span>: <span class="str">"{MsgError}"</span>,
+  <span class="key">"Data"</span>: []
+<span class="key">}</span></div>
+      </div>
+
+      <div class="sub-label">Error Messages Reference</div>
+      <table class="error-table">
+        <thead><tr><th>#</th><th>Error Message (TH)</th><th>Meaning / Missing Field</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>ไม่สามารถ Save other source ได้ เนื่องจากไม่มี ProjectID</td><td><code>ProjectID</code> is missing or invalid</td></tr>
+          <tr><td>2</td><td>ไม่สามารถ Save other source ได้ เนื่องจากไม่มี ContactChannelID</td><td><code>ContactChannelID</code> is missing</td></tr>
+          <tr><td>3</td><td>ไม่สามารถ Save other source ได้ เนื่องจากไม่มี ContactTypeID</td><td><code>ContactTypeID</code> is missing</td></tr>
+          <tr><td>4</td><td>ไม่สามารถ Save other source ได้ เนื่องจากไม่มี RefID</td><td><code>RefID</code> is missing</td></tr>
+          <tr><td>5</td><td>ไม่สามารถ Save other source ได้ เนื่องจากไม่มี Fname</td><td><code>Fname</code> (first name) is missing</td></tr>
+          <tr><td>6</td><td>ไม่สามารถ Save other source ได้ เนื่องจากไม่มี Lname</td><td><code>Lname</code> (last name) is missing</td></tr>
+          <tr><td>7</td><td>ไม่สามารถ Save other source ได้ เนื่องจากไม่มี Tel</td><td><code>Tel</code> is missing (send <code>"NULL"</code> if unavailable)</td></tr>
+          <tr><td>8</td><td>ไม่สามารถ Save other source ได้ เนื่องจากไม่มี Email</td><td><code>Email</code> is missing (send <code>"NULL"</code> if unavailable)</td></tr>
+          <tr><td>9</td><td>ไม่สามารถ Save other source ได้ เนื่องจากไม่มี Ref</td><td><code>Ref</code> (contact detail) is missing</td></tr>
+          <tr><td>10</td><td>ไม่สามารถ Save other source ได้ เนื่องจากไม่มี RefDate</td><td><code>RefDate</code> is missing</td></tr>
+          <tr><td>11</td><td>ไม่สามารถ Save other source ได้ เนื่องจากไม่มี FollowUpID</td><td><code>FollowUpID</code> is missing</td></tr>
+          <tr><td>12</td><td>ไม่สามารถ Save other source ได้ เนื่องจากไม่พบ User ที่ทำการ Create</td><td>Authorization credentials are invalid or user not found</td></tr>
+          <tr><td>13</td><td>ไม่สามารถ Save other source ได้ เนื่องจากไม่พบ Appoint Time</td><td><code>AppointTime</code> is required when <code>AppointDate</code> is provided</td></tr>
+          <tr><td>14</td><td>ไม่สามารถ Save other source ได้ เนื่องจากไม่พบ Appoint Time End</td><td><code>AppointTimeEnd</code> is required when <code>AppointDate</code> is provided</td></tr>
+        </tbody>
+      </table>
+
+    </div>
+  </div>
+
+  <!-- ── INTEGRATION NOTES ── -->
+  <div class="section-title">Integration Notes</div>
+  <div class="info-card">
+    <p style="font-size:.9rem;color:var(--text);line-height:1.75;">
+      <strong>Typical website registration flow:</strong>
+    </p>
+    <ol style="margin:12px 0 0 20px;font-size:.88rem;line-height:2;">
+      <li>On page load, call <strong>GetProjects</strong> to get the correct <code>ProjectID</code> for the landing page.</li>
+      <li>When the visitor submits the registration form, call <strong>SaveOtherSource</strong> with:
+        <ul style="margin-top:4px;margin-left:20px;">
+          <li>The resolved <code>ProjectID</code></li>
+          <li><code>ContactChannelID = 21</code> (Web Site — fixed)</li>
+          <li><code>ContactTypeID = 35</code> (Register — fixed)</li>
+          <li><code>FollowUpID = 42</code> (Yes — fixed)</li>
+          <li>All UTM parameters captured from the URL</li>
+          <li>Consent flags from the form checkboxes</li>
+        </ul>
+      </li>
+      <li>Handle the <code>Success: false</code> case by showing an appropriate error to the user or logging for retry.</li>
+      <li>Use <strong>GetContactChannels</strong>, <strong>GetContactTypes</strong>, and <strong>GetFollowUps</strong> only when building admin UIs or when the fixed IDs need to be validated.</li>
+    </ol>
+    <div class="note-box" style="margin-top:16px;">
+      <strong>Date / Time formats:</strong> Use <code>YYYY-MM-DD HH:mm:ss</code> for <code>RefDate</code>
+      and <code>YYYY-MM-DD</code> for <code>AppointDate</code>. Use <code>HH:mm</code> for appointment
+      time fields.
+    </div>
+    <div class="note-box" style="margin-top:8px;">
+      <strong>NULL values:</strong> For required string fields such as <code>Tel</code> and <code>Email</code>
+      where data may genuinely be absent, pass the string <code>"NULL"</code> rather than omitting the field
+      or sending a JavaScript <code>null</code>.
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  CIS Customer Management API &mdash; Website Lead Registration &mdash; v15.0 &nbsp;|&nbsp;
+  Generated from <em>Customermanagement API v15.0 WebSite Register.xlsx</em> &nbsp;|&nbsp;
+  Assetwise Co., Ltd.
+</footer>
+
+</body>
+</html>

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createFgfLeadWithProjects } from '@/modules/utils/storage';
-import { getSession } from '@/modules/utils/auth';
 
 const FgfSubmitSchema = z.object({
   referrerName:     z.string().min(1),
@@ -14,6 +13,14 @@ const FgfSubmitSchema = z.object({
   leadTel:          z.string().min(9),
   projectIds:       z.array(z.string().uuid()).min(1),
 });
+
+/**
+ * Format a Date to CIS-required format: "YYYY-MM-DD HH:mm:ss"
+ */
+function formatCisDate(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     const leadId = result.lead.id;
 
-    // Determine CIS URL: UAT in non-production, PROD in production
+    // ── Determine CIS URL: UAT in non-production, PROD in production ──
     const cisUrl =
       process.env.NODE_ENV !== 'production'
         ? process.env.CIS_API_UAT?.trim()
@@ -70,23 +77,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ── CIS uses HTTP Basic Authentication (not Bearer) ──
     const token = process.env.CIS_TOKEN?.trim();
     const cisHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) {
-      cisHeaders.Authorization = `Bearer ${token}`;
+      cisHeaders.Authorization = `Basic ${token}`;
     }
 
+    // ── Build CIS SaveOtherSource payload per API v15.0 spec ──
+    // We send one request per project (CIS requires a single ProjectID per request).
+    // We use the first project; the rest are logged in the Ref field for traceability.
+    // Since our DB uses UUIDs and CIS expects int ProjectID, we generate a numeric RefID
+    // from the lead's DB id and store our UUIDs in the Ref field for cross-referencing.
+    const numericRefId = parseInt(leadId.replace(/-/g, '').slice(0, 8), 16);
+    const now = formatCisDate(new Date());
+
     const cisPayload = {
-      fgfLeadId:        leadId,
-      referrerName:     data.referrerName,
-      referrerLastName: data.referrerLastName,
-      referrerEmail:    data.referrerEmail,
-      referrerTel:      data.referrerTel,
-      leadName:         data.leadName,
-      leadLastName:     data.leadLastName,
-      leadEmail:        data.leadEmail,
-      leadTel:          data.leadTel,
-      projectIds:       data.projectIds,
+      ProjectID:        0,                    // Default; CIS will route via Ref field
+      ContactChannelID: 21,                   // Web Site (fixed per CIS spec)
+      ContactTypeID:    35,                   // Register (fixed per CIS spec)
+      RefID:            numericRefId,          // Numeric reference from our lead UUID
+      Fname:            data.leadName,         // Lead's first name
+      Lname:            data.leadLastName,     // Lead's last name
+      Tel:              data.leadTel || 'NULL', // CIS requires "NULL" string if absent
+      Email:            data.leadEmail || 'NULL',
+      Ref:              `CreatorClub FGF | Referrer: ${data.referrerName} ${data.referrerLastName} (${data.referrerTel}) | Projects: ${data.projectIds.join(',')}`,
+      RefDate:          now,
+      FollowUpID:       42,                   // Yes (fixed per CIS spec)
+      FlagPersonalAccept:  true,
+      FlagContactAccept:   true,
+      utm_source:       'creatorclub',
+      utm_medium:       'referral',
+      utm_campaign:     'friend_get_friend',
     };
 
     let cisError: unknown;
@@ -100,6 +122,12 @@ export async function POST(request: NextRequest) {
       if (!cisRes.ok) {
         const text = await cisRes.text();
         cisError = { status: cisRes.status, body: text };
+      } else {
+        // Parse CIS response to check Success flag
+        const cisData = await cisRes.json().catch(() => null);
+        if (cisData && cisData.Success === false) {
+          cisError = { status: 200, body: cisData.Message || 'CIS returned Success: false' };
+        }
       }
     } catch (err) {
       cisError = { message: err instanceof Error ? err.message : String(err) };
