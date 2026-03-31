@@ -214,12 +214,6 @@ export function LoginModal({ onClose, onLogin }: LoginModalProps) {
             </button>
           </p>
         </form>
-
-        <div className="mt-6 p-3 bg-muted rounded-lg">
-          <p className="text-sm text-muted-foreground text-center">
-            สำหรับทีมงาน: ใช้ admin@creatorsclub.com / admin
-          </p>
-        </div>
       </div>
     </div>
   );

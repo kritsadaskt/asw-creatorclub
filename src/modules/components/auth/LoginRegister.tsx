@@ -314,12 +314,6 @@ export function LoginRegister({ onLogin }: LoginRegisterProps) {
             {isLogin ? 'ยังไม่มีบัญชี? ลงทะเบียนที่นี่' : 'มีบัญชีแล้ว? เข้าสู่ระบบ'}
           </button>
         </div>
-
-        <div className="mt-6 p-3 bg-muted rounded-lg">
-          <p className="text-sm text-muted-foreground text-center">
-            สำหรับทีมงาน: ใช้ admin@creatorsclub.com / admin
-          </p>
-        </div>
       </div>
     </div>
   );
