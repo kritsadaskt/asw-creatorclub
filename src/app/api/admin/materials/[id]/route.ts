@@ -26,10 +26,18 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid title' }, { status: 400 });
   }
 
+  if ('projectId' in (body as object)) {
+    if (projectId !== undefined && (!projectId || !String(projectId).trim())) {
+      return NextResponse.json({ error: 'ต้องระบุโครงการ' }, { status: 400 });
+    }
+  }
+
   const updates: Record<string, unknown> = {};
   if (title !== undefined) updates.title = title;
   if ('description' in (body as object)) updates.description = description ?? null;
-  if ('projectId' in (body as object)) updates.project_id = projectId ?? null;
+  if ('projectId' in (body as object) && projectId !== undefined) {
+    updates.project_id = projectId.trim();
+  }
 
   try {
     const { data, error } = await supabaseAdmin
