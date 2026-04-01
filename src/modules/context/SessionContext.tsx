@@ -19,7 +19,7 @@ import { initFacebookSDK } from '@/modules/utils/facebook';
 type SessionContextValue = {
   currentUserId: string | null;
   userRole: UserRole | null;
-  handleLogin: (id: string, role: UserRole) => void;
+  handleLogin: (id: string, role: UserRole, redirectTo?: string) => void;
   handleLogout: () => void;
 };
 
@@ -47,12 +47,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const handleLogin = useCallback(
-    (id: string, role: UserRole) => {
+    (id: string, role: UserRole, redirectTo?: string) => {
       setCurrentUserId(id);
       setUserRole(role);
       setSession({ id, role });
       if (role === 'creator') {
-        router.push('/profile');
+        router.push(redirectTo ?? '/profile');
       } else if (role === 'admin') {
         router.push('/admin');
       }

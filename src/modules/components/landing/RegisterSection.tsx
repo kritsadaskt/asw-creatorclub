@@ -20,7 +20,7 @@ import Link from 'next/link';
 type SelectOption = { value: string; label: string };
 
 interface RegisterSectionProps {
-  onLogin: (id: string, role: 'creator' | 'admin') => void;
+  onLogin: (id: string, role: 'creator' | 'admin', redirectTo?: string) => void;
   /** When set, the category field is hidden and these labels are saved (invite link flow). */
   fixedCategoryLabels?: string[];
   variant?: 'landing' | 'standalone';
@@ -488,7 +488,7 @@ export function RegisterSection({
       toast.success('ลงทะเบียนสำเร็จ!', {
         description: 'ยินดีต้อนรับเข้าสู่ AssetWise Creators Club'
       });
-      onLogin(newCreator.id, 'creator');
+      onLogin(newCreator.id, 'creator', '/thank-you');
     } catch (err) {
       console.error('Error:', err);
       setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
