@@ -9,9 +9,23 @@ export async function POST(request: NextRequest) {
   }
 
   let creatorId: string;
+  let projectUrl: string;
+  let utmSource: string;
+  let utmMedium: string;
+  let utmCampaign: string;
+  let utmId: string;
+
   try {
     const body = await request.json();
     creatorId = body.creatorId;
+    projectUrl = body.projectUrl;
+    utmSource = body.utmSource;
+    utmMedium = body.utmMedium;
+    utmCampaign = body.utmCampaign;
+    utmId = body.utmId;
+
+    console.log('projectUrl', projectUrl);
+
     if (!creatorId || typeof creatorId !== 'string') {
       return NextResponse.json({ error: 'creatorId is required' }, { status: 400 });
     }
@@ -19,8 +33,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const longUrl = `https://assetwise.co.th/creatorclub/?ref=${creatorId}`;
-  const customSlug = `ref-${creatorId.slice(0, 8)}`;
+  const longUrl = `${projectUrl}?utm_source=${utmSource}&utm_medium=${utmMedium}&utm_campaign=${utmCampaign}&utm_id=${utmId}&ref=${creatorId}`;
+  //const customSlug = `ref-${creatorId.slice(0, 8)}`;
 
   let shlinkRes: Response;
   try {
@@ -31,7 +45,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
         'X-Api-Key': apiKey,
       },
-      body: JSON.stringify({ longUrl, customSlug, findIfExists: true }),
+      body: JSON.stringify({ longUrl, findIfExists: true }),
     });
   } catch (err) {
     console.error('Shlink fetch error:', err);

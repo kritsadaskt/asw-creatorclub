@@ -138,16 +138,24 @@ function AffiliateProjectList() {
     loadProjects();
   }, []);
 
-  // Generate referral short link when drawer opens
-  const generateReferralLink = async () => {
+  // Generate referral short link when drawer opens (pass project — state from setSelectedProject is not updated until after this handler runs)
+  const generateReferralLink = async (project: AffiliateProject) => {
     if (!currentUserId) return;
     setIsShorteningLink(true);
     setShortUrl(null);
+
     try {
       const res = await fetch(`${BASE_PATH}/api/affiliate/shorten`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ creatorId: currentUserId }),
+        body: JSON.stringify({ 
+          creatorId: currentUserId,
+          projectUrl: project.materialsUrl,
+          utmSource: 'creator_club_affiliate',
+          utmMedium: 'affiliate',
+          utmCampaign: 'creator_club_affiliate',
+          utmId: currentUserId,
+        }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -229,7 +237,7 @@ function AffiliateProjectList() {
     setIsMaterialsOpen(true);
     setShortUrl(null);
     setLinkCopied(false);
-    generateReferralLink();
+    void generateReferralLink(project);
     loadMaterials(project.id);
   };
 
