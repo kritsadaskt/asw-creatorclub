@@ -36,7 +36,7 @@ import { HeroBanner } from '../landing/HeroBanner';
 import { StatusBadge } from '../ui/status-badge';
 import { LoginModal } from '../landing/LoginModal';
 import { useSession } from '@/modules/context/SessionContext';
-import { getAffiliateMaterialsByProject } from '@/modules/utils/storage';
+import { getAffiliateMaterialsByProject, saveAffiliateLinkIfUrlNewForCreator } from '@/modules/utils/storage';
 import type { AffiliateMaterial } from '@/modules/types';
 import { toast } from 'sonner';
 
@@ -192,6 +192,19 @@ function AffiliateProjectList() {
       setLinkCopied(true);
       toast.success('คัดลอกลิงก์แล้ว!');
       setTimeout(() => setLinkCopied(false), 2000);
+
+      if (currentUserId && selectedProject) {
+        try {
+          await saveAffiliateLinkIfUrlNewForCreator({
+            creatorId: currentUserId,
+            url: shortUrl,
+            projectId: selectedProject.id,
+            campaignName: selectedProject.name,
+          });
+        } catch (err) {
+          console.error('Failed to persist copied affiliate link:', err);
+        }
+      }
     } catch {
       toast.error('ไม่สามารถคัดลอกได้');
     }
