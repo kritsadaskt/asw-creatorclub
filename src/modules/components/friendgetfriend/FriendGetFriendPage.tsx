@@ -243,7 +243,7 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
                   <span className="text-muted-foreground">
                     ฉันยอมรับ{' '}
                     <a
-                      href={`${BASE_PATH}/terms-and-conditions`}
+                      href={`${BASE_PATH}/friendgetfriends/privacy-policy`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="underline text-primary hover:text-primary/80"
