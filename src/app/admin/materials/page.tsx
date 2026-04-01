@@ -1,5 +1,5 @@
-import { AffiliateMaterialsAdmin } from '@/modules/components/admin/AffiliateMaterialsAdmin';
+import { redirect } from 'next/navigation';
 
-export default function AdminMaterialsPage() {
-  return <AffiliateMaterialsAdmin />;
+export default function AdminMaterialsRedirectPage() {
+  redirect('/admin/projects');
 }

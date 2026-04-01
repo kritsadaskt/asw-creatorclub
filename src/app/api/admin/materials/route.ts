@@ -22,6 +22,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'ข้อมูลไม่ครบถ้วน' }, { status: 400 });
   }
 
+  if (!projectId || typeof projectId !== 'string' || !projectId.trim()) {
+    return NextResponse.json({ error: 'ต้องระบุโครงการ' }, { status: 400 });
+  }
+
   if (!['image', 'pdf', 'video'].includes(fileType)) {
     return NextResponse.json({ error: 'fileType ไม่ถูกต้อง' }, { status: 400 });
   }
@@ -32,7 +36,7 @@ export async function POST(request: NextRequest) {
       .upsert(
         {
           id,
-          project_id:  projectId ?? null,
+          project_id:  projectId.trim(),
           title,
           description: description ?? null,
           file_url:    fileUrl,

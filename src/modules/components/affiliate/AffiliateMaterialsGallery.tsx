@@ -57,7 +57,7 @@ export function AffiliateMaterialsGallery() {
   const filteredMaterials =
     selectedProjectId === 'all'
       ? materials
-      : materials.filter((m) => m.projectId === selectedProjectId || !m.projectId);
+      : materials.filter((m) => m.projectId === selectedProjectId);
 
   // Collect unique projectIds that actually appear in materials
   const usedProjectIds = new Set(materials.map((m) => m.projectId).filter(Boolean));
