@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createFgfLeadWithProjects } from '@/modules/utils/storage';
+import { getSession } from '@/modules/utils/auth';
 
 const FgfSubmitSchema = z.object({
   referrerName:     z.string().min(1),
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
 
     const leadId = result.lead.id;
 
-    // ── Determine CIS URL: UAT in non-production, PROD in production ──
+    // Determine CIS URL: UAT in non-production, PROD in production
     const cisUrl =
       process.env.NODE_ENV !== 'production'
         ? process.env.CIS_API_UAT?.trim()
