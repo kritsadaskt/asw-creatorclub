@@ -30,13 +30,17 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '../ui/pagination';
-import { FaGoogleDrive, FaLink } from "react-icons/fa";
-import { Loader2 } from 'lucide-react';
+import { FaLink } from 'react-icons/fa';
+import { Loader2, Copy, Check, Download, FileImage, FileText, Film } from 'lucide-react';
 import { HeroBanner } from '../landing/HeroBanner';
 import { StatusBadge } from '../ui/status-badge';
 import { LoginModal } from '../landing/LoginModal';
 import { useSession } from '@/modules/context/SessionContext';
+import { getAffiliateMaterialsByProject, saveAffiliateLinkIfUrlNewForCreator } from '@/modules/utils/storage';
+import type { AffiliateMaterial } from '@/modules/types';
+import { toast } from 'sonner';
 
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || '';
 const DEFAULT_ITEMS_PER_PAGE = 10;
 const STATUS_FILTER_ALL = 'all';
 type ProjectStatusValue = 'ready' | 'new' | 'sold_out';
@@ -63,6 +67,16 @@ function AffiliateProjectList() {
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>(STATUS_FILTER_ALL);
   const [page, setPage] = useState(1);
   const itemsPerPage = DEFAULT_ITEMS_PER_PAGE;
+
+  // Referral link state
+  const [shortUrl, setShortUrl] = useState<string | null>(null);
+  const [isShorteningLink, setIsShorteningLink] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  // Materials state for drawer
+  const [drawerMaterials, setDrawerMaterials] = useState<AffiliateMaterial[]>([]);
+  const [materialsLoading, setMaterialsLoading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const filteredProjects = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -123,6 +137,122 @@ function AffiliateProjectList() {
 
     loadProjects();
   }, []);
+
+  // Generate referral short link when drawer opens (pass project — state from setSelectedProject is not updated until after this handler runs)
+  const generateReferralLink = async (project: AffiliateProject) => {
+    if (!currentUserId) return;
+    setIsShorteningLink(true);
+    setShortUrl(null);
+
+    try {
+      const res = await fetch(`${BASE_PATH}/api/affiliate/shorten`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          creatorId: currentUserId,
+          projectUrl: project.materialsUrl,
+          utmSource: 'creator_club_affiliate',
+          utmMedium: 'affiliate',
+          utmCampaign: 'creator_club_affiliate',
+          utmId: currentUserId,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setShortUrl(data.shortUrl);
+      } else {
+        // Fallback to long URL
+        setShortUrl(`https://assetwise.co.th/creatorclub/?ref=${currentUserId}`);
+      }
+    } catch {
+      setShortUrl(`https://assetwise.co.th/creatorclub/?ref=${currentUserId}`);
+    } finally {
+      setIsShorteningLink(false);
+    }
+  };
+
+  // Load materials for a project when drawer opens
+  const loadMaterials = async (projectId: string) => {
+    setMaterialsLoading(true);
+    setDrawerMaterials([]);
+    try {
+      const materials = await getAffiliateMaterialsByProject(projectId);
+      setDrawerMaterials(materials);
+    } catch (err) {
+      console.error('Failed to load materials:', err);
+    } finally {
+      setMaterialsLoading(false);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    if (!shortUrl) return;
+    try {
+      await navigator.clipboard.writeText(shortUrl);
+      setLinkCopied(true);
+      toast.success('คัดลอกลิงก์แล้ว!');
+      setTimeout(() => setLinkCopied(false), 2000);
+
+      if (currentUserId && selectedProject) {
+        try {
+          await saveAffiliateLinkIfUrlNewForCreator({
+            creatorId: currentUserId,
+            url: shortUrl,
+            projectId: selectedProject.id,
+            campaignName: selectedProject.name,
+          });
+        } catch (err) {
+          console.error('Failed to persist copied affiliate link:', err);
+        }
+      }
+    } catch {
+      toast.error('ไม่สามารถคัดลอกได้');
+    }
+  };
+
+  const handleDownload = async (material: AffiliateMaterial) => {
+    setDownloadingId(material.id);
+    try {
+      const response = await fetch(material.fileUrl);
+      if (!response.ok) throw new Error('Download failed');
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const ext = material.fileUrl.split('.').pop()?.split('?')[0] ?? 'bin';
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = `${material.title}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      toast.error('ดาวน์โหลดไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const getFileIcon = (fileType: string) => {
+    switch (fileType) {
+      case 'image':
+        return <FileImage className="w-4 h-4 text-blue-500" />;
+      case 'pdf':
+        return <FileText className="w-4 h-4 text-red-500" />;
+      case 'video':
+        return <Film className="w-4 h-4 text-purple-500" />;
+      default:
+        return <FileText className="w-4 h-4 text-gray-500" />;
+    }
+  };
+
+  const openDrawer = (project: AffiliateProject) => {
+    setSelectedProject(project);
+    setIsMaterialsOpen(true);
+    setShortUrl(null);
+    setLinkCopied(false);
+    void generateReferralLink(project);
+    loadMaterials(project.id);
+  };
 
   return (
     <div id="affiliate_page">
@@ -262,8 +392,7 @@ function AffiliateProjectList() {
                                     setIsLoginModalOpen(true);
                                     return;
                                   }
-                                  setSelectedProject(project);
-                                  setIsMaterialsOpen(true);
+                                  openDrawer(project);
                                 }}
                                 className="inline-flex items-center justify-center rounded-lg border border-primary px-3 py-1.5 font-medium text-primary hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
                               >
@@ -372,6 +501,7 @@ function AffiliateProjectList() {
         )}
       </div>
 
+      {/* ── GET LINK DRAWER ── */}
       <Drawer
         direction="right"
         open={isMaterialsOpen && !!selectedProject}
@@ -379,6 +509,9 @@ function AffiliateProjectList() {
           setIsMaterialsOpen(open);
           if (!open) {
             setSelectedProject(null);
+            setShortUrl(null);
+            setLinkCopied(false);
+            setDrawerMaterials([]);
           }
         }}
       >
@@ -388,14 +521,15 @@ function AffiliateProjectList() {
               สื่อสำหรับโปรโมต
             </DrawerTitle>
             <DrawerDescription>
-              ดาวน์โหลดสื่อสำหรับใช้ทำคอนเทนต์ของคุณสำหรับโครงการนี้
+              รับลิงก์แนะนำ และดาวน์โหลดสื่อสำหรับโปร​โมตโครงการนี้
             </DrawerDescription>
           </DrawerHeader>
 
           {selectedProject && (
-            <div className="px-7 pb-7 space-y-4">
+            <div className="px-7 pb-7 space-y-5 overflow-y-auto">
+              {/* Project Info */}
               <div className="flex items-center gap-3">
-                <div className="w-30 h-auto rounded-lg bg-muted overflow-hidden flex items-center justify-center text-xs text-muted-foreground aspect-square flex-shrink-0">
+                <div className="w-20 h-20 rounded-lg bg-muted overflow-hidden flex items-center justify-center text-xs text-muted-foreground flex-shrink-0">
                   {selectedProject.imageUrl || selectedProject.thumbUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -409,58 +543,148 @@ function AffiliateProjectList() {
                     </span>
                   )}
                 </div>
-                <div className="space-y-2">
-                  <h4 className="text-xl mb-2 font-medium text-foreground">
+                <div className="space-y-1">
+                  <h4 className="text-lg font-medium text-foreground">
                     {selectedProject.name}
                   </h4>
-                  <p className="text-neutral-500">
-                    {selectedProject.description}
-                  </p>
-                  {getStatusLabel(selectedProject.projectStatus) && (
-                    <p className="text-muted-foreground mt-0.5">
-                      สถานะโครงการ:{' '}
-                      <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5">
-                        {getStatusLabel(selectedProject.projectStatus)}
-                      </span>
+                  {selectedProject.description && (
+                    <p className="text-sm text-neutral-500 line-clamp-2">
+                      {selectedProject.description}
                     </p>
                   )}
-                  <p className="text-xl font-medium text-green-700">
+                  {getStatusLabel(selectedProject.projectStatus) && (
+                    <StatusBadge status={selectedProject.projectStatus ?? null} />
+                  )}
+                  <p className="text-base font-medium text-green-700">
                     {selectedProject.commission || 'จะประกาศคอมมิชชั่นเร็ว ๆ นี้'}
                   </p>
                 </div>
               </div>
 
-              <div className="rounded-lg border border-dashed border-neutral-400 px-4 py-5 space-y-4">
-                <p className="font-medium text-foreground">
-                  ไฟล์สำหรับดาวน์โหลด
-                </p>
-                <div className="space-y-4">
-                  {selectedProject.googleDriveUrl && (
-                    <div className="space-y-1">
-                      <a
-                        href={selectedProject.googleDriveUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center rounded-md border border-primary px-3 py-1.5 text-primary hover:bg-primary hover:text-primary-foreground transition-colors gap-2"
-                      >
-                        <FaGoogleDrive className="w-4 h-4" />
-                        เปิดโฟลเดอร์ Google Drive
-                      </a>
-                    </div>
-                  )}
-                  <div className="space-y-1 text-primary">
-                    <a
-                      href={selectedProject.materialsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center rounded-md border border-primary px-3 py-1.5 text-primary hover:bg-primary hover:text-primary-foreground transition-colors gap-2"
-                    >
-                      <FaLink className="w-4 h-4" />
-                      เปิดหน้า Landing Page ของโครงการ
-                    </a>
-                  </div>
+              {/* ── Referral Link Card ── */}
+              <div className="rounded-xl border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <FaLink className="w-4 h-4 text-orange-500" />
+                  <h5 className="font-semibold text-foreground text-sm">ลิงก์แนะนำของคุณ</h5>
                 </div>
+
+                {isShorteningLink ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>กำลังสร้างลิงก์...</span>
+                  </div>
+                ) : shortUrl ? (
+                  <div className="flex items-stretch gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={shortUrl}
+                      className="flex-1 rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm font-mono text-foreground select-all focus:outline-none focus:ring-2 focus:ring-orange-300"
+                      onClick={(e) => (e.target as HTMLInputElement).select()}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCopyLink}
+                      className={`inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 cursor-pointer ${
+                        linkCopied
+                          ? 'bg-green-500 text-white'
+                          : 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700'
+                      }`}
+                    >
+                      {linkCopied ? (
+                        <>
+                          <Check className="w-4 h-4" />
+                          คัดลอกแล้ว!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4" />
+                          คัดลอก
+                        </>
+                      )}
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">ไม่สามารถสร้างลิงก์ได้</p>
+                )}
+                <p className="text-xs text-orange-600/70">
+                  แชร์ลิงก์นี้เพื่อรับค่าคอมมิชชันเมื่อมีผู้สนใจผ่านลิงก์ของคุณ
+                </p>
               </div>
+
+              {/* ── Materials List ── */}
+              <div className="rounded-xl border border-border bg-white p-4 space-y-3">
+                <h5 className="font-semibold text-foreground text-sm">สื่อสำหรับดาวน์โหลด</h5>
+
+                {materialsLoading ? (
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                    <span className="ml-2 text-sm text-muted-foreground">กำลังโหลดสื่อ...</span>
+                  </div>
+                ) : drawerMaterials.length === 0 ? (
+                  <div className="py-6 text-center text-sm text-muted-foreground">
+                    ยังไม่มีสื่อสำหรับโครงการนี้
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-border">
+                    {drawerMaterials.map((mat) => (
+                      <li key={mat.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                        {/* Thumbnail / icon */}
+                        {mat.fileType === 'image' ? (
+                          <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden flex-shrink-0">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={mat.fileUrl}
+                              alt={mat.title}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                            {getFileIcon(mat.fileType)}
+                          </div>
+                        )}
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{mat.title}</p>
+                          <p className="text-xs text-muted-foreground capitalize">{mat.fileType}</p>
+                        </div>
+
+                        {/* Download button */}
+                        <button
+                          type="button"
+                          onClick={() => handleDownload(mat)}
+                          disabled={downloadingId === mat.id}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary hover:text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                        >
+                          {downloadingId === mat.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Download className="w-3.5 h-3.5" />
+                          )}
+                          ดาวน์โหลด
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {/* ── Landing Page Link ── */}
+              {selectedProject.materialsUrl && (
+                <div className="rounded-xl border border-border bg-white p-4">
+                  <a
+                    href={selectedProject.materialsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-lg border border-primary px-3 py-2 text-sm font-medium text-primary hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
+                  >
+                    <FaLink className="w-3.5 h-3.5" />
+                    เปิดหน้า Landing Page ของโครงการ
+                  </a>
+                </div>
+              )}
             </div>
           )}
 

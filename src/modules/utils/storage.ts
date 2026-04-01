@@ -220,6 +220,40 @@ export const saveAffiliateLink = async (link: AffiliateLink): Promise<void> => {
   }
 };
 
+/** Inserts only if this creator has no row with the same URL yet (trimmed). */
+export const saveAffiliateLinkIfUrlNewForCreator = async (params: {
+  creatorId: string;
+  url: string;
+  projectId: string;
+  campaignName: string;
+}): Promise<void> => {
+  const normalizedUrl = params.url.trim();
+  if (!normalizedUrl) return;
+
+  const { data: existing, error: selectError } = await supabase
+    .from('affiliate_links')
+    .select('id')
+    .eq('creator_id', params.creatorId)
+    .eq('url', normalizedUrl)
+    .maybeSingle();
+
+  if (selectError) {
+    console.error('Error checking affiliate link duplicate:', selectError);
+    throw selectError;
+  }
+  if (existing) return;
+
+  await saveAffiliateLink({
+    id: generateUUID(),
+    creatorId: params.creatorId,
+    campaignName: params.campaignName,
+    projectId: params.projectId,
+    url: normalizedUrl,
+    postLinks: [],
+    createdAt: new Date().toISOString(),
+  });
+};
+
 export const updateAffiliateLink = async (link: AffiliateLink): Promise<void> => {
   const { error } = await supabase
     .from('affiliate_links')
