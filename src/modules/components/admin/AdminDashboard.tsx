@@ -591,14 +591,15 @@ export function AdminDashboard() {
         <div className="flex flex-col gap-2">
           {getSocialLinks(creator).map((social, idx) => (
             <div key={idx} className="flex items-center gap-2">
-              <span className="font-medium text-foreground w-24">{social.name}:</span>
+              <span className="font-medium text-foreground w-24">{
+              social.name + ': '}</span>
               <a
-                href={`https://${social.url}`}
+                href={social.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary hover:underline break-all"
               >
-                {social.url}
+                {social.url.replace(/^https?:\/\//, "")}
               </a>
             </div>
           ))}
