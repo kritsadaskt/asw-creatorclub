@@ -82,7 +82,6 @@ export function RegisterSection({
   const [loading, setLoading] = useState(false);
   const [projectOptions, setProjectOptions] = useState<ProjectGroup[]>([]);
   const [facebookLoading, setFacebookLoading] = useState(false);
-
   // Social media fields (managed via SocialAccounts component)
   const [socialData, setSocialData] = useState<{
     socialAccounts: {
@@ -382,6 +381,18 @@ export function RegisterSection({
     setLoading(true);
 
     try {
+      const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+      if (!turnstileSiteKey) {
+        setError('ระบบป้องกันสแปมยังไม่พร้อมใช้งาน (Turnstile) กรุณาติดต่อผู้ดูแลระบบ');
+        setLoading(false);
+        return;
+      }
+      if (!turnstileToken) {
+        setError('กรุณายืนยันว่าคุณไม่ใช่บอท (Turnstile) แล้วลองใหม่อีกครั้ง');
+        setLoading(false);
+        return;
+      }
+
       // Check for pending Facebook registration
       const pendingFacebookId = sessionStorage.getItem('pendingFacebookId');
       const pendingFacebookPicture = sessionStorage.getItem('pendingFacebookPicture');
@@ -996,6 +1007,14 @@ export function RegisterSection({
                 {fieldErrors.acceptedTerms}
               </p>
             )}
+
+            {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? (
+              <TurnstileWidget
+                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                onToken={setTurnstileToken}
+                className="mt-2"
+              />
+            ) : null}
 
             <Button type="submit" fullWidth variant="accent" disabled={loading}>
               {loading ? 'กำลังดำเนินการ...' : 'ลงทะเบียน'}
