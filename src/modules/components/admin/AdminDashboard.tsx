@@ -24,12 +24,9 @@ import { ImageWithFallback } from '../figma/ImageWithFallback';
 import {
   ChevronLeft,
   ChevronRight,
-  Eye,
-  LayoutGrid,
   Loader2,
   MailIcon,
   SendHorizontal,
-  Table,
   UserRound,
 } from 'lucide-react';
 import { FaPhone } from 'react-icons/fa6';
@@ -45,7 +42,6 @@ import {
 } from '../ui/drawer';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { cn } from '../ui/utils';
 
 /** react-select only on client — avoids SSR/hydration drift and mount swap vs skeleton. */
@@ -82,9 +78,9 @@ export function AdminDashboard() {
   const [approvalFilter, setApprovalFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'inactive'>('pending');
   const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
   const [searchQuery, setSearchQuery] = useState('');
-  const [minFollowers, setMinFollowers] = useState('');
   const [selectedCreator, setSelectedCreator] = useState<CreatorProfile | null>(null);
-  const [viewMode, setViewMode] = useState<'card' | 'table'>('table');
+  const CREATORS_PAGE_SIZE = 15;
+  const [creatorPage, setCreatorPage] = useState(1);
   const [followerRange, setFollowerRange] = useState('all');
   const [customFollowers, setCustomFollowers] = useState('');
   const [loading, setLoading] = useState(true);
@@ -99,7 +95,6 @@ export function AdminDashboard() {
   /** `${creatorId}:approval` | `${creatorId}:rejection` while that request is in flight */
   const [emailSendKey, setEmailSendKey] = useState<string | null>(null);
 
-  const [adminTab, setAdminTab] = useState<'creators' | 'fgf'>('creators');
   const [fgfLeads, setFgfLeads] = useState<FgfLeadWithProjects[]>([]);
   const [fgfLoading, setFgfLoading] = useState(false);
   const [fgfSearch, setFgfSearch] = useState('');
@@ -109,13 +104,6 @@ export function AdminDashboard() {
   const [fgfNestedCreatorLoading, setFgfNestedCreatorLoading] = useState(false);
   const [fgfCisSubmitting, setFgfCisSubmitting] = useState(false);
   const [projectNameById, setProjectNameById] = useState<Record<string, string>>({});
-
-  const approvalOptions: Array<{
-    value: typeof approvalFilter;
-    label: string;
-  }> = [
-    { value: 'pending', label: 'คำขอเข้าร่วม (รอการอนุมัติ)' },
-  ];
 
   const categoryOptions = CATEGORIES.map((cat) => ({ value: cat, label: cat }));
 
@@ -170,15 +158,6 @@ export function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    if (adminTab === 'creators') {
-      setSelectedFgf(null);
-      setFgfNestedCreator(null);
-    }
-    if (adminTab === 'fgf') setSelectedCreator(null);
-  }, [adminTab]);
-
-  useEffect(() => {
-    if (adminTab !== 'fgf') return;
     let cancelled = false;
     (async () => {
       try {
@@ -197,11 +176,66 @@ export function AdminDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [adminTab]);
+  }, []);
 
   useEffect(() => {
+    setCreatorPage(1);
     filterCreators();
   }, [creators, selectedCategory, searchQuery, followerRange, customFollowers, approvalFilter]);
+
+  const creatorsBaseFiltered = useMemo(() => {
+    let filtered = [...creators];
+
+    // Hide internal/test accounts from admin creator listing
+    filtered = filtered.filter((creator) => !creator.email.toLowerCase().includes('@creatorclub.com'));
+
+    if (selectedCategory !== 'ทั้งหมด') {
+      filtered = filtered.filter((creator) => creator.categories && creator.categories.includes(selectedCategory));
+    }
+
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      filtered = filtered.filter(
+        (creator) =>
+          creator.name.toLowerCase().includes(q) || creator.email.toLowerCase().includes(q),
+      );
+    }
+
+    if (followerRange === 'custom' && customFollowers) {
+      const min = parseInt(customFollowers);
+      filtered = filtered.filter((creator) => creator.followers >= min);
+    } else if (followerRange !== 'all') {
+      const ranges: { [key: string]: { min: number; max?: number } } = {
+        '0-1k': { min: 0, max: 1000 },
+        '1k-10k': { min: 1000, max: 10000 },
+        '10k-50k': { min: 10000, max: 50000 },
+        '50k-100k': { min: 50000, max: 100000 },
+        '100k-500k': { min: 100000, max: 500000 },
+        '500k+': { min: 500000 },
+      };
+
+      const range = ranges[followerRange];
+      if (range) {
+        filtered = filtered.filter((creator) => {
+          const followers = creator.followers;
+          if (range.max) return followers >= range.min && followers < range.max;
+          return followers >= range.min;
+        });
+      }
+    }
+
+    return filtered;
+  }, [creators, customFollowers, followerRange, searchQuery, selectedCategory]);
+
+  const creatorStatusCounts = useMemo(() => {
+    const rows = creatorsBaseFiltered;
+    const pending = rows.filter((c) => c.approvalStatus === 3).length;
+    const approved = rows.filter((c) => c.approvalStatus === 1).length;
+    const rejected = rows.filter((c) => c.approvalStatus === 0).length;
+    const inactive = rows.filter((c) => c.approvalStatus === 2).length;
+    const all = rows.length;
+    return { all, pending, approved, rejected, inactive };
+  }, [creatorsBaseFiltered]);
 
   const affiliateDrawerCreator = selectedCreator ?? fgfNestedCreator;
 
@@ -241,54 +275,10 @@ export function AdminDashboard() {
   };
 
   const filterCreators = () => {
-    let filtered = [...creators];
-
-    // Category filter
-    if (selectedCategory !== 'ทั้งหมด') {
-      filtered = filtered.filter(
-        (creator) => creator.categories && creator.categories.includes(selectedCategory),
-      );
-    }
-
-    // Search filter
-    if (searchQuery) {
-      filtered = filtered.filter(creator =>
-        creator.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        creator.email.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Followers filter
-    if (followerRange === 'custom' && customFollowers) {
-      const min = parseInt(customFollowers);
-      filtered = filtered.filter(creator => creator.followers >= min);
-    } else if (followerRange !== 'all') {
-      const ranges: { [key: string]: { min: number; max?: number } } = {
-        '0-1k': { min: 0, max: 1000 },
-        '1k-10k': { min: 1000, max: 10000 },
-        '10k-50k': { min: 10000, max: 50000 },
-        '50k-100k': { min: 50000, max: 100000 },
-        '100k-500k': { min: 100000, max: 500000 },
-        '500k+': { min: 500000 }
-      };
-      
-      const range = ranges[followerRange];
-      if (range) {
-        filtered = filtered.filter(creator => {
-          const followers = creator.followers;
-          if (range.max) {
-            return followers >= range.min && followers < range.max;
-          }
-          return followers >= range.min;
-        });
-      }
-    }
+    let filtered = [...creatorsBaseFiltered];
 
     // Approval status filter
-    // Default "all" excludes rejected creators; rejected are visible only in the rejected filter.
-    if (approvalFilter === 'all') {
-      filtered = filtered.filter((creator) => creator.approvalStatus !== 0);
-    } else if (approvalFilter === 'pending') {
+    if (approvalFilter === 'pending') {
       filtered = filtered.filter((creator) => creator.approvalStatus === 3);
     } else if (approvalFilter === 'approved') {
       filtered = filtered.filter((creator) => creator.approvalStatus === 1);
@@ -300,6 +290,24 @@ export function AdminDashboard() {
 
     setFilteredCreators(filtered);
   };
+
+  const safeCreatorPage = useMemo(() => {
+    const totalPages = Math.max(1, Math.ceil(filteredCreators.length / CREATORS_PAGE_SIZE));
+    return Math.min(Math.max(creatorPage, 1), totalPages);
+  }, [CREATORS_PAGE_SIZE, creatorPage, filteredCreators.length]);
+
+  const pagedCreators = useMemo(() => {
+    const startIndex = (safeCreatorPage - 1) * CREATORS_PAGE_SIZE;
+    return filteredCreators.slice(startIndex, startIndex + CREATORS_PAGE_SIZE);
+  }, [CREATORS_PAGE_SIZE, filteredCreators, safeCreatorPage]);
+
+  const creatorTotalPages = useMemo(() => {
+    return Math.max(1, Math.ceil(filteredCreators.length / CREATORS_PAGE_SIZE));
+  }, [CREATORS_PAGE_SIZE, filteredCreators.length]);
+
+  const creatorStartIndex = (safeCreatorPage - 1) * CREATORS_PAGE_SIZE;
+  const creatorFrom = filteredCreators.length === 0 ? 0 : creatorStartIndex + 1;
+  const creatorTo = Math.min(creatorStartIndex + CREATORS_PAGE_SIZE, filteredCreators.length);
 
   const approvalStatusBadge = (creator: CreatorProfile) => {
     const status = creator.approvalStatus;
@@ -692,371 +700,167 @@ export function AdminDashboard() {
     <div className="container mx-auto p-6">
       <h2 className="mb-4">แดชบอร์ดผู้ดูแลระบบ</h2>
 
-      <Tabs
-        value={adminTab}
-        onValueChange={(value) => setAdminTab(value as 'creators' | 'fgf')}
-        className="gap-6"
-      >
-        <TabsList className="mb-2">
-          <TabsTrigger value="creators">ครีเอเตอร์</TabsTrigger>
-          <TabsTrigger value="fgf">Friend Get Friends</TabsTrigger>
-        </TabsList>
+      <div className="flex flex-col gap-6">
+        {/* Filters */}
+        <div className="bg-white rounded-xl shadow-sm border border-border p-6">
+          <h3 className="text-neutral-700 text-xl font-medium mb-2">ค้นหาและกรองข้อมูล</h3>
 
-        <TabsContent
-          value="creators"
-          forceMount
-          className="mt-0 flex flex-col gap-6 data-[state=inactive]:hidden"
-        >
-      {/* Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-border p-6">
-        <h3 className="text-neutral-700 text-xl font-medium mb-4">ค้นหาและกรองข้อมูล</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-          <div className="flex flex-col gap-1.5">
-            <label>ค้นหา (ชื่อ / อีเมล)</label>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="ค้นหา..."
-              className="px-4 py-2.5 bg-input-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label>สถานะการอนุมัติ</label>
-            <Select
-              options={approvalOptions}
-              value={approvalOptions.find((o) => o.value === approvalFilter)}
-              onChange={(option) => {
-                setApprovalFilter((option?.value ?? 'all') as typeof approvalFilter);
-              }}
-              isClearable={false}
-              classNamePrefix="react-select"
-              placeholder="ทั้งหมด"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label>หมวดหมู่</label>
-            <Select
-              options={categoryOptions}
-              value={categoryOptions.find((o) => o.value === selectedCategory)}
-              onChange={(option) => {
-                setSelectedCategory(option?.value ?? 'ทั้งหมด');
-              }}
-              isClearable={false}
-              classNamePrefix="react-select"
-              placeholder="ทั้งหมด"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label>ผู้ติดตาม (follower)</label>
-            <Select
-              options={followerOptions}
-              value={followerOptions.find((o) => o.value === followerRange)}
-              onChange={(option) => {
-                const value = option?.value ?? 'all';
-                setFollowerRange(value);
-                if (value !== 'custom') {
-                  setCustomFollowers('');
-                }
-              }}
-              isClearable={false}
-              classNamePrefix="react-select"
-              placeholder="ทั้งหมด"
-            />
-          </div>
-        </div>
-
-        {/* Custom Followers Input */}
-        {followerRange === 'custom' && (
-          <div className="mt-4">
-            <div className="flex flex-col gap-1.5 max-w-xs">
-              <label>จำนวนผู้ติดตามขั้นต่ำ</label>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+            <div className="flex flex-col gap-1.5">
+              <label>ค้นหา (ชื่อ / อีเมล)</label>
               <input
-                type="number"
-                value={customFollowers}
-                onChange={(e) => setCustomFollowers(e.target.value)}
-                placeholder="กรอกจำนวนผู้ติดตาม..."
-                className="px-4 py-2.5 bg-input-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="ค้นหา..."
+                className="px-4 py-2 bg-input-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label>หมวดหมู่</label>
+              <Select
+                options={categoryOptions}
+                value={categoryOptions.find((o) => o.value === selectedCategory)}
+                onChange={(option) => {
+                  setSelectedCategory(option?.value ?? 'ทั้งหมด');
+                }}
+                isClearable={false}
+                classNamePrefix="react-select"
+                placeholder="ทั้งหมด"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label>ผู้ติดตาม (follower)</label>
+              <Select
+                options={followerOptions}
+                value={followerOptions.find((o) => o.value === followerRange)}
+                onChange={(option) => {
+                  const value = option?.value ?? 'all';
+                  setFollowerRange(value);
+                  if (value !== 'custom') {
+                    setCustomFollowers('');
+                  }
+                }}
+                isClearable={false}
+                classNamePrefix="react-select"
+                placeholder="ทั้งหมด"
               />
             </div>
           </div>
-        )}
-      </div>
 
-      {/* Results */}
-      <div className="bg-white rounded-xl shadow-sm border border-border p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-primary">
-            ครีเอเตอร์ทั้งหมด ({filteredCreators.length})
-          </h3>
-          
-          {/* View Toggle */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setViewMode('card')}
-              className={`p-2 rounded-lg transition-colors ${
-                viewMode === 'card'
-                  ? 'bg-primary text-white'
-                  : 'bg-input-background text-muted-foreground hover:bg-border'
-              }`}
-              title="มุมมองการ์ด"
-            >
-              <LayoutGrid size={20} />
-            </button>
-            <button
-              onClick={() => setViewMode('table')}
-              className={`p-2 rounded-lg transition-colors ${
-                viewMode === 'table'
-                  ? 'bg-primary text-white'
-                  : 'bg-input-background text-muted-foreground hover:bg-border'
-              }`}
-              title="มุมมองตาราง"
-            >
-              <Table size={20} />
-            </button>
-          </div>
-        </div>
-
-        {loading ? (
-          <p className="text-muted-foreground text-center py-8 flex items-center gap-2 justify-center">
-            <Loader2 className="w-8 h-8 animate-spin" />
-            กำลังโหลดข้อมูล
-          </p>
-        ) : filteredCreators.length === 0 ? (
-          <p className="text-muted-foreground text-center py-8">
-            ไม่พบข้อมูล Creator
-          </p>
-        ) : viewMode === 'card' ? (
-          /* Card View */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredCreators.map((creator) => (
-              <div
-                key={creator.id}
-                className="p-4 border border-border rounded-lg hover:border-primary/50 transition-colors flex flex-col"
-              >
-                {/* Profile Image */}
-                <div className="flex justify-center mb-4">
-                  {getProfileImageUrl(creator) ? (
-                    <ImageWithFallback
-                      src={getProfileImageUrl(creator)!}
-                      alt={creator.name}
-                      className="w-20 h-20 rounded-full object-cover border-2 border-border"
-                    />
-                  ) : (
-                    <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center border-2 border-border">
-                      <span className="text-primary text-2xl">
-                        {creator.name.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Info */}
-                <div className="text-center mb-4">
-                  <h4 className="text-foreground mb-1">{creator.name}</h4>
-                  <p className="text-sm text-muted-foreground truncate">{creator.email}</p>
-                  <div className="mt-2 flex justify-center">
-                    {approvalStatusBadge(creator)}
-                  </div>
-                </div>
-
-                {/* Stats */}
-                <div className="space-y-2 text-sm mb-4 flex-1">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">หมวดหมู่:</span>
-                    <span className="text-foreground">
-                      {creator.categories && creator.categories.length > 0
-                        ? creator.categories.join(', ')
-                        : '-'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">โซเชียล:</span>
-                    <span className="text-foreground">{getSocialLinks(creator).length} ช่องทาง</span>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="mt-2 space-y-2">
-                  <Button
-                    onClick={() => setSelectedCreator(creator)}
-                    variant="outline"
-                    fullWidth
-                    center
-                  >
-                    <Eye className="w-4 h-4" />
-                    ดูรายละเอียด
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          /* Table View */
-          <div className="overflow-x-auto overflow-y-visible">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground"></th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">ชื่อ</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">อีเมล</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">หมวดหมู่</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">โทรศัพท์</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">โซเชียล</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">สถานะ</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredCreators.map((creator) => (
-                  <tr key={creator.id} className="border-b border-border hover:bg-input-background/30 transition-colors">
-                    <td className="py-3 px-4">
-                      {getProfileImageUrl(creator) ? (
-                        <ImageWithFallback
-                          src={getProfileImageUrl(creator)!}
-                          alt={creator.name}
-                          className="w-12 h-12 rounded-full object-cover border-2 border-border"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center border-2 border-border">
-                          <span className="text-primary text-sm">
-                            {creator.name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-sm text-foreground">{creator.name}</td>
-                    <td className="py-3 px-4 text-sm text-foreground">{creator.email}</td>
-                    <td className="py-3 px-4 text-sm text-foreground">
-                      {creator.categories && creator.categories.length > 0
-                        ? creator.categories.join(', ')
-                        : '-'}
-                    </td>
-                    <td className="py-3 px-4 text-sm text-foreground">{creator.phone || '-'}</td>
-                    <td className="py-3 px-4 text-sm text-foreground">{getSocialLinks(creator).length} ช่องทาง</td>
-                    <td className="py-3 px-4">
-                      {approvalStatusBadge(creator)}
-                    </td>
-                    <td className="py-3 px-4">
-                      <Button
-                        type="button"
-                        onClick={() => setSelectedCreator(creator)}
-                        variant="ghost"
-                        className="cursor-pointer rounded-full p-2"
-                        aria-label={`ดูรายละเอียด ${creator.name}`}
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-        </TabsContent>
-
-        <TabsContent
-          value="fgf"
-          forceMount
-          className="mt-0 flex flex-col gap-6 data-[state=inactive]:hidden"
-        >
-          <div className="bg-white rounded-xl shadow-sm border border-border p-6">
-            <h3 className="text-neutral-700 text-xl font-medium mb-4">ค้นหาและกรองลีด</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl">
-              <div className="flex flex-col gap-1.5">
-                <label>ค้นหา (ชื่อ / อีเมล / เบอร์ / ref)</label>
+          {/* Custom Followers Input */}
+          {followerRange === 'custom' && (
+            <div className="mt-4">
+              <div className="flex flex-col gap-1.5 max-w-xs">
+                <label>จำนวนผู้ติดตามขั้นต่ำ</label>
                 <input
-                  type="text"
-                  value={fgfSearch}
-                  onChange={(e) => setFgfSearch(e.target.value)}
-                  placeholder="ค้นหา..."
-                  className="px-4 py-2.5 bg-input-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label>สถานะ CIS</label>
-                <Select
-                  options={fgfCisOptions}
-                  value={fgfCisOptions.find((o) => o.value === fgfCisFilter)}
-                  onChange={(option) => {
-                    setFgfCisFilter((option?.value ?? 'all') as typeof fgfCisFilter);
-                  }}
-                  isClearable={false}
-                  classNamePrefix="react-select"
-                  placeholder="ทั้งหมด"
+                  type="number"
+                  value={customFollowers}
+                  onChange={(e) => setCustomFollowers(e.target.value)}
+                  placeholder="กรอกจำนวนผู้ติดตาม..."
+                  className="px-4 py-2.5 bg-input-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
             </div>
+          )}
+        </div>
+
+        {/* Results */}
+        <div className="bg-white rounded-xl shadow-sm border border-border p-6">
+          <div className="flex flex-col gap-1 mb-4">
+            <h3 className="text-primary text-2xl font-medium mb-2">ครีเอเตอร์ทั้งหมด ({filteredCreators.length})</h3>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+              <button
+                type="button"
+                onClick={() => setApprovalFilter('all')}
+                className={cn(
+                  'hover:text-foreground transition-colors cursor-pointer',
+                  approvalFilter === 'all' && 'text-foreground font-medium',
+                )}
+              >
+                ทั้งหมด <span className="text-muted-foreground">({creatorStatusCounts.all})</span>
+              </button>
+              <span className="text-muted-foreground/60">|</span>
+              <button
+                type="button"
+                onClick={() => setApprovalFilter('pending')}
+                className={cn(
+                  'hover:text-foreground transition-colors cursor-pointer',
+                  approvalFilter === 'pending' && 'text-foreground font-medium',
+                )}
+              >
+                รออนุมัติ <span className="text-muted-foreground">({creatorStatusCounts.pending})</span>
+              </button>
+              <span className="text-muted-foreground/60">|</span>
+              <button
+                type="button"
+                onClick={() => setApprovalFilter('approved')}
+                className={cn(
+                  'hover:text-foreground transition-colors cursor-pointer',
+                  approvalFilter === 'approved' && 'text-foreground font-medium',
+                )}
+              >
+                อนุมัติแล้ว <span className="text-muted-foreground">({creatorStatusCounts.approved})</span>
+              </button>
+              <span className="text-muted-foreground/60">|</span>
+              <button
+                type="button"
+                onClick={() => setApprovalFilter('rejected')}
+                className={cn(
+                  'hover:text-foreground transition-colors cursor-pointer',
+                  approvalFilter === 'rejected' && 'text-foreground font-medium',
+                )}
+              >
+                ถูกปฏิเสธ <span className="text-muted-foreground">({creatorStatusCounts.rejected})</span>
+              </button>
+            </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-border p-6">
-            <h3 className="text-primary mb-4">ลีด Friend Get Friends ({filteredFgfLeads.length})</h3>
-            {fgfLoading ? (
-              <p className="text-muted-foreground text-center py-8 flex items-center gap-2 justify-center">
-                <Loader2 className="w-8 h-8 animate-spin" />
-                กำลังโหลดข้อมูล
-              </p>
-            ) : filteredFgfLeads.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">ไม่พบลีด</p>
-            ) : (
+          {loading ? (
+            <p className="text-muted-foreground text-center py-8 flex items-center gap-2 justify-center">
+              <Loader2 className="w-8 h-8 animate-spin" />
+              กำลังโหลดข้อมูล
+            </p>
+          ) : filteredCreators.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">ไม่พบข้อมูล Creator</p>
+          ) : (
+            <>
               <div className="overflow-x-auto overflow-y-visible">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border">
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">วันที่</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">ผู้ถูกแนะนำ</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">ชื่อ</th>
                       <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">อีเมล</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">ผู้แนะนำ</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">โครงการ</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">CIS</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">โทรศัพท์</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">โซเชียล</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">สถานะ</th>
                       <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground"></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredFgfLeads.map(({ lead, projectIds }) => (
+                    {pagedCreators.map((creator) => (
                       <tr
-                        key={lead.id}
+                        key={creator.id}
                         className="border-b border-border hover:bg-input-background/30 transition-colors"
                       >
-                        <td className="py-3 px-4 text-sm text-foreground whitespace-nowrap">
-                          {new Date(lead.createdAt).toLocaleDateString('th-TH', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </td>
-                        <td className="py-3 px-4 text-sm text-foreground">
-                          {[lead.leadName, lead.leadLastName].filter(Boolean).join(' ') || '—'}
-                        </td>
-                        <td className="py-3 px-4 text-sm text-foreground">{lead.leadEmail}</td>
-                        <td className="py-3 px-4 text-sm text-foreground">
-                          {[lead.referrerName, lead.referrerLastName].filter(Boolean).join(' ') || '—'}
-                        </td>
-                        <td className="py-3 px-4 text-sm text-foreground max-w-[200px] truncate" title={projectIds.map((id) => projectNameById[id] || id).join(', ')}>
-                          {formatFgfProjectCell(projectIds)}
-                        </td>
-                        <td className="py-3 px-4 text-sm text-foreground">
-                          {lead.uploadedToCrm ? (
-                            <span className="text-emerald-700">ส่ง CIS แล้ว</span>
-                          ) : (
-                            <span className="text-muted-foreground">ยังไม่ส่ง</span>
-                          )}
-                        </td>
+                        <td className="py-3 px-4 text-sm text-foreground">{creator.name}</td>
+                        <td className="py-3 px-4 text-sm text-foreground">{creator.email}</td>
+                        <td className="py-3 px-4 text-sm text-foreground">{creator.phone || '-'}</td>
+                        <td className="py-3 px-4 text-sm text-foreground">{getSocialLinks(creator).length} ช่องทาง</td>
+                        <td className="py-3 px-4">{approvalStatusBadge(creator)}</td>
                         <td className="py-3 px-4">
                           <Button
                             type="button"
-                            onClick={() => setSelectedFgf({ lead, projectIds })}
+                            onClick={() => {
+                              setSelectedFgf(null);
+                              setFgfNestedCreator(null);
+                              setSelectedCreator(creator);
+                            }}
                             variant="ghost"
                             className="cursor-pointer rounded-full p-2"
-                            aria-label="ดูรายละเอียดลีด"
+                            aria-label={`ดูรายละเอียด ${creator.name}`}
                           >
                             <ChevronRight className="w-4 h-4" />
                           </Button>
@@ -1066,10 +870,41 @@ export function AdminDashboard() {
                   </tbody>
                 </table>
               </div>
-            )}
-          </div>
-        </TabsContent>
-      </Tabs>
+
+              {filteredCreators.length > 0 && (
+                <div className="flex flex-col md:flex-row items-center justify-between gap-3 pt-4 text-sm text-muted-foreground">
+                  <div>
+                    แสดง {creatorFrom}–{creatorTo} จาก {filteredCreators.length} รายการ
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => setCreatorPage((p) => Math.max(p - 1, 1))}
+                      disabled={safeCreatorPage === 1}
+                      className="px-3 py-1 text-sm flex items-center gap-2"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      ก่อนหน้า
+                    </Button>
+                    <span>
+                      หน้า {safeCreatorPage} จาก {creatorTotalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      onClick={() => setCreatorPage((p) => Math.min(p + 1, creatorTotalPages))}
+                      disabled={safeCreatorPage >= creatorTotalPages}
+                      className="px-3 py-1 text-sm flex items-center gap-2"
+                    >
+                      ถัดไป
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
 
       <Drawer
         direction="right"
