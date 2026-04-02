@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
 import { CreatorProfile } from '../../types';
-import { saveCreator, getCreatorByEmail, getCreatorByFacebookId, setCurrentUser, generateUUID, getProjects } from '../../utils/storage';
+import { getCreatorByEmail, getCreatorByFacebookId, setCurrentUser, generateUUID, getProjects } from '../../utils/storage';
 import { loginWithFacebook, getFacebookUserInfo, fetchAndUploadFacebookProfileImage } from '../../utils/facebook';
 import { hashPassword, validatePassword, validatePasswordConfirm } from '../../utils/password';
 import { UserPlus, Eye, EyeOff } from 'lucide-react';
@@ -13,6 +13,7 @@ import { Lemon8Icon } from '../../utils/svg';
 import SocialAccounts from '../layout/SocialAccounts';
 import { BASE_PATH } from '@/lib/publicPath';
 import { Switch } from '../ui/switch';
+import { TurnstileWidget } from '../shared/TurnstileWidget';
 
 import { CREATOR_CATEGORIES } from './registerInviteCategories';
 import Link from 'next/link';
@@ -79,6 +80,7 @@ export function RegisterSection({
   const [loading, setLoading] = useState(false);
   const [projectOptions, setProjectOptions] = useState<ProjectGroup[]>([]);
   const [facebookLoading, setFacebookLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   
   // Social media fields (managed via SocialAccounts component)
   const [socialData, setSocialData] = useState<{
@@ -371,6 +373,18 @@ export function RegisterSection({
     setLoading(true);
 
     try {
+      const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+      if (!turnstileSiteKey) {
+        setError('ระบบป้องกันสแปมยังไม่พร้อมใช้งาน (Turnstile) กรุณาติดต่อผู้ดูแลระบบ');
+        setLoading(false);
+        return;
+      }
+      if (!turnstileToken) {
+        setError('กรุณายืนยันว่าคุณไม่ใช่บอท (Turnstile) แล้วลองใหม่อีกครั้ง');
+        setLoading(false);
+        return;
+      }
+
       // Check for pending Facebook registration
       const pendingFacebookId = sessionStorage.getItem('pendingFacebookId');
       const pendingFacebookPicture = sessionStorage.getItem('pendingFacebookPicture');
@@ -459,7 +473,16 @@ export function RegisterSection({
         passwordHash,
       };
 
-      await saveCreator(newCreator);
+      const registerRes = await fetch(`${BASE_PATH}/api/creators/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: turnstileToken, creator: newCreator }),
+      });
+      if (!registerRes.ok) {
+        const err = await registerRes.json().catch(() => ({}));
+        throw new Error((err as { error?: string }).error ?? 'ลงทะเบียนไม่สำเร็จ');
+      }
+
       await sendRegistrationPendingEmail(newCreator);
       
       // Fire-and-forget webhook to external analyst endpoint
@@ -491,7 +514,7 @@ export function RegisterSection({
       onLogin(newCreator.id, 'creator', '/thank-you');
     } catch (err) {
       console.error('Error:', err);
-      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+      setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
       toast.error('เกิดข้อผิดพลาด');
     } finally {
       setLoading(false);
@@ -971,6 +994,14 @@ export function RegisterSection({
                 {fieldErrors.acceptedTerms}
               </p>
             )}
+
+            {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? (
+              <TurnstileWidget
+                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                onToken={setTurnstileToken}
+                className="mt-2"
+              />
+            ) : null}
 
             <Button type="submit" fullWidth variant="accent" disabled={loading}>
               {loading ? 'กำลังดำเนินการ...' : 'ลงทะเบียน'}
