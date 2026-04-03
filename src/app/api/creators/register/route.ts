@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logServerError, requestLogContext } from '@/lib/log-server-error';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 type TurnstileVerifyResponse = {
@@ -113,6 +114,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ creatorId: id }, { status: 201 });
   } catch (err) {
     console.error('POST /api/creators/register:', err);
+    await logServerError({
+      environment: process.env.NODE_ENV ?? 'development',
+      source: 'api:creators/register',
+      severity: 'error',
+      error: err,
+      context: requestLogContext(request),
+    });
     return NextResponse.json({ error: 'เกิดข้อผิดพลาด' }, { status: 500 });
   }
 }

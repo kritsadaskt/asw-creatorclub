@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logServerError, requestLogContext } from '@/lib/log-server-error';
 import { sendEmail } from '@/lib/email/send-email';
 import { buildRegistrationPendingEmailMessage } from '@/modules/utils/email';
 
@@ -27,9 +28,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, dev: true });
     }
 
+    await logServerError({
+      environment: process.env.NODE_ENV ?? 'development',
+      source: 'api:creators/email/registration-pending',
+      severity: 'warn',
+      message: 'EMAIL_SEND_FAILED',
+      context: requestLogContext(request),
+    });
     return NextResponse.json({ error: 'EMAIL_SEND_FAILED' }, { status: 500 });
   } catch (error) {
     console.error('Send registration pending email error:', error);
+    await logServerError({
+      environment: process.env.NODE_ENV ?? 'development',
+      source: 'api:creators/email/registration-pending',
+      severity: 'error',
+      error,
+      context: requestLogContext(request),
+    });
     return NextResponse.json({ error: 'EMAIL_SEND_FAILED' }, { status: 500 });
   }
 }
