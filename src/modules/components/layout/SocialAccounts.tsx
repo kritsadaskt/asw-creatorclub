@@ -83,9 +83,27 @@ export default function SocialAccounts({
     }
 
     const validateSocialUrl = (key: keyof SocialAccountsMap, label: string) => {
-      const value = accounts[key];
-      if (value && !urlRegex.test(value.trim())) {
+      const rawValue = accounts[key];
+      if (!rawValue) return;
+
+      const trimmed = rawValue.trim();
+
+      // Basic requirement: must start with https://
+      if (!urlRegex.test(trimmed)) {
         allErrors[`${key}Url`] = `กรุณากรอก ${label} ให้เป็นลิงก์ที่ขึ้นต้นด้วย https://`;
+        return;
+      }
+
+      const prefix = SOCIAL_URL_PREFIXES[key];
+
+      // If value starts with our platform prefix, ensure there is a non-slash suffix (username / path)
+      if (prefix && trimmed.startsWith(prefix)) {
+        const suffix = trimmed.slice(prefix.length);
+        const hasNonSlashSuffix = suffix.replace(/\//g, "").length > 0;
+
+        if (!hasNonSlashSuffix) {
+          allErrors[`${key}Url`] = `กรุณากรอก ${label} ให้เป็นลิงก์โปรไฟล์ที่ครบถ้วน รวมถึงชื่อช่องหรือ Username`;
+        }
       }
     };
 
@@ -94,7 +112,7 @@ export default function SocialAccounts({
     validateSocialUrl("tiktok", "TikTok URL");
     validateSocialUrl("youtube", "YouTube URL");
     validateSocialUrl("twitter", "X (Twitter) URL");
-    // Lemon8 currently has no strict URL validation requirement in existing code
+    validateSocialUrl("lemon8", "Lemon8 URL");
 
     const isValid = Object.keys(allErrors).length === 0;
 
@@ -320,6 +338,8 @@ export default function SocialAccounts({
             onChange={(value) => handleUrlChange("lemon8", value)}
             onFocus={() => handleUrlFocus("lemon8")}
             placeholder="https://lemon8.com/..."
+            onBlur={() => handleBlur("lemon8Url")}
+            error={errors.lemon8Url}
           />
         </div>
         <div>
