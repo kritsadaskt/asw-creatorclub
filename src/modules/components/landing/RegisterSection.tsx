@@ -12,6 +12,7 @@ import Select from 'react-select';
 import { Lemon8Icon } from '../../utils/svg';
 import SocialAccounts from '../layout/SocialAccounts';
 import { BASE_PATH } from '@/lib/publicPath';
+import { formatGenericErrorToast } from '../../utils/toast-error';
 import { Switch } from '../ui/switch';
 import { TurnstileWidget } from '../shared/TurnstileWidget';
 
@@ -354,7 +355,7 @@ export function RegisterSection({
         // User cancelled, don't show error
       } else {
         setError('เกิดข้อผิดพลาดในการเชื่อมต่อ Facebook');
-        toast.error('เกิดข้อผิดพลาด');
+        toast.error(formatGenericErrorToast('เกิดข้อผิดพลาด', err));
       }
     } finally {
       setFacebookLoading(false);
@@ -515,7 +516,7 @@ export function RegisterSection({
     } catch (err) {
       console.error('Error:', err);
       setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
-      toast.error('เกิดข้อผิดพลาด');
+      toast.error(formatGenericErrorToast('เกิดข้อผิดพลาด', err));
     } finally {
       setLoading(false);
     }

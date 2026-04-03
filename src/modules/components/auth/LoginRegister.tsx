@@ -15,6 +15,7 @@ import { loginWithFacebook, getFacebookUserInfo } from '../../utils/facebook';
 import { hashPassword, validatePassword, validatePasswordConfirm } from '../../utils/password';
 import { setSession } from '../../utils/auth';
 import { BASE_PATH } from '@/lib/publicPath';
+import { formatGenericErrorToast } from '../../utils/toast-error';
 
 interface LoginRegisterProps {
   onLogin: (id: string, role: 'creator' | 'admin') => void;
@@ -190,7 +191,7 @@ export function LoginRegister({ onLogin }: LoginRegisterProps) {
     } catch (err) {
       console.error('Error:', err);
       setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
-      toast.error('เกิดข้อผิดพลาด');
+      toast.error(formatGenericErrorToast('เกิดข้อผิดพลาด', err));
     } finally {
       setLoading(false);
     }
