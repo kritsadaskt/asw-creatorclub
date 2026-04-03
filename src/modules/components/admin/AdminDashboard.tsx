@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { FaPhone } from 'react-icons/fa6';
 import { BASE_PATH } from '@/lib/publicPath';
+import { formatGenericErrorToast } from '../../utils/toast-error';
 import {
   Drawer,
   DrawerClose,
@@ -414,7 +415,7 @@ export function AdminDashboard() {
       toast.success('ส่งข้อมูลเข้า CIS สำเร็จ');
     } catch (e) {
       console.error('handleSendFgfLeadToCis', e);
-      toast.error('เกิดข้อผิดพลาด กรุณาลองใหม่');
+      toast.error(formatGenericErrorToast('เกิดข้อผิดพลาด กรุณาลองใหม่', e));
     } finally {
       setFgfCisSubmitting(false);
     }

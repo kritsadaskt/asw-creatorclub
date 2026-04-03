@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 import { Upload, Loader2, Pencil, Trash2, Search } from 'lucide-react';
 import { BASE_PATH } from '@/lib/publicPath';
+import { formatGenericErrorToast } from '../../utils/toast-error';
 import type { AffiliateMaterial } from '../../types';
 import { getAffiliateMaterialsByProject, generateUUID } from '../../utils/storage';
 import { Button } from '../shared/Button';
@@ -159,7 +160,7 @@ export function ProjectMaterialsLibrary({ projectId }: { projectId: string }) {
       setEditing(null);
       toast.success('แก้ไขสื่อสำเร็จ');
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'เกิดข้อผิดพลาด');
+      toast.error(formatGenericErrorToast('เกิดข้อผิดพลาด', e));
     } finally {
       setEditSaving(false);
     }
