@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logServerError, requestLogContext } from '@/lib/log-server-error';
 import { fetchAffiliateProjects, type AffiliateProject } from '@/modules/utils/affiliate';
 import type { SessionRole } from '@/modules/utils/auth';
 
@@ -49,6 +50,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(sanitized, { status: 200 });
   } catch (error) {
     console.error('friendgetfriend/projects error:', error);
+    await logServerError({
+      environment: process.env.NODE_ENV ?? 'development',
+      source: 'api:friendgetfriend/projects',
+      severity: 'error',
+      error,
+      context: requestLogContext(request),
+    });
     return NextResponse.json(
       { error: 'Failed to load projects' },
       { status: 500 }

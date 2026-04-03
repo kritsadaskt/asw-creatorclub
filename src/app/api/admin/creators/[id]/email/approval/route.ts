@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logServerError, requestLogContext } from '@/lib/log-server-error';
 import { sendEmail } from '@/lib/email/send-email';
 import { buildApprovalEmailMessage } from '@/modules/utils/email';
 import { getCreatorById } from '@/modules/utils/storage';
 
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
@@ -33,9 +34,23 @@ export async function POST(
       return NextResponse.json({ error: 'INVALID_EMAIL_CONTENT' }, { status: 400 });
     }
 
+    await logServerError({
+      environment: process.env.NODE_ENV ?? 'development',
+      source: 'api:admin/creators/[id]/email/approval',
+      severity: 'warn',
+      message: 'EMAIL_SEND_FAILED',
+      context: { ...requestLogContext(request), creatorId: id },
+    });
     return NextResponse.json({ error: 'EMAIL_SEND_FAILED' }, { status: 500 });
   } catch (error) {
     console.error('Send approval email error:', error);
+    await logServerError({
+      environment: process.env.NODE_ENV ?? 'development',
+      source: 'api:admin/creators/[id]/email/approval',
+      severity: 'error',
+      error,
+      context: requestLogContext(request),
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

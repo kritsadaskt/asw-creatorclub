@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCreatorById } from '@/modules/utils/storage';
+import { logServerError, requestLogContext } from '@/lib/log-server-error';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { getCreatorById } from '@/modules/utils/storage';
 
 type ApprovalStatus = 0 | 1 | 2 | 3;
 
@@ -29,12 +30,26 @@ export async function PATCH(
 
     if (error) {
       console.error('Error updating approval status:', error);
+      await logServerError({
+        environment: process.env.NODE_ENV ?? 'development',
+        source: 'api:admin/creators/[id]/approval',
+        severity: 'error',
+        error,
+        context: { ...requestLogContext(request), creatorId: id },
+      });
       return NextResponse.json({ error: 'Failed to update status' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Approval status error:', error);
+    await logServerError({
+      environment: process.env.NODE_ENV ?? 'development',
+      source: 'api:admin/creators/[id]/approval',
+      severity: 'error',
+      error,
+      context: requestLogContext(request),
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

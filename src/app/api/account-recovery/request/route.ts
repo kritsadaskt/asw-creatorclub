@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logServerError, requestLogContext } from '@/lib/log-server-error';
 import { supabase } from '@/modules/utils/supabase';
 import { getCreatorByEmail } from '@/modules/utils/storage';
 
@@ -47,6 +48,13 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error('Error creating password recovery request:', insertError);
+      await logServerError({
+        environment: process.env.NODE_ENV ?? 'development',
+        source: 'api:account-recovery/request',
+        severity: 'error',
+        error: insertError,
+        context: requestLogContext(request),
+      });
       return NextResponse.json({ error: 'FAILED_TO_CREATE_REQUEST' }, { status: 500 });
     }
 
@@ -63,6 +71,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Account recovery request error:', error);
+    await logServerError({
+      environment: process.env.NODE_ENV ?? 'development',
+      source: 'api:account-recovery/request',
+      severity: 'error',
+      error,
+      context: requestLogContext(request),
+    });
     return NextResponse.json({ error: 'INTERNAL_ERROR' }, { status: 500 });
   }
 }

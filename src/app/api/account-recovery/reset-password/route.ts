@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/modules/utils/supabase';
+import { logServerError, requestLogContext } from '@/lib/log-server-error';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { supabase } from '@/modules/utils/supabase';
 import { hashPassword, validatePassword } from '@/modules/utils/password';
 
 export async function POST(request: NextRequest) {
@@ -55,6 +56,13 @@ export async function POST(request: NextRequest) {
 
     if (updateProfileError) {
       console.error('Error updating password:', updateProfileError);
+      await logServerError({
+        environment: process.env.NODE_ENV ?? 'development',
+        source: 'api:account-recovery/reset-password',
+        severity: 'error',
+        error: updateProfileError,
+        context: requestLogContext(request),
+      });
       return NextResponse.json({ error: 'FAILED_TO_UPDATE_PASSWORD' }, { status: 500 });
     }
 
@@ -77,6 +85,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Reset password error:', error);
+    await logServerError({
+      environment: process.env.NODE_ENV ?? 'development',
+      source: 'api:account-recovery/reset-password',
+      severity: 'error',
+      error,
+      context: requestLogContext(request),
+    });
     return NextResponse.json({ error: 'INTERNAL_ERROR' }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from '@/modules/utils/auth';
+import { logServerError, requestLogContext } from '@/lib/log-server-error';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { getServerSession } from '@/modules/utils/auth';
 
 export async function PATCH(
   request: NextRequest,
@@ -62,6 +63,13 @@ export async function PATCH(
     });
   } catch (err) {
     console.error('PATCH /api/admin/materials/[id]:', err);
+    await logServerError({
+      environment: process.env.NODE_ENV ?? 'development',
+      source: 'api:admin/materials/[id]',
+      severity: 'error',
+      error: err,
+      context: requestLogContext(request),
+    });
     return NextResponse.json({ error: 'เกิดข้อผิดพลาด' }, { status: 500 });
   }
 }
@@ -88,6 +96,13 @@ export async function DELETE(
     return new NextResponse(null, { status: 204 });
   } catch (err) {
     console.error('DELETE /api/admin/materials/[id]:', err);
+    await logServerError({
+      environment: process.env.NODE_ENV ?? 'development',
+      source: 'api:admin/materials/[id]',
+      severity: 'error',
+      error: err,
+      context: requestLogContext(request),
+    });
     return NextResponse.json({ error: 'เกิดข้อผิดพลาด' }, { status: 500 });
   }
 }
