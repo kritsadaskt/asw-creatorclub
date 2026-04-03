@@ -43,6 +43,7 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { cn } from '../ui/utils';
+import { AdminDashboardCharts } from './AdminDashboardCharts';
 
 /** react-select only on client — avoids SSR/hydration drift and mount swap vs skeleton. */
 function ReactSelectSkeleton() {
@@ -699,6 +700,10 @@ export function AdminDashboard() {
   return (
     <div className="container mx-auto p-6">
       <h2 className="mb-4">แดชบอร์ดผู้ดูแลระบบ</h2>
+
+      <div className="mb-6">
+        <AdminDashboardCharts creators={creators} loading={loading} />
+      </div>
 
       <div className="flex flex-col gap-6">
         {/* Filters */}
