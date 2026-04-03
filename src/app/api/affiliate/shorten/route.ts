@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logServerError, requestLogContext } from '@/lib/log-server-error';
 
 const SHLINK_BASE = 'https://assetwise.co.th/c';
 
@@ -49,12 +50,30 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     console.error('Shlink fetch error:', err);
+    await logServerError({
+      environment: process.env.NODE_ENV ?? 'development',
+      source: 'api:affiliate/shorten',
+      severity: 'error',
+      error: err,
+      context: requestLogContext(request),
+    });
     return NextResponse.json({ error: 'Failed to reach Shlink service' }, { status: 502 });
   }
 
   if (!shlinkRes.ok) {
     const detail = await shlinkRes.text().catch(() => '');
     console.error('Shlink error response:', shlinkRes.status, detail);
+    await logServerError({
+      environment: process.env.NODE_ENV ?? 'development',
+      source: 'api:affiliate/shorten',
+      severity: 'warn',
+      message: `Shlink returned ${shlinkRes.status}`,
+      context: {
+        ...requestLogContext(request),
+        status: shlinkRes.status,
+        detail: detail.slice(0, 400),
+      },
+    });
     return NextResponse.json(
       { error: 'Shlink returned an error', detail },
       { status: 502 },

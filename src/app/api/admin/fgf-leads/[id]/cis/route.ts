@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logServerError, requestLogContext } from '@/lib/log-server-error';
 
 /**
  * Proxies Friend Get Friends lead payload to AssetWise CIS (SaveOtherSource).
@@ -55,6 +56,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     if (!cisRes.ok) {
+      await logServerError({
+        environment: process.env.NODE_ENV ?? 'development',
+        source: 'api:admin/fgf-leads/[id]/cis',
+        severity: 'warn',
+        message: `CIS upstream ${cisRes.status}`,
+        context: {
+          ...requestLogContext(request),
+          cisStatus: cisRes.status,
+          cisBodySnippet:
+            typeof cisJson === 'object'
+              ? JSON.stringify(cisJson).slice(0, 500)
+              : String(cisJson).slice(0, 500),
+        },
+      });
       return NextResponse.json(
         { error: 'CIS request failed', cisStatus: cisRes.status, cisBody: cisJson },
         { status: 502 },
@@ -64,6 +79,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ success: true, cis: cisJson });
   } catch (error) {
     console.error('FGF CIS proxy error:', error);
+    await logServerError({
+      environment: process.env.NODE_ENV ?? 'development',
+      source: 'api:admin/fgf-leads/[id]/cis',
+      severity: 'error',
+      error,
+      context: requestLogContext(request),
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -12,6 +12,7 @@ import { Button } from '../shared/Button';
 import { useSession } from '../../context/SessionContext';
 import { getCreatorById } from '../../utils/storage';
 import { BASE_PATH } from '@/lib/publicPath';
+import { formatGenericErrorToast } from '../../utils/toast-error';
 import type { AffiliateProject } from '../../utils/affiliate';
 import fgfDesktopBanner from '@/assets/fgf_desktop_banner.png';
 import fgfMobileBanner from '@/assets/fgf_mobile_banner.png';
@@ -126,14 +127,19 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
       if (!res.ok) {
         const body = await res.json().catch(() => ({})) as { error?: string };
         console.error('FGF submit failed', body);
-        toast.error(body.error || 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+        toast.error(
+          formatGenericErrorToast(
+            'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง',
+            body.error || undefined,
+          ),
+        );
         return;
       }
       setSubmitSuccess(true);
       clearReferredLeadForm();
     } catch (error) {
       console.error('FGF lead submit failed', error);
-      toast.error('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+      toast.error(formatGenericErrorToast('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง', error));
     } finally {
       setSubmitting(false);
     }

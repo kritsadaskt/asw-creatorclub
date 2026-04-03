@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { logServerError, requestLogContext } from '@/lib/log-server-error';
 import { createFgfLeadWithProjects } from '@/modules/utils/storage';
-import { getSession } from '@/modules/utils/auth';
 
 const FgfSubmitSchema = z.object({
   referrerName:     z.string().min(1),
@@ -135,6 +135,20 @@ export async function POST(request: NextRequest) {
     }
 
     if (cisError) {
+      await logServerError({
+        environment: process.env.NODE_ENV ?? 'development',
+        source: 'api:fgf/submit',
+        severity: 'warn',
+        message: 'CIS request failed after lead saved',
+        context: {
+          ...requestLogContext(request),
+          leadId,
+          cisError:
+            typeof cisError === 'object'
+              ? JSON.stringify(cisError).slice(0, 500)
+              : String(cisError).slice(0, 500),
+        },
+      });
       // Lead was saved; admin can re-push via /api/admin/fgf-leads/[id]/cis
       return NextResponse.json({ success: true, leadId, cisError });
     }
@@ -148,6 +162,13 @@ export async function POST(request: NextRequest) {
       );
     }
     console.error('FGF submit error:', error);
+    await logServerError({
+      environment: process.env.NODE_ENV ?? 'development',
+      source: 'api:fgf/submit',
+      severity: 'error',
+      error,
+      context: requestLogContext(request),
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

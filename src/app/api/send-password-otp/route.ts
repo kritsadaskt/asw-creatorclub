@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logServerError, requestLogContext } from '@/lib/log-server-error';
 import { sendEmail } from '@/lib/email/send-email';
 
 export async function POST(request: NextRequest) {
@@ -32,9 +33,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, dev: true });
     }
 
+    await logServerError({
+      environment: process.env.NODE_ENV ?? 'development',
+      source: 'api:send-password-otp',
+      severity: 'warn',
+      message: 'EMAIL_SEND_FAILED (SMTP)',
+      context: requestLogContext(request),
+    });
     return NextResponse.json({ error: 'EMAIL_SEND_FAILED' }, { status: 500 });
   } catch (error) {
     console.error('[send-password-otp]', error);
+    await logServerError({
+      environment: process.env.NODE_ENV ?? 'development',
+      source: 'api:send-password-otp',
+      severity: 'error',
+      error,
+      context: requestLogContext(request),
+    });
     return NextResponse.json({ error: 'EMAIL_SEND_FAILED' }, { status: 500 });
   }
 }

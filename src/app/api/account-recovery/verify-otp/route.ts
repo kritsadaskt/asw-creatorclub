@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logServerError, requestLogContext } from '@/lib/log-server-error';
 import { supabase } from '@/modules/utils/supabase';
 
 const MAX_ATTEMPTS = 5;
@@ -90,6 +91,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, resetToken });
   } catch (error) {
     console.error('Verify OTP error:', error);
+    await logServerError({
+      environment: process.env.NODE_ENV ?? 'development',
+      source: 'api:account-recovery/verify-otp',
+      severity: 'error',
+      error,
+      context: requestLogContext(request),
+    });
     return NextResponse.json({ error: 'INTERNAL_ERROR' }, { status: 500 });
   }
 }

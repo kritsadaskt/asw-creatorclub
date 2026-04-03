@@ -139,6 +139,18 @@ export interface FgfLeadWithProjects {
 
 export type UserRole = 'creator' | 'admin';
 
+/** Payload for `logServerError` — omit `created_at`; DB default uses Bangkok wall time. */
+export interface LogServerErrorPayload {
+  environment: string;
+  source: string;
+  severity: 'error' | 'warn';
+  /** Prefer passing `error` for message/stack; use this to override the summary. */
+  message?: string;
+  stack?: string;
+  error?: unknown;
+  context?: Record<string, unknown> | null;
+}
+
 export interface AffiliateMaterial {
   id: string;
   projectId?: string;

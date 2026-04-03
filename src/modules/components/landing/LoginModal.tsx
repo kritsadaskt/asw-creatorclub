@@ -16,6 +16,7 @@ import {
 import { loginWithFacebook, getFacebookUserInfo, fetchAndUploadFacebookProfileImage } from '../../utils/facebook';
 import { isFacebookProfileImageUrl } from '../../utils/profileImage';
 import { setSession } from '../../utils/auth';
+import { formatGenericErrorToast } from '../../utils/toast-error';
 
 interface LoginModalProps {
   onClose: () => void;
@@ -78,7 +79,7 @@ export function LoginModal({ onClose, onLogin }: LoginModalProps) {
         // User cancelled, don't show error
       } else {
         setError('เกิดข้อผิดพลาดในการเข้าสู่ระบบด้วย Facebook');
-        toast.error('เกิดข้อผิดพลาด');
+        toast.error(formatGenericErrorToast('เกิดข้อผิดพลาด', err));
       }
     } finally {
       setFacebookLoading(false);
@@ -127,7 +128,7 @@ export function LoginModal({ onClose, onLogin }: LoginModalProps) {
     } catch (err) {
       console.error('Error:', err);
       setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
-      toast.error('เกิดข้อผิดพลาด');
+      toast.error(formatGenericErrorToast('เกิดข้อผิดพลาด', err));
     } finally {
       setLoading(false);
     }
