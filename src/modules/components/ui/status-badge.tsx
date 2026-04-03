@@ -5,10 +5,10 @@ export function StatusBadge({ status }: { status: string | null }) {
   if (status) {
     switch (status) {
       case 'ready':
-        statusText = 'RTM';
+        statusText = 'โครงการพร้อมอยู่';
         break;
       case 'new':
-        statusText = 'New';
+        statusText = 'โครงการใหม่';
         break;
       case 'sold_out':
         statusText = 'Sold Out';

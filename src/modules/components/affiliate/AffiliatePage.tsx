@@ -43,7 +43,7 @@ import { toast } from 'sonner';
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || '';
 const DEFAULT_ITEMS_PER_PAGE = 10;
 const STATUS_FILTER_ALL = 'all';
-type ProjectStatusValue = 'ready' | 'new' | 'sold_out';
+type ProjectStatusValue = 'ready' | 'new';
 type StatusFilterValue = typeof STATUS_FILTER_ALL | ProjectStatusValue;
 
 export function AffiliatePage() {
@@ -81,15 +81,17 @@ function AffiliateProjectList() {
   const filteredProjects = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     const statusValue = statusFilter === STATUS_FILTER_ALL ? null : statusFilter;
-    return projects.filter((p) => {
-      const matchesSearch =
-        !q ||
-        (p.name?.toLowerCase().includes(q) ?? false) ||
-        (p.description?.toLowerCase().includes(q) ?? false);
-      const matchesStatus =
-        statusValue === null || (p.projectStatus ?? '') === statusValue;
-      return matchesSearch && matchesStatus;
-    });
+    return projects
+      .filter((p) => p.projectStatus !== 'sold_out')
+      .filter((p) => {
+        const matchesSearch =
+          !q ||
+          (p.name?.toLowerCase().includes(q) ?? false) ||
+          (p.description?.toLowerCase().includes(q) ?? false);
+        const matchesStatus =
+          statusValue === null || (p.projectStatus ?? '') === statusValue;
+        return matchesSearch && matchesStatus;
+      });
   }, [projects, searchQuery, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProjects.length / itemsPerPage));
@@ -307,7 +309,6 @@ function AffiliateProjectList() {
                     <SelectItem value={STATUS_FILTER_ALL}>ทั้งหมด</SelectItem>
                     <SelectItem value="ready">Ready</SelectItem>
                     <SelectItem value="new">New</SelectItem>
-                    <SelectItem value="sold_out">Sold Out</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

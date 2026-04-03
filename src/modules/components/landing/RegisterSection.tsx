@@ -365,6 +365,9 @@ export function RegisterSection({
 
     const isValid = validateAll();
     if (!isValid) {
+      toast.error('กรุณากรอกข้อมูลให้ครบถ้วน', {
+        description: 'กรุณาตรวจสอบและกรอกข้อมูลในทุกช่องที่จำเป็นให้ครบถ้วน',
+      });
       return;
     }
 
