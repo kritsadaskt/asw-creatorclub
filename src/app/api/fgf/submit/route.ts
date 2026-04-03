@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { logServerError, requestLogContext } from '@/lib/log-server-error';
-import { createFgfLeadWithProjects } from '@/modules/utils/storage';
+import { createFgfLeadWithProjects, getProjectCisIdsByIds } from '@/modules/utils/storage';
 
 const FgfSubmitSchema = z.object({
   referrerName:     z.string().min(1),
@@ -36,6 +36,19 @@ export async function POST(request: NextRequest) {
     }
 
     const data = parsed.data;
+
+    const cisIdByProjectUuid = await getProjectCisIdsByIds(data.projectIds);
+    for (const projectUuid of data.projectIds) {
+      if (!cisIdByProjectUuid.has(projectUuid)) {
+        return NextResponse.json(
+          {
+            error:
+              'โครงการบางรายการยังไม่มีรหัส CIS กรุณาติดต่อผู้ดูแลระบบ หรือลองเลือกโครงการอื่น',
+          },
+          { status: 400 },
+        );
+      }
+    }
 
     // Read session cookie to attach refUid / referrerCreatorId
     const sessionCookie = request.cookies.get('asw_session')?.value;
@@ -86,53 +99,71 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Build CIS SaveOtherSource payload per API v15.0 spec ──
-    // We send one request per project (CIS requires a single ProjectID per request).
-    // We use the first project; the rest are logged in the Ref field for traceability.
-    // Since our DB uses UUIDs and CIS expects int ProjectID, we generate a numeric RefID
-    // from the lead's DB id and store our UUIDs in the Ref field for cross-referencing.
+    // One request per project (CIS requires a single int ProjectID per request).
+    // ProjectID = projects.cis_id; Ref includes app UUIDs for cross-reference.
     const numericRefId = parseInt(leadId.replace(/-/g, '').slice(0, 8), 16);
     const now = formatCisDate(new Date());
+    const refBase = `CreatorClub FGF | Lead: ${leadId} | Referrer: ${data.referrerName} ${data.referrerLastName} (${data.referrerTel}) | Project UUIDs: ${data.projectIds.join(',')}`;
 
-    const cisPayload = {
-      ProjectID:        0,                    // Default; CIS will route via Ref field
-      ContactChannelID: 21,                   // Web Site (fixed per CIS spec)
-      ContactTypeID:    35,                   // Register (fixed per CIS spec)
-      RefID:            numericRefId,          // Numeric reference from our lead UUID
-      Fname:            data.leadName,         // Lead's first name
-      Lname:            data.leadLastName,     // Lead's last name
-      Tel:              data.leadTel || 'NULL', // CIS requires "NULL" string if absent
-      Email:            data.leadEmail || 'NULL',
-      Ref:              `CreatorClub FGF | Referrer: ${data.referrerName} ${data.referrerLastName} (${data.referrerTel}) | Projects: ${data.projectIds.join(',')}`,
-      RefDate:          now,
-      FollowUpID:       42,                   // Yes (fixed per CIS spec)
-      FlagPersonalAccept:  true,
-      FlagContactAccept:   true,
-      utm_source:       'creatorclub',
-      utm_medium:       'referral',
-      utm_campaign:     'friend_get_friend',
-    };
+    const cisErrors: unknown[] = [];
 
-    let cisError: unknown;
-    try {
-      const cisRes = await fetch(cisUrl, {
-        method: 'POST',
-        headers: cisHeaders,
-        body: JSON.stringify(cisPayload),
-      });
+    for (const projectUuid of data.projectIds) {
+      const cisProjectId = cisIdByProjectUuid.get(projectUuid)!;
+      const cisPayload = {
+        ProjectID:          cisProjectId,
+        ContactChannelID: 21,
+        ContactTypeID:    35,
+        RefID:            numericRefId,
+        Fname:            data.leadName,
+        Lname:            data.leadLastName,
+        Tel:              data.leadTel || 'NULL',
+        Email:            data.leadEmail || 'NULL',
+        Ref:              `${refBase} | This CIS ProjectID: ${cisProjectId} (UUID: ${projectUuid})`,
+        RefDate:          now,
+        FollowUpID:       42,
+        FlagPersonalAccept: true,
+        FlagContactAccept:  true,
+        utm_source:       'creatorclub',
+        utm_medium:       'referral',
+        utm_campaign:     'friend_get_friend',
+      };
 
-      if (!cisRes.ok) {
-        const text = await cisRes.text();
-        cisError = { status: cisRes.status, body: text };
-      } else {
-        // Parse CIS response to check Success flag
-        const cisData = await cisRes.json().catch(() => null);
-        if (cisData && cisData.Success === false) {
-          cisError = { status: 200, body: cisData.Message || 'CIS returned Success: false' };
+      try {
+        const cisRes = await fetch(cisUrl, {
+          method: 'POST',
+          headers: cisHeaders,
+          body: JSON.stringify(cisPayload),
+        });
+
+        if (!cisRes.ok) {
+          const text = await cisRes.text();
+          cisErrors.push({ projectUuid, cisProjectId, status: cisRes.status, body: text });
+        } else {
+          const cisData = await cisRes.json().catch(() => null);
+          if (cisData && (cisData as { Success?: boolean }).Success === false) {
+            cisErrors.push({
+              projectUuid,
+              cisProjectId,
+              status: 200,
+              body: (cisData as { Message?: string }).Message || 'CIS returned Success: false',
+            });
+          }
         }
+      } catch (err) {
+        cisErrors.push({
+          projectUuid,
+          cisProjectId,
+          message: err instanceof Error ? err.message : String(err),
+        });
       }
-    } catch (err) {
-      cisError = { message: err instanceof Error ? err.message : String(err) };
     }
+
+    const cisError: unknown =
+      cisErrors.length > 0
+        ? cisErrors.length === 1
+          ? cisErrors[0]
+          : { partialFailures: cisErrors }
+        : undefined;
 
     if (cisError) {
       await logServerError({

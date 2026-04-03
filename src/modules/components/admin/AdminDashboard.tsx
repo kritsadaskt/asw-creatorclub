@@ -919,7 +919,7 @@ export function AdminDashboard() {
           if (!open) setSelectedCreator(null);
         }}
       >
-        <DrawerContent className="overflow-y-auto overflow-x-hidden">
+        <DrawerContent className="overflow-y-auto overflow-x-hidden select-text">
           {selectedCreator && (
             <>
               <DrawerHeader className="p-7">

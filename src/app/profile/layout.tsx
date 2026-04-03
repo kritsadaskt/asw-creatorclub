@@ -14,6 +14,7 @@ export default function ProfileLayout({ children }: { children: React.ReactNode 
           onLogout={handleLogout}
           navLinks={[
             { label: 'โปรไฟล์', to: '/profile', end: true },
+            { label: 'Friend Get Friends', to: '/friendgetfriends' },
             { label: 'Affiliate Links', to: '/profile/affiliate' },
           ]}
         />
