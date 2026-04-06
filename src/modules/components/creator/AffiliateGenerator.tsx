@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
 import { AffiliateLink, Project, Campaign } from '../../types';
 import { getAffiliateLinksByCreator, getProjects, getCampaigns, updateAffiliateLink } from '../../utils/storage';
-import { Building2, CalendarIcon, Home, HomeIcon, Link2, Loader2, PencilIcon, PlusIcon } from 'lucide-react';
+import { BASE_PATH } from '@/lib/publicPath';
+import { Building2, CalendarIcon, Home, HomeIcon, Link2, Loader2, MousePointerClick, PencilIcon, PlusIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import {
   Drawer,
@@ -25,6 +26,8 @@ interface AffiliateGeneratorProps {
   showBackButton?: boolean;
 }
 
+type ShlinkStatEntry = { total: number; nonBots?: number } | null;
+
 export function AffiliateGenerator({ creatorId, showBackButton = true }: AffiliateGeneratorProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [links, setLinks] = useState<AffiliateLink[]>([]);
@@ -41,13 +44,41 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [projectCache, setProjectCache] = useState<Record<string, Project>>({});
   const [campaignCache, setCampaignCache] = useState<Record<string, Campaign>>({});
+  const [shlinkStats, setShlinkStats] = useState<Record<string, ShlinkStatEntry>>({});
+  const [shlinkStatsLoading, setShlinkStatsLoading] = useState(false);
+  const [shlinkTotalClicks, setShlinkTotalClicks] = useState(0);
   const router = useRouter();
 
-  useEffect(() => {
-    loadData();
-  }, [creatorId]);
+  const refreshShlinkStats = useCallback(async () => {
+    setShlinkStatsLoading(true);
+    try {
+      const res = await fetch(`${BASE_PATH}/api/affiliate/shlink-stats`, {
+        credentials: 'include',
+      });
+      if (res.status === 503) {
+        setShlinkStats({});
+        setShlinkTotalClicks(0);
+        return;
+      }
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        stats?: Record<string, ShlinkStatEntry>;
+        totalClicksAll?: number;
+      };
+      setShlinkStats(data.stats ?? {});
+      setShlinkTotalClicks(
+        typeof data.totalClicksAll === 'number' && Number.isFinite(data.totalClicksAll)
+          ? data.totalClicksAll
+          : 0
+      );
+    } catch (e) {
+      console.error('Error loading Shlink stats:', e);
+    } finally {
+      setShlinkStatsLoading(false);
+    }
+  }, []);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const [creatorLinks, allProjects, allCampaigns] = await Promise.all([
@@ -71,7 +102,12 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
     } finally {
       setLoading(false);
     }
-  };
+    await refreshShlinkStats();
+  }, [creatorId, refreshShlinkStats]);
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
 
   const filteredLinks = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -166,11 +202,28 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
 
       {/* Links List */}
       <div className="bg-white rounded-xl shadow-sm border border-border p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Link2 className="w-5 h-5 text-primary" />
-          <h3 className="text-lg font-semibold text-foreground">ลิงค์ทั้งหมด ({links.length})</h3>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Link2 className="w-5 h-5 text-primary" />
+            <h3 className="text-lg font-semibold text-foreground">ลิงค์ทั้งหมด ({links.length})</h3>
+          </div>
+          {!loading && links.length > 0 && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <MousePointerClick className="w-4 h-4 shrink-0 text-primary" />
+              <span>
+                คลิกรวม (ลิงก์ Shlink ที่ยืนยันแล้ว):{' '}
+                {shlinkStatsLoading ? (
+                  <Loader2 className="inline w-3.5 h-3.5 animate-spin align-middle" aria-hidden />
+                ) : (
+                  <span className="font-semibold text-foreground tabular-nums">
+                    {shlinkTotalClicks.toLocaleString('th-TH')}
+                  </span>
+                )}
+              </span>
+            </div>
+          )}
         </div>
-        
+
         {loading ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground flex items-center justify-center gap-2">
@@ -242,6 +295,14 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
                       <th className="px-4 py-3 text-left font-medium text-foreground">ชื่อลิ้งก์</th>
                       <th className="px-4 py-3 text-left font-medium text-foreground">โครงการ</th>
                       <th className="px-4 py-3 text-left font-medium text-foreground">วันที่สร้าง</th>
+                      <th className="px-4 py-3 text-right font-medium text-foreground whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1.5">
+                          จำนวนคลิก
+                          {shlinkStatsLoading && (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" aria-hidden />
+                          )}
+                        </span>
+                      </th>
                       <th className="px-4 py-3 text-center font-medium text-foreground">จัดการ</th>
                     </tr>
                   </thead>
@@ -273,6 +334,22 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
                               month: 'long',
                               day: 'numeric',
                             })}
+                          </td>
+                          <td className="px-4 py-4 text-sm text-right tabular-nums">
+                            {shlinkStatsLoading ? (
+                              <span className="text-muted-foreground">…</span>
+                            ) : shlinkStats[link.id] != null ? (
+                              <span className="font-medium text-foreground">
+                                {shlinkStats[link.id]!.total.toLocaleString('th-TH')}
+                              </span>
+                            ) : (
+                              <span
+                                className="text-muted-foreground"
+                                title="ไม่ใช่ลิงก์ Shlink ของระบบ หรือยังไม่มีข้อมูล / ไม่ผ่านการยืนยัน"
+                              >
+                                —
+                              </span>
+                            )}
                           </td>
                           <td className="p-4 text-center">
                             <Button
@@ -334,6 +411,31 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
                 placeholder="https://example.com/?ref=..."
                 required
               />
+
+              <div className="rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-sm space-y-1">
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <span className="text-muted-foreground shrink-0">คลิกสะสม (Shlink)</span>
+                  {shlinkStatsLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" aria-hidden />
+                  ) : shlinkStats[selectedLink.id] != null ? (
+                    <span className="font-semibold tabular-nums text-foreground">
+                      {shlinkStats[selectedLink.id]!.total.toLocaleString('th-TH')}
+                      {shlinkStats[selectedLink.id]!.nonBots != null && (
+                        <span className="text-muted-foreground font-normal text-xs ml-1.5">
+                          (ไม่รวมบอท: {shlinkStats[selectedLink.id]!.nonBots!.toLocaleString('th-TH')})
+                        </span>
+                      )}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </div>
+                {draftUrl.trim() !== selectedLink.url.trim() && (
+                  <p className="text-xs text-amber-700">
+                    สถิตินี้อิง URL ที่บันทึกแล้ว — บันทึกเพื่ออัปเดตหลัง Shlink รู้จักลิงก์ใหม่
+                  </p>
+                )}
+              </div>
 
               <div className="text-sm text-muted-foreground flex items-center gap-2">
                 <CalendarIcon className="w-4 h-4" />
