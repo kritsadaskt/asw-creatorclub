@@ -139,12 +139,15 @@ export function RegisterSection({
   const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | ''>('');
   const [hideStatusField, setHideStatusField] = useState(false);
 
-  const sendRegistrationPendingEmail = async (creator: Pick<CreatorProfile, 'name' | 'email'>) => {
+  const sendRegistrationPendingEmail = async (
+    creator: Pick<CreatorProfile, 'name' | 'email' | 'lastName'>,
+  ) => {
+    const displayName = [creator.name, creator.lastName].filter(Boolean).join(' ').trim();
     try {
       const res = await fetch(`${BASE_PATH}/api/creators/email/registration-pending`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: creator.name, email: creator.email }),
+        body: JSON.stringify({ name: displayName || creator.name, email: creator.email }),
       });
 
       if (!res.ok) {
@@ -425,7 +428,7 @@ export function RegisterSection({
       const newCreator: CreatorProfile = {
         id: generateUUID(),
         email,
-        name: `${name} ${lastName}`.trim(),
+        name: name.trim(),
         lastName: lastName.trim() || undefined,
         phone,
         baseLocation,
@@ -476,6 +479,10 @@ export function RegisterSection({
       
       // Fire-and-forget webhook to external analyst endpoint
       try {
+        const webhookDisplayName = [newCreator.name, newCreator.lastName]
+          .filter(Boolean)
+          .join(' ')
+          .trim();
         await fetch(`${BASE_PATH}/api/creators/webhook-test`, {
           method: 'POST',
           headers: {
@@ -485,7 +492,7 @@ export function RegisterSection({
             uid: newCreator.id,
             socialAccounts: newCreator.socialAccounts ?? {},
             email: newCreator.email,
-            name: newCreator.name,
+            name: webhookDisplayName || newCreator.name,
           }),
         });
       } catch (webhookError) {
