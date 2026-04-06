@@ -1,7 +1,7 @@
+import { randomInt } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { logServerError, requestLogContext } from '@/lib/log-server-error';
-import { createFgfLeadWithProjects, getProjectIdsByCisIds } from '@/modules/utils/storage';
 
 const FgfSubmitSchema = z.object({
   referrerName:     z.string().min(1),
@@ -12,7 +12,7 @@ const FgfSubmitSchema = z.object({
   leadLastName:     z.string().min(1),
   leadEmail:        z.string().email(),
   leadTel:          z.string().min(9),
-  /** Single CIS ProjectID (`projects.cis_id`); server resolves to app project UUID for storage. */
+  /** CIS ProjectID (`projects.cis_id`) */
   cisId:            z.number().int().positive(),
 });
 
@@ -38,19 +38,15 @@ export async function POST(request: NextRequest) {
 
     const data = parsed.data;
 
-    const projectUuidByCisId = await getProjectIdsByCisIds([data.cisId]);
-    const projectUuid = projectUuidByCisId.get(data.cisId);
-    if (!projectUuid) {
+    const cisUrl = process.env.CIS_API_PROD?.trim();
+    if (!cisUrl) {
       return NextResponse.json(
-        {
-          error:
-            'ไม่พบโครงการสำหรับ CIS ID นี้ กรุณาติดต่อผู้ดูแลระบบ หรือเลือกโครงการอื่น',
-        },
-        { status: 400 },
+        { error: 'CIS endpoint not configured (CIS_API_PROD)' },
+        { status: 503 },
       );
     }
 
-    // Read session cookie to attach refUid / referrerCreatorId
+    // Read session cookie for Ref tracing only (not persisted)
     const sessionCookie = request.cookies.get('asw_session')?.value;
     let sessionUserId: string | undefined;
     if (sessionCookie) {
@@ -62,51 +58,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const result = await createFgfLeadWithProjects({
-      referrerName:     data.referrerName,
-      referrerLastName: data.referrerLastName,
-      referrerEmail:    data.referrerEmail,
-      referrerTel:      data.referrerTel,
-      refUid:           sessionUserId,
-      referrerCreatorId: sessionUserId,
-      leadName:         data.leadName,
-      leadLastName:     data.leadLastName,
-      leadEmail:        data.leadEmail,
-      leadTel:          data.leadTel,
-      projectIds:       [projectUuid],
-    });
-
-    const leadId = result.lead.id;
-
-    // Determine CIS URL: UAT in non-production, PROD in production
-    const cisUrl =
-      process.env.NODE_ENV !== 'production'
-        ? process.env.CIS_API_UAT?.trim()
-        : process.env.CIS_API_PROD?.trim();
-
-    if (!cisUrl) {
-      return NextResponse.json(
-        { success: true, leadId, cisError: { message: 'CIS endpoint not configured' } },
-        { status: 200 },
-      );
-    }
-
-    // ── CIS uses HTTP Basic Authentication (not Bearer) ──
     const token = process.env.CIS_TOKEN?.trim();
     const cisHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) {
       cisHeaders.Authorization = `Basic ${token}`;
     }
 
-    // ── Build CIS SaveOtherSource payload per API v15.0 spec ──
-    // One request per project (CIS requires a single int ProjectID per request).
-    // ProjectID = projects.cis_id; Ref includes app UUIDs for cross-reference.
-    const numericRefId = parseInt(leadId.replace(/-/g, '').slice(0, 8), 16);
+    const numericRefId = randomInt(1, 0x7fffffff);
     const now = formatCisDate(new Date());
     const cisProjectId = data.cisId;
-    const refBase = `CreatorClub FGF | Lead: ${leadId} | Referrer: ${data.referrerName} ${data.referrerLastName} (${data.referrerTel}) | CIS ProjectID: ${cisProjectId} | Project UUID: ${projectUuid}`;
-
-    const cisErrors: unknown[] = [];
+    const refBase = [
+      'CreatorClub FGF',
+      `Referrer: ${data.referrerName} ${data.referrerLastName} (${data.referrerTel})`,
+      `CIS ProjectID: ${cisProjectId}`,
+      sessionUserId ? `Creator session: ${sessionUserId}` : null,
+    ]
+      .filter(Boolean)
+      .join(' | ');
 
     const cisPayload = {
       ProjectID:          cisProjectId,
@@ -127,69 +95,78 @@ export async function POST(request: NextRequest) {
       utm_campaign:     'friend_get_friend',
     };
 
-    try {
-      const cisRes = await fetch(cisUrl, {
-        method: 'POST',
-        headers: cisHeaders,
-        body: JSON.stringify(cisPayload),
-      });
+    console.log('[fgf/submit] CIS request', { url: cisUrl, payload: cisPayload });
 
-      if (!cisRes.ok) {
-        const text = await cisRes.text();
-        cisErrors.push({ projectUuid, cisProjectId, status: cisRes.status, body: text });
-      } else {
-        const cisData = await cisRes.json().catch(() => null);
-        if (cisData && (cisData as { Success?: boolean }).Success === false) {
-          cisErrors.push({
-            projectUuid,
-            cisProjectId,
-            status: 200,
-            body: (cisData as { Message?: string }).Message || 'CIS returned Success: false',
-          });
-        }
-      }
-    } catch (err) {
-      cisErrors.push({
-        projectUuid,
-        cisProjectId,
-        message: err instanceof Error ? err.message : String(err),
-      });
+    const cisRes = await fetch(cisUrl, {
+      method: 'POST',
+      headers: cisHeaders,
+      body: JSON.stringify(cisPayload),
+    });
+
+    const responseText = await cisRes.text();
+    let responseJson: unknown = null;
+    try {
+      responseJson = responseText ? JSON.parse(responseText) : null;
+    } catch {
+      // body not JSON
     }
 
-    const cisError: unknown =
-      cisErrors.length > 0
-        ? cisErrors.length === 1
-          ? cisErrors[0]
-          : { partialFailures: cisErrors }
-        : undefined;
+    console.log('[fgf/submit] CIS response', {
+      status: cisRes.status,
+      statusText: cisRes.statusText,
+      ok: cisRes.ok,
+      bodyRaw: responseText,
+      bodyJson: responseJson,
+    });
 
-    if (cisError) {
+    if (!cisRes.ok) {
       await logServerError({
         environment: process.env.NODE_ENV ?? 'development',
         source: 'api:fgf/submit',
         severity: 'warn',
-        message: 'CIS request failed after lead saved',
+        message: 'CIS request failed',
         context: {
           ...requestLogContext(request),
-          leadId,
-          cisError:
-            typeof cisError === 'object'
-              ? JSON.stringify(cisError).slice(0, 500)
-              : String(cisError).slice(0, 500),
+          status: cisRes.status,
+          body: responseText.slice(0, 500),
         },
       });
-      // Lead was saved; admin can re-push via /api/admin/fgf-leads/[id]/cis
-      return NextResponse.json({ success: true, leadId, cisError });
-    }
-
-    return NextResponse.json({ success: true, leadId });
-  } catch (error) {
-    if (error instanceof Error && error.message === 'DUPLICATE_LEAD') {
       return NextResponse.json(
-        { error: 'มีการส่งข้อมูลนี้แล้วในช่วง 24 ชั่วโมงที่ผ่านมา' },
-        { status: 409 },
+        {
+          error: 'ส่งข้อมูลไปยังระบบ CIS ไม่สำเร็จ',
+          cisStatus: cisRes.status,
+          cisBody: responseJson ?? responseText,
+        },
+        { status: 502 },
       );
     }
+
+    if (
+      responseJson &&
+      typeof responseJson === 'object' &&
+      'Success' in responseJson &&
+      (responseJson as { Success?: boolean }).Success === false
+    ) {
+      const msg = (responseJson as { Message?: string }).Message || 'CIS returned Success: false';
+      await logServerError({
+        environment: process.env.NODE_ENV ?? 'development',
+        source: 'api:fgf/submit',
+        severity: 'warn',
+        message: 'CIS returned Success: false',
+        context: {
+          ...requestLogContext(request),
+          cisMessage: msg,
+          body: responseText.slice(0, 500),
+        },
+      });
+      return NextResponse.json(
+        { error: msg, cisBody: responseJson },
+        { status: 502 },
+      );
+    }
+
+    return NextResponse.json({ success: true, cis: responseJson ?? responseText });
+  } catch (error) {
     console.error('FGF submit error:', error);
     await logServerError({
       environment: process.env.NODE_ENV ?? 'development',
