@@ -10,6 +10,7 @@ import {
 import { supabase } from './supabase';
 import { verifyPassword } from './password';
 import { getSession, setSession, clearSession } from './auth';
+import { sanitizeSocialAccounts } from './social-url';
 
 // Helper function to generate UUID
 export const generateUUID = (): string => {
@@ -134,7 +135,7 @@ export const saveCreator = async (creator: CreatorProfile): Promise<void> => {
       categories: creator.categories ?? [],
       followers: creator.followers,
       profile_image: creator.profileImage,
-      social_accounts: creator.socialAccounts,
+      social_accounts: sanitizeSocialAccounts(creator.socialAccounts),
       follower_counts: creator.followerCounts,
       budgets: creator.budgets,
       approval_status: creator.approvalStatus ?? 3,
@@ -215,7 +216,7 @@ const mapDbToCreatorProfile = (row: any): CreatorProfile => ({
     : [],
   followers: row.followers || 0,
   profileImage: row.profile_image,
-  socialAccounts: row.social_accounts || {},
+  socialAccounts: sanitizeSocialAccounts(row.social_accounts || {}),
   followerCounts: row.follower_counts || {},
   budgets: row.budgets || {},
   approvalStatus: typeof row.approval_status === 'number' ? (row.approval_status as 0 | 1 | 2 | 3) : 3,

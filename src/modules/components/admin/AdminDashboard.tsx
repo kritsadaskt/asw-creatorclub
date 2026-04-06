@@ -561,6 +561,7 @@ export function AdminDashboard() {
     if (creator.socialAccounts.tiktok) links.push({ name: 'TikTok', url: creator.socialAccounts.tiktok });
     if (creator.socialAccounts.youtube) links.push({ name: 'YouTube', url: creator.socialAccounts.youtube });
     if (creator.socialAccounts.twitter) links.push({ name: 'Twitter', url: creator.socialAccounts.twitter });
+    if (creator.socialAccounts.lemon8) links.push({ name: 'Lemon8', url: creator.socialAccounts.lemon8 });
     return links;
   };
 
