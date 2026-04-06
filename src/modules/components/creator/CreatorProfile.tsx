@@ -1,9 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, type ChangeEvent } from 'react';
+import { Camera, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
 import { CreatorProfile as CreatorProfileType } from '../../types';
-import { getCreatorById, saveCreator } from '../../utils/storage';
+import {
+  CREATOR_PROFILE_UPDATED_EVENT,
+  getCreatorById,
+  saveCreator,
+  uploadCreatorProfileImage,
+} from '../../utils/storage';
 import { getProfileImageUrl } from '../../utils/profileImage';
 import { AffiliateGenerator } from './AffiliateGenerator';
 import { GetLinkCard } from './GetLinkCard';
@@ -38,6 +44,8 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordSaving, setPasswordSaving] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
+  const profileImageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadProfile();
@@ -123,6 +131,35 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
     }
   };
 
+  const handleProfileImageFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !profile) return;
+
+    try {
+      setImageUploading(true);
+      const publicUrl = await uploadCreatorProfileImage(file, profile.id);
+      const updated = { ...profile, profileImage: publicUrl };
+      setProfile(updated);
+      setProfileImageError(false);
+      await saveCreator(updated);
+      toast.success('อัปโหลดรูปโปรไฟล์สำเร็จ');
+      window.dispatchEvent(new CustomEvent(CREATOR_PROFILE_UPDATED_EVENT));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '';
+      if (message === 'CREATOR_PROFILE_IMAGE_TOO_LARGE') {
+        toast.error('ไฟล์รูปใหญ่เกินไป (สูงสุด 5 MB)');
+      } else if (message === 'CREATOR_PROFILE_IMAGE_INVALID_TYPE') {
+        toast.error('รองรับเฉพาะไฟล์รูป JPEG, PNG, WebP หรือ GIF');
+      } else {
+        console.error('Error uploading profile image:', err);
+        toast.error('อัปโหลดรูปไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+      }
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
   if (loading || !profile) {
     return <div className="p-8 text-center">กำลังโหลด...</div>;
   }
@@ -136,18 +173,53 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
       <div className="bg-white rounded-lg shadow-sm border border-border px-4 py-6 md:px-10 md:py-12 flex flex-col md:flex-row gap-8">
         {/* Sidebar */}
         <aside className="w-full md:w-64 md:border-r border-border md:pr-6 flex md:flex-col items-center gap-6">
-          {getProfileImageUrl(profile) && !profileImageError ? (
-            <img
-              src={getProfileImageUrl(profile)}
-              alt="Profile Image"
-              className="w-48 h-48 rounded-full object-cover border-4 border-primary/20"
-              onError={() => setProfileImageError(true)}
+          <div className="relative group w-48 h-48 shrink-0 rounded-full border-4 border-primary/20 overflow-hidden">
+            {getProfileImageUrl(profile) && !profileImageError ? (
+              <img
+                src={getProfileImageUrl(profile)}
+                alt="Profile Image"
+                className="h-full w-full object-cover"
+                onError={() => setProfileImageError(true)}
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-primary/10 text-primary text-4xl font-medium">
+                {profile.name ? profile.name.charAt(0).toUpperCase() : '?'}
+              </div>
+            )}
+
+            <input
+              ref={profileImageInputRef}
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+              className="sr-only"
+              aria-label="เลือกรูปโปรไฟล์"
+              tabIndex={-1}
+              onChange={handleProfileImageFileChange}
             />
-          ) : (
-            <div className="w-32 h-32 rounded-full border-4 border-primary/20 bg-primary/10 flex items-center justify-center text-primary text-4xl font-medium">
-              {profile.name ? profile.name.charAt(0).toUpperCase() : '?'}
-            </div>
-          )}
+            <button
+              type="button"
+              disabled={imageUploading}
+              onClick={() => profileImageInputRef.current?.click()}
+              aria-label={imageUploading ? 'กำลังอัปโหลดรูปโปรไฟล์' : 'เปลี่ยนรูปโปรไฟล์'}
+              className={`absolute inset-0 z-10 flex flex-col items-center justify-center gap-1.5 rounded-full px-3 text-center text-sm font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] transition-all duration-200 border border-white/25 bg-black/35 backdrop-blur-md hover:bg-black/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                imageUploading
+                  ? 'opacity-100 cursor-wait'
+                  : 'cursor-pointer max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100'
+              }`}
+            >
+              {imageUploading ? (
+                <>
+                  <Loader2 className="h-6 w-6 animate-spin opacity-95" aria-hidden />
+                  <span className="leading-tight drop-shadow-sm">กำลังอัปโหลด...</span>
+                </>
+              ) : (
+                <>
+                  <Camera className="h-6 w-6 opacity-95 drop-shadow-sm" aria-hidden />
+                  <span className="leading-tight drop-shadow-sm">เปลี่ยนรูปโปรไฟล์</span>
+                </>
+              )}
+            </button>
+          </div>
 
           <nav className="w-full space-y-2">
             <button
