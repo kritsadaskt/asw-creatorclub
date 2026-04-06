@@ -988,7 +988,7 @@ export function RegisterSection({
                 className="mt-1"
               />
               <label htmlFor="accepted-terms" className="text-sm font-normal text-muted-foreground">
-                ฉันยอมรับ<Link href="/terms-and-conditions" className="text-primary underline">ข้อกำหนดการใช้บริการ</Link> (Terms and Conditions) และ<Link href="/privacy-policy" className="text-primary underline">นโยบายความเป็นส่วนตัว</Link> (Privacy Policy)
+                ฉันยอมรับ<Link href="/terms-and-conditions" className="text-primary underline">ข้อกำหนดการใช้บริการ</Link> (Terms and Conditions) และ<Link href="https://assetwise.co.th/privacy-policy" className="text-primary underline">นโยบายความเป็นส่วนตัว</Link> (Privacy Policy)
               </label>
             </div>
             {fieldErrors.acceptedTerms && (
