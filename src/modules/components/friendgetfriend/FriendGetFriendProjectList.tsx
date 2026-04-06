@@ -108,7 +108,11 @@ export function FriendGetFriendProjectList({
     void loadProjects();
   }, []);
 
+  const hasFgfCisId = (project: AffiliateProject) =>
+    project.cis_id != null && Number.isFinite(project.cis_id) && project.cis_id > 0;
+
   const handleRecommend = (project: AffiliateProject) => {
+    if (!hasFgfCisId(project)) return;
     onRecommend?.(project);
   };
 
@@ -157,8 +161,8 @@ export function FriendGetFriendProjectList({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={STATUS_FILTER_ALL}>ทั้งหมด</SelectItem>
-                    <SelectItem value="ready">Ready</SelectItem>
-                    <SelectItem value="new">New</SelectItem>
+                    <SelectItem value="ready">โครงการพร้อมอยู่</SelectItem>
+                    <SelectItem value="new">โครงการใหม่</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -224,6 +228,9 @@ export function FriendGetFriendProjectList({
                                 <p className="text-sm text-neutral-500 line-clamp-2">
                                   {project.description}
                                 </p>
+                                <p className="text-xs text-muted-foreground tabular-nums mt-1.5">
+                                  CIS ID: {hasFgfCisId(project) ? project.cis_id : '—'}
+                                </p>
                               </div>
                             </div>
                           </td>
@@ -237,7 +244,13 @@ export function FriendGetFriendProjectList({
                               <button
                                 type="button"
                                 onClick={() => handleRecommend(project)}
-                                className="inline-flex items-center justify-center rounded-lg border border-primary px-2.5 py-1.5 font-medium text-primary text-sm hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
+                                disabled={!hasFgfCisId(project)}
+                                title={
+                                  hasFgfCisId(project)
+                                    ? undefined
+                                    : 'โครงการนี้ยังไม่มีรหัส CIS จึงยังแนะนำเพื่อนไม่ได้'
+                                }
+                                className="inline-flex items-center justify-center rounded-lg border border-primary px-2.5 py-1.5 font-medium text-primary text-sm hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed"
                               >
                                 แนะนำเพื่อน
                               </button>

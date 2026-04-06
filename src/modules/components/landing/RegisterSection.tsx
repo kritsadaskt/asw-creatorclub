@@ -17,6 +17,9 @@ import { Switch } from '../ui/switch';
 import { CREATOR_CATEGORIES } from './registerInviteCategories';
 import Link from 'next/link';
 
+/** Invite `type` query value: show project dropdown and save as resident (no status toggle). */
+const ASW_HOUSEHOLD_INVITE_TYPE = 'asw_household';
+
 type SelectOption = { value: string; label: string };
 
 interface RegisterSectionProps {
@@ -138,6 +141,8 @@ export function RegisterSection({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | ''>('');
   const [hideStatusField, setHideStatusField] = useState(false);
+
+  const needsHouseholdProject = inviteType === ASW_HOUSEHOLD_INVITE_TYPE;
 
   const sendRegistrationPendingEmail = async (
     creator: Pick<CreatorProfile, 'name' | 'email' | 'lastName'>,
@@ -261,7 +266,7 @@ export function RegisterSection({
       addError('province', validateField('province', province));
     }
 
-    if (status === 'resident') {
+    if (needsHouseholdProject || status === 'resident') {
       addError('projectName', validateField('projectName', projectName));
     }
 
@@ -425,6 +430,8 @@ export function RegisterSection({
         passwordHash = await hashPassword(password);
       }
 
+      const effectiveStatus = needsHouseholdProject ? 'resident' : status;
+
       const newCreator: CreatorProfile = {
         id: generateUUID(),
         email,
@@ -457,8 +464,8 @@ export function RegisterSection({
         },
         // 3 = pending approval by admin
         approvalStatus: 3,
-        status,
-        projectName: status === 'resident' ? projectName : undefined,
+        status: effectiveStatus,
+        projectName: effectiveStatus === 'resident' ? projectName : undefined,
         type: inviteType,
         createdAt: new Date().toISOString(),
         facebookId: pendingFacebookId || undefined,
@@ -878,90 +885,89 @@ export function RegisterSection({
             </div>
 
             {!hideStatusField && (
-              <>
-                {/* Status */}
-                <div className="flex flex-col gap-1">
-                  <h3 className="font-semibold text-primary">คุณเป็นลูกบ้านแอสเซทไวส์หรือไม่ ?</h3>
-                  <div className="flex items-start gap-4 pt-2">
-                    <span className="font-normal text-neutral-600">ไม่ใช่</span>
-                    <Switch checked={status === 'resident'} onCheckedChange={(checked) => setStatus(checked ? 'resident' : 'general')} size="lg" />
-                    <span className="font-normal text-neutral-600">ใช่</span>
-                  </div>
+              <div className="flex flex-col gap-1">
+                <h3 className="font-semibold text-primary">คุณเป็นลูกบ้านแอสเซทไวส์หรือไม่ ?</h3>
+                <div className="flex items-start gap-4 pt-2">
+                  <span className="font-normal text-neutral-600">ไม่ใช่</span>
+                  <Switch checked={status === 'resident'} onCheckedChange={(checked) => setStatus(checked ? 'resident' : 'general')} size="lg" />
+                  <span className="font-normal text-neutral-600">ใช่</span>
                 </div>
+              </div>
+            )}
 
-                {status === 'resident' && (
-                  <div className="flex flex-col gap-2">
-                    <h3 className="font-semibold text-primary">โปรดระบุโครงการ</h3>
-                    <Select
-                      instanceId="register-project-name"
-                      options={projectOptions}
-                      value={
-                        projectName
-                          ? projectOptions
-                            .flatMap((group) => group.options)
-                            .find((option) => option.value === projectName) ?? null
-                          : null
-                      }
-                      onChange={(option: any) => {
-                        const value = option ? option.value : '';
-                        setProjectName(value);
-                        if (touchedFields.projectName) {
-                          setFieldErrors((prev) => ({
-                            ...prev,
-                            projectName: validateField('projectName', value),
-                          }));
-                        }
+            {(needsHouseholdProject || (!hideStatusField && status === 'resident')) && (
+              <div className="flex flex-col gap-2">
+                <h3 className="font-semibold text-primary">
+                  {needsHouseholdProject ? 'โปรดระบุโครงการที่คุณพักอาศัย' : 'โปรดระบุโครงการ'}
+                </h3>
+                <Select
+                  instanceId="register-project-name"
+                  options={projectOptions}
+                  value={
+                    projectName
+                      ? projectOptions
+                        .flatMap((group) => group.options)
+                        .find((option) => option.value === projectName) ?? null
+                      : null
+                  }
+                  onChange={(option: any) => {
+                    const value = option ? option.value : '';
+                    setProjectName(value);
+                    if (touchedFields.projectName) {
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        projectName: validateField('projectName', value),
+                      }));
+                    }
+                  }}
+                  onBlur={() => {
+                    setTouchedFields((prev) => ({ ...prev, projectName: true }));
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      projectName: validateField('projectName', projectName),
+                    }));
+                  }}
+                  placeholder="เลือกโครงการ"
+                  formatGroupLabel={(group) => (
+                    <div
+                      style={{
+                        fontSize: 16,
+                        color: 'var(--primary)',
+                        fontWeight: 500,
                       }}
-                      onBlur={() => {
-                        setTouchedFields((prev) => ({ ...prev, projectName: true }));
-                        setFieldErrors((prev) => ({
-                          ...prev,
-                          projectName: validateField('projectName', projectName),
-                        }));
-                      }}
-                      placeholder="เลือกโครงการ"
-                      formatGroupLabel={(group) => (
-                        <div
-                          style={{
-                            fontSize: 16,
-                            color: 'var(--primary)',
-                            fontWeight: 500,
-                          }}
-                        >
-                          {group.label}
-                        </div>
-                      )}
-                      formatOptionLabel={(option, { context }) =>
-                        context === 'menu' ? (
-                          <div
-                            style={{
-                              fontSize: 16,
-                              paddingLeft: 20,
-                            }}
-                          >
-                            {option.label}
-                          </div>
-                        ) : (
-                          option.label
-                        )
-                      }
-                      styles={{
-                        option: (base, state) => ({
-                          ...base,
-                          cursor: 'pointer',
-                          color: state.isFocused ? '#fff' : '#333',
-                          backgroundColor: state.isFocused ? 'var(--accent)' : '#fff',
-                        }),
-                      }}
-                    />
-                    {touchedFields.projectName && fieldErrors.projectName && (
-                      <p className="mt-2 text-xs text-destructive">
-                        {fieldErrors.projectName}
-                      </p>
-                    )}
-                  </div>
+                    >
+                      {group.label}
+                    </div>
+                  )}
+                  formatOptionLabel={(option, { context }) =>
+                    context === 'menu' ? (
+                      <div
+                        style={{
+                          fontSize: 16,
+                          paddingLeft: 20,
+                        }}
+                      >
+                        {option.label}
+                      </div>
+                    ) : (
+                      option.label
+                    )
+                  }
+                  styles={{
+                    option: (base, state) => ({
+                      ...base,
+                      cursor: 'pointer',
+                      color: state.isFocused ? '#fff' : '#333',
+                      backgroundColor: state.isFocused ? 'var(--accent)' : '#fff',
+                    }),
+                  }}
+                />
+                {touchedFields.projectName && fieldErrors.projectName && (
+                  <p className="mt-2 text-xs text-destructive">
+                    {fieldErrors.projectName}
+                  </p>
                 )}
-              </>
+              </div>
             )}
 
             <div className="mt-4 flex items-start gap-2">

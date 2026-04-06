@@ -14,7 +14,7 @@ import { LayoutDashboard, LogOut, Menu, User, X } from 'lucide-react';
 import { LoginModal } from './LoginModal';
 import { BASE_PATH } from '@/lib/publicPath';
 import { useSession } from '@/modules/context/SessionContext';
-import { getCreatorById } from '../../utils/storage';
+import { CREATOR_PROFILE_UPDATED_EVENT, getCreatorById } from '../../utils/storage';
 import { getSession } from '../../utils/auth';
 import { getProfileImageUrl } from '../../utils/profileImage';
 import {
@@ -264,6 +264,14 @@ export function Header({
   useEffect(() => {
     void loadFromSession();
   }, [loadFromSession, isLoggedInFromParent]);
+
+  useEffect(() => {
+    const onProfileUpdated = () => {
+      void loadFromSession();
+    };
+    window.addEventListener(CREATOR_PROFILE_UPDATED_EVENT, onProfileUpdated);
+    return () => window.removeEventListener(CREATOR_PROFILE_UPDATED_EVENT, onProfileUpdated);
+  }, [loadFromSession]);
 
   useEffect(() => {
     setIsMobileMenuOpen(false);

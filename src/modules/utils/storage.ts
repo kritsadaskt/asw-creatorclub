@@ -50,6 +50,70 @@ export const uploadProjectImage = async (file: File, projectId: string): Promise
   return data.publicUrl;
 };
 
+/** Fired after creator profile fields (e.g. image) are saved — Header listens to refresh avatar. */
+export const CREATOR_PROFILE_UPDATED_EVENT = 'asw-creator-profile-updated';
+
+/** Same bucket as `PROFILE_IMAGES_BUCKET` in facebook.ts */
+const PROFILE_IMAGES_BUCKET = 'profile-images';
+
+const CREATOR_PROFILE_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+const CREATOR_PROFILE_IMAGE_ALLOWED = new Set([
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+]);
+
+function extensionForCreatorProfileImage(file: File): string {
+  const fromName = file.name.split('.').pop()?.toLowerCase();
+  if (fromName && /^[a-z0-9]+$/.test(fromName) && fromName.length <= 5) {
+    if (fromName === 'jpeg' || fromName === 'jpg') return 'jpg';
+    if (fromName === 'png') return 'png';
+    if (fromName === 'webp') return 'webp';
+    if (fromName === 'gif') return 'gif';
+  }
+  const t = file.type.toLowerCase();
+  if (t === 'image/jpeg' || t === 'image/jpg') return 'jpg';
+  if (t === 'image/png') return 'png';
+  if (t === 'image/webp') return 'webp';
+  if (t === 'image/gif') return 'gif';
+  return 'jpg';
+}
+
+export const uploadCreatorProfileImage = async (
+  file: File,
+  creatorId: string,
+): Promise<string> => {
+  if (file.size > CREATOR_PROFILE_IMAGE_MAX_BYTES) {
+    throw new Error('CREATOR_PROFILE_IMAGE_TOO_LARGE');
+  }
+  const mime = file.type.toLowerCase();
+  if (!mime || !CREATOR_PROFILE_IMAGE_ALLOWED.has(mime)) {
+    throw new Error('CREATOR_PROFILE_IMAGE_INVALID_TYPE');
+  }
+
+  const ext = extensionForCreatorProfileImage(file);
+  const path = `creators/${creatorId}/avatar.${ext}`;
+
+  const { error: uploadError } = await supabase.storage.from(PROFILE_IMAGES_BUCKET).upload(path, file, {
+    upsert: true,
+    contentType: file.type || `image/${ext}`,
+  });
+
+  if (uploadError) {
+    console.error('Error uploading creator profile image:', uploadError);
+    throw uploadError;
+  }
+
+  const { data } = supabase.storage.from(PROFILE_IMAGES_BUCKET).getPublicUrl(path);
+  if (!data?.publicUrl) {
+    throw new Error('Failed to get public URL for creator profile image');
+  }
+
+  return data.publicUrl;
+};
+
 // ===== Creator Profile Operations =====
 
 export const saveCreator = async (creator: CreatorProfile): Promise<void> => {
@@ -399,6 +463,34 @@ export const getProjectCisIdsByIds = async (projectIds: string[]): Promise<Map<s
   return map;
 };
 
+/** Resolve CIS ProjectIDs (`projects.cis_id`) to app UUIDs for `fgf_lead_projects`. First row wins if duplicates exist. */
+export const getProjectIdsByCisIds = async (cisIds: number[]): Promise<Map<number, string>> => {
+  const map = new Map<number, string>();
+  const finite = cisIds.filter((n) => Number.isFinite(n) && n > 0);
+  if (finite.length === 0) return map;
+
+  const { data, error } = await supabase
+    .from('projects')
+    .select('id, cis_id')
+    .in('cis_id', finite);
+
+  if (error) {
+    console.error('Error loading projects by cis_id:', error);
+    throw error;
+  }
+
+  for (const row of data || []) {
+    const cid = row.cis_id;
+    if (cid != null && Number.isFinite(Number(cid))) {
+      const n = Number(cid);
+      if (!map.has(n)) {
+        map.set(n, row.id as string);
+      }
+    }
+  }
+  return map;
+};
+
 export const deleteProject = async (id: string): Promise<void> => {
   const { error } = await supabase
     .from('projects')
@@ -599,8 +691,6 @@ export const createFgfLeadWithProjects = async (
 
   const initialChosenProjectId = uniqueProjectIds.length === 1 ? uniqueProjectIds[0] : null;
   const initialStatus: FgfLeadStatus = uniqueProjectIds.length === 1 ? 'verified' : 'new';
-
-  console.log(input);
 
   const { data, error } = await supabase
     .from('fgf_leads')
