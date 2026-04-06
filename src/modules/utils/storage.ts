@@ -1,5 +1,6 @@
 import {
   CreatorProfile,
+  ProfileAnalystAiResult,
   AffiliateLink,
   Project,
   Campaign,
@@ -199,34 +200,111 @@ export const getCreatorByEmail = async (email: string): Promise<CreatorProfile |
   return data ? mapDbToCreatorProfile(data) : null;
 };
 
+function normalizeProfileAnalystAi(obj: Record<string, unknown>): ProfileAnalystAiResult | undefined {
+  const categories = Array.isArray(obj.categories)
+    ? obj.categories.filter((x): x is string => typeof x === 'string')
+    : [];
+  const overall_quality_score =
+    typeof obj.overall_quality_score === 'number' && !Number.isNaN(obj.overall_quality_score)
+      ? obj.overall_quality_score
+      : 0;
+  const reasoning = typeof obj.reasoning === 'string' ? obj.reasoning : '';
+  const content_style = typeof obj.content_style === 'string' ? obj.content_style : '';
+  const audience_fit = typeof obj.audience_fit === 'string' ? obj.audience_fit : '';
+  const recommendation = typeof obj.recommendation === 'string' ? obj.recommendation : '';
+
+  const platform_scores: ProfileAnalystAiResult['platform_scores'] = {};
+  const rawPlatforms = obj.platform_scores;
+  if (rawPlatforms && typeof rawPlatforms === 'object' && !Array.isArray(rawPlatforms)) {
+    for (const [k, v] of Object.entries(rawPlatforms as Record<string, unknown>)) {
+      if (v && typeof v === 'object' && !Array.isArray(v)) {
+        const pv = v as Record<string, unknown>;
+        const score = typeof pv.score === 'number' && !Number.isNaN(pv.score) ? pv.score : 0;
+        const summary = typeof pv.summary === 'string' ? pv.summary : '';
+        platform_scores[k] = { score, summary };
+      }
+    }
+  }
+
+  const hasContent =
+    categories.length > 0 ||
+    typeof obj.overall_quality_score === 'number' ||
+    reasoning.trim() !== '' ||
+    Object.keys(platform_scores).length > 0 ||
+    content_style.trim() !== '' ||
+    audience_fit.trim() !== '' ||
+    recommendation.trim() !== '';
+
+  if (!hasContent) return undefined;
+
+  return {
+    categories,
+    overall_quality_score,
+    reasoning,
+    platform_scores,
+    content_style,
+    audience_fit,
+    recommendation,
+  };
+}
+
+function profileAnalystFieldsFromRow(
+  raw: unknown,
+): Pick<CreatorProfile, 'profileAnalyst' | 'profileAnalystLegacyText'> {
+  if (raw === null || raw === undefined) return {};
+  if (typeof raw === 'string') {
+    const s = raw.trim();
+    if (!s) return {};
+    try {
+      const parsed = JSON.parse(s) as unknown;
+      if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        const normalized = normalizeProfileAnalystAi(parsed as Record<string, unknown>);
+        if (normalized) return { profileAnalyst: normalized };
+      }
+    } catch {
+      /* legacy plain text */
+    }
+    return { profileAnalystLegacyText: s };
+  }
+  if (typeof raw === 'object' && !Array.isArray(raw)) {
+    const normalized = normalizeProfileAnalystAi(raw as Record<string, unknown>);
+    if (normalized) return { profileAnalyst: normalized };
+  }
+  return {};
+}
+
 // Helper function to map database row to CreatorProfile
-const mapDbToCreatorProfile = (row: any): CreatorProfile => ({
-  id: row.id,
-  email: row.email || '',
-  name: row.name || '',
-  lastName: row.lastname || undefined,
-  phone: row.phone || '',
-  baseLocation: row.base_location || '',
-  province: row.province,
-  // Prefer new multi-value `categories` column; fall back to legacy single `category`
-  categories: Array.isArray(row.categories)
-    ? row.categories
-    : row.category
-    ? [row.category]
-    : [],
-  followers: row.followers || 0,
-  profileImage: row.profile_image,
-  socialAccounts: sanitizeSocialAccounts(row.social_accounts || {}),
-  followerCounts: row.follower_counts || {},
-  budgets: row.budgets || {},
-  approvalStatus: typeof row.approval_status === 'number' ? (row.approval_status as 0 | 1 | 2 | 3) : 3,
-  status: row.status || 'general',
-  projectName: row.project_name,
-  type: row.type || undefined,
-  createdAt: row.created_at || new Date().toISOString(),
-  facebookId: row.facebook_id,
-  passwordHash: row.password_hash,
-});
+const mapDbToCreatorProfile = (row: any): CreatorProfile => {
+  const analyst = profileAnalystFieldsFromRow(row.profile_analyst);
+  return {
+    id: row.id,
+    email: row.email || '',
+    name: row.name || '',
+    lastName: row.lastname || undefined,
+    phone: row.phone || '',
+    baseLocation: row.base_location || '',
+    province: row.province,
+    // Prefer new multi-value `categories` column; fall back to legacy single `category`
+    categories: Array.isArray(row.categories)
+      ? row.categories
+      : row.category
+      ? [row.category]
+      : [],
+    followers: row.followers || 0,
+    profileImage: row.profile_image,
+    socialAccounts: sanitizeSocialAccounts(row.social_accounts || {}),
+    followerCounts: row.follower_counts || {},
+    budgets: row.budgets || {},
+    approvalStatus: typeof row.approval_status === 'number' ? (row.approval_status as 0 | 1 | 2 | 3) : 3,
+    status: row.status || 'general',
+    projectName: row.project_name,
+    type: row.type || undefined,
+    createdAt: row.created_at || new Date().toISOString(),
+    facebookId: row.facebook_id,
+    passwordHash: row.password_hash,
+    ...analyst,
+  };
+};
 
 // ===== Authentication Operations =====
 
