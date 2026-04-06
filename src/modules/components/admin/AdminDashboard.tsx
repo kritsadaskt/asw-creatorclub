@@ -862,12 +862,7 @@ export function AdminDashboard() {
                         key={creator.id}
                         className="border-b border-border hover:bg-input-background/30 transition-colors"
                       >
-                        <td className="py-3 px-4 text-sm text-foreground">
-                          <span className="inline-flex items-center flex-wrap gap-1.5">
-                            <span>{creator.name}</span>
-                            {creator.type === 'assetwise_staff' && <AssetwiseStaffBadge />}
-                          </span>
-                        </td>
+                        <td className="py-3 px-4 text-sm text-foreground">{creator.name} {creator.lastName}</td>
                         <td className="py-3 px-4 text-sm text-foreground">{creator.email}</td>
                         <td className="py-3 px-4 text-sm text-foreground">{creator.phone || '-'}</td>
                         <td className="py-3 px-4 text-sm text-foreground">{getSocialLinks(creator).length} ช่องทาง</td>
