@@ -6,6 +6,7 @@ import affiliateProgramIcon from '@/assets/aff-img.webp';
 import { Button } from '../ui/button';
 import Link from 'next/link';
 import { useSession } from '@/modules/context/SessionContext';
+import { BASE_PATH } from '@/lib/publicPath';
 
 export function IntroSection() {
   const { currentUserId } = useSession();
@@ -43,7 +44,7 @@ export function IntroSection() {
                   {!isLoggedIn && (
                     <div className='mt-7 flex justify-center lg:justify-start gap-3 lg:gap-5'>
                       <Link href="/#register-section" className='text-base lg:text-xl h-auto w-auto lg:w-[200px] block rounded-4xl bg-gradient-to-br from-orange-400 to-orange-600 text-white px-7 py-4 leading-none text-center cursor-pointer'>สมัครเข้าร่วม</Link>
-                      <Link href="/#register-section" className='text-base lg:text-xl h-auto w-auto lg:w-[200px] block rounded-4xl border-2 border-white text-white px-7 py-4 leading-none text-center cursor-pointer'>ข้อมูลเพิ่มเติม</Link>
+                      <Link href={`/terms-and-conditions`} className='text-base lg:text-xl h-auto w-auto lg:w-[200px] block rounded-4xl border-2 border-white text-white px-7 py-4 leading-none text-center cursor-pointer'>ข้อมูลเพิ่มเติม</Link>
                     </div>
                   )}
                 </div>

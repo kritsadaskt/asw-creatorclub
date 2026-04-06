@@ -263,7 +263,7 @@ function AffiliateProjectList() {
           <span className='text-5xl'>เลือกโครงการที่ใช่</span><br/>
           <span className='text-3xl font-bold'>แล้วรับค่าคอมมิชชันสูงสุด <span className='text-4xl'>500,000</span> บาท*</span>
         </h2>
-        <a href={`${BASE_PATH}/affiliate/privacy-policy`} title='ข้อกำหนดและเงื่อนไข' className='text-white bg-gradient-to-br from-orange-400 to-orange-600 px-7 py-4 rounded-full block w-fit mx-auto leading-none'>ข้อกำหนดและเงื่อนไข</a>
+        <a href={`${BASE_PATH}/affiliate/terms-and-conditions`} title='ข้อกำหนดและเงื่อนไข' className='text-white bg-gradient-to-br from-orange-400 to-orange-600 px-7 py-4 rounded-full block w-fit mx-auto leading-none'>ข้อกำหนดและเงื่อนไข</a>
       </div>
       <div className="bg-white rounded-2xl shadow-xl border border-border p-6 md:p-8">
 
