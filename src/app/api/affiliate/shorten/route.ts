@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logServerError, requestLogContext } from '@/lib/log-server-error';
-
-const SHLINK_BASE = 'https://assetwise.co.th/c';
+import { getShlinkBaseUrl } from '@/lib/shlink-server';
 
 export async function POST(request: NextRequest) {
   const apiKey = process.env.SHLINK_API_KEY;
@@ -39,7 +38,7 @@ export async function POST(request: NextRequest) {
 
   let shlinkRes: Response;
   try {
-    shlinkRes = await fetch(`${SHLINK_BASE}/rest/v3/short-urls`, {
+    shlinkRes = await fetch(`${getShlinkBaseUrl()}/rest/v3/short-urls`, {
       method: 'POST',
       headers: {
         Accept: 'application/json',
