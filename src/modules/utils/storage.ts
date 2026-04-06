@@ -463,6 +463,34 @@ export const getProjectCisIdsByIds = async (projectIds: string[]): Promise<Map<s
   return map;
 };
 
+/** Resolve CIS ProjectIDs (`projects.cis_id`) to app UUIDs for `fgf_lead_projects`. First row wins if duplicates exist. */
+export const getProjectIdsByCisIds = async (cisIds: number[]): Promise<Map<number, string>> => {
+  const map = new Map<number, string>();
+  const finite = cisIds.filter((n) => Number.isFinite(n) && n > 0);
+  if (finite.length === 0) return map;
+
+  const { data, error } = await supabase
+    .from('projects')
+    .select('id, cis_id')
+    .in('cis_id', finite);
+
+  if (error) {
+    console.error('Error loading projects by cis_id:', error);
+    throw error;
+  }
+
+  for (const row of data || []) {
+    const cid = row.cis_id;
+    if (cid != null && Number.isFinite(Number(cid))) {
+      const n = Number(cid);
+      if (!map.has(n)) {
+        map.set(n, row.id as string);
+      }
+    }
+  }
+  return map;
+};
+
 export const deleteProject = async (id: string): Promise<void> => {
   const { error } = await supabase
     .from('projects')
@@ -663,8 +691,6 @@ export const createFgfLeadWithProjects = async (
 
   const initialChosenProjectId = uniqueProjectIds.length === 1 ? uniqueProjectIds[0] : null;
   const initialStatus: FgfLeadStatus = uniqueProjectIds.length === 1 ? 'verified' : 'new';
-
-  console.log(input);
 
   const { data, error } = await supabase
     .from('fgf_leads')

@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { toast } from 'sonner';
 import { Header } from '../landing/Header';
 import { HeroBanner } from '../landing/HeroBanner';
@@ -30,6 +29,13 @@ interface FriendGetFriendPageProps {
   onLogin?: (id: string, role: 'creator' | 'admin') => void;
 }
 
+/** Project picked for FGF submit; `cisId` from Supabase `projects.cis_id` when set. */
+type SelectedFgfProject = {
+  id: string;
+  name: string;
+  cisId?: number;
+};
+
 export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
   const { handleLogin: sessionLogin, currentUserId } = useSession();
   const isLoggedIn = !!currentUserId;
@@ -45,7 +51,7 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
   const [leadLastName, setLeadLastName] = useState('');
   const [leadEmail, setLeadEmail] = useState('');
   const [leadPhone, setLeadPhone] = useState('');
-  const [selectedProjects, setSelectedProjects] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedProject, setSelectedProject] = useState<SelectedFgfProject | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
@@ -73,15 +79,16 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
     void loadCreatorProfile();
   }, [currentUserId]);
 
-  const addProjectIfMissing = (project: AffiliateProject) => {
-    setSelectedProjects((prev) => {
-      if (prev.some((p) => p.id === project.id)) return prev;
-      return [...prev, { id: project.id, name: project.name }];
+  const selectProjectForReferral = (project: AffiliateProject) => {
+    setSelectedProject({
+      id: project.id,
+      name: project.name,
+      cisId: project.cis_id,
     });
   };
 
-  const removeProject = (projectId: string) => {
-    setSelectedProjects((prev) => prev.filter((item) => item.id !== projectId));
+  const clearSelectedProject = () => {
+    setSelectedProject(null);
   };
 
   const clearReferredLeadForm = () => {
@@ -89,7 +96,7 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
     setLeadLastName('');
     setLeadEmail('');
     setLeadPhone('');
-    setSelectedProjects([]);
+    setSelectedProject(null);
   };
 
   const handleDrawerOpenChange = (open: boolean) => {
@@ -102,8 +109,16 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (selectedProjects.length === 0) {
-      toast.error('กรุณาเลือกโครงการอย่างน้อย 1 โครงการ');
+    if (!selectedProject) {
+      toast.error('กรุณาเลือกโครงการจากปุ่มแนะนำเพื่อน');
+      return;
+    }
+    if (
+      selectedProject.cisId == null ||
+      !Number.isFinite(selectedProject.cisId) ||
+      selectedProject.cisId <= 0
+    ) {
+      toast.error('โครงการนี้ยังไม่มีรหัส CIS กรุณาเลือกโครงการอื่น');
       return;
     }
 
@@ -127,7 +142,7 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
           leadLastName: leadLastName.trim(),
           leadEmail: leadEmail.trim(),
           leadTel: leadPhone.trim(),
-          projectIds: selectedProjects.map((p) => p.id),
+          cisId: selectedProject.cisId,
         }),
       });
       if (!res.ok) {
@@ -163,7 +178,7 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
       <FriendGetFriendProjectList
         onLogin={onLogin ?? sessionLogin}
         onRecommend={(project) => {
-          addProjectIfMissing(project);
+          selectProjectForReferral(project);
           setIsRecommendDrawerOpen(true);
         }}
       />
@@ -218,28 +233,34 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
 
               <div className="space-y-4 pt-4">
                 <h3 className="font-medium text-foreground">โครงการที่แนะนำ</h3>
-                {selectedProjects.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  เลือกได้ 1 โครงการต่อการส่ง — กด &quot;แนะนำเพื่อน&quot; จากโครงการอื่นในตารางเพื่อเปลี่ยนโครงการ
+                </p>
+                {!selectedProject ? (
                   <p className="text-sm text-muted-foreground">
-                    ยังไม่ได้เลือกโครงการ กรุณากดปุ่ม `แนะนำเพื่อน` จากโครงการที่ต้องการก่อน
+                    ยังไม่ได้เลือกโครงการ กรุณากดปุ่มแนะนำเพื่อนจากโครงการที่ต้องการก่อน
                   </p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
-                    {selectedProjects.map((project) => (
-                      <div
-                        key={project.id}
-                        className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-sm text-foreground"
-                      >
-                        <span>{project.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => removeProject(project.id)}
-                          className="text-muted-foreground hover:text-foreground cursor-pointer"
-                          aria-label={`ลบโครงการ ${project.name}`}
-                        >
-                          ×
-                        </button>
+                    <div className="inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-foreground w-full max-w-md">
+                      <div className="flex flex-col items-start gap-0.5 min-w-0 flex-1">
+                        <span className="font-medium leading-tight">{selectedProject.name}</span>
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                          CIS ID:{' '}
+                          {selectedProject.cisId != null && Number.isFinite(selectedProject.cisId)
+                            ? selectedProject.cisId
+                            : '—'}
+                        </span>
                       </div>
-                    ))}
+                      <button
+                        type="button"
+                        onClick={() => clearSelectedProject()}
+                        className="shrink-0 text-muted-foreground hover:text-foreground cursor-pointer self-start"
+                        aria-label={`ลบโครงการ ${selectedProject.name}`}
+                      >
+                        ×
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

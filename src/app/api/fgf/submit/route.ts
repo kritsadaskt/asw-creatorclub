@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { logServerError, requestLogContext } from '@/lib/log-server-error';
-import { createFgfLeadWithProjects, getProjectCisIdsByIds } from '@/modules/utils/storage';
+import { createFgfLeadWithProjects, getProjectIdsByCisIds } from '@/modules/utils/storage';
 
 const FgfSubmitSchema = z.object({
   referrerName:     z.string().min(1),
@@ -12,7 +12,8 @@ const FgfSubmitSchema = z.object({
   leadLastName:     z.string().min(1),
   leadEmail:        z.string().email(),
   leadTel:          z.string().min(9),
-  projectIds:       z.array(z.string().uuid()).min(1),
+  /** Single CIS ProjectID (`projects.cis_id`); server resolves to app project UUID for storage. */
+  cisId:            z.number().int().positive(),
 });
 
 /**
@@ -37,17 +38,16 @@ export async function POST(request: NextRequest) {
 
     const data = parsed.data;
 
-    const cisIdByProjectUuid = await getProjectCisIdsByIds(data.projectIds);
-    for (const projectUuid of data.projectIds) {
-      if (!cisIdByProjectUuid.has(projectUuid)) {
-        return NextResponse.json(
-          {
-            error:
-              'โครงการบางรายการยังไม่มีรหัส CIS กรุณาติดต่อผู้ดูแลระบบ หรือลองเลือกโครงการอื่น',
-          },
-          { status: 400 },
-        );
-      }
+    const projectUuidByCisId = await getProjectIdsByCisIds([data.cisId]);
+    const projectUuid = projectUuidByCisId.get(data.cisId);
+    if (!projectUuid) {
+      return NextResponse.json(
+        {
+          error:
+            'ไม่พบโครงการสำหรับ CIS ID นี้ กรุณาติดต่อผู้ดูแลระบบ หรือเลือกโครงการอื่น',
+        },
+        { status: 400 },
+      );
     }
 
     // Read session cookie to attach refUid / referrerCreatorId
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
       leadLastName:     data.leadLastName,
       leadEmail:        data.leadEmail,
       leadTel:          data.leadTel,
-      projectIds:       data.projectIds,
+      projectIds:       [projectUuid],
     });
 
     const leadId = result.lead.id;
@@ -103,59 +103,57 @@ export async function POST(request: NextRequest) {
     // ProjectID = projects.cis_id; Ref includes app UUIDs for cross-reference.
     const numericRefId = parseInt(leadId.replace(/-/g, '').slice(0, 8), 16);
     const now = formatCisDate(new Date());
-    const refBase = `CreatorClub FGF | Lead: ${leadId} | Referrer: ${data.referrerName} ${data.referrerLastName} (${data.referrerTel}) | Project UUIDs: ${data.projectIds.join(',')}`;
+    const cisProjectId = data.cisId;
+    const refBase = `CreatorClub FGF | Lead: ${leadId} | Referrer: ${data.referrerName} ${data.referrerLastName} (${data.referrerTel}) | CIS ProjectID: ${cisProjectId} | Project UUID: ${projectUuid}`;
 
     const cisErrors: unknown[] = [];
 
-    for (const projectUuid of data.projectIds) {
-      const cisProjectId = cisIdByProjectUuid.get(projectUuid)!;
-      const cisPayload = {
-        ProjectID:          cisProjectId,
-        ContactChannelID: 21,
-        ContactTypeID:    35,
-        RefID:            numericRefId,
-        Fname:            data.leadName,
-        Lname:            data.leadLastName,
-        Tel:              data.leadTel || 'NULL',
-        Email:            data.leadEmail || 'NULL',
-        Ref:              `${refBase} | This CIS ProjectID: ${cisProjectId} (UUID: ${projectUuid})`,
-        RefDate:          now,
-        FollowUpID:       42,
-        FlagPersonalAccept: true,
-        FlagContactAccept:  true,
-        utm_source:       'creatorclub',
-        utm_medium:       'referral',
-        utm_campaign:     'friend_get_friend',
-      };
+    const cisPayload = {
+      ProjectID:          cisProjectId,
+      ContactChannelID: 21,
+      ContactTypeID:    35,
+      RefID:            numericRefId,
+      Fname:            data.leadName,
+      Lname:            data.leadLastName,
+      Tel:              data.leadTel || 'NULL',
+      Email:            data.leadEmail || 'NULL',
+      Ref:              refBase,
+      RefDate:          now,
+      FollowUpID:       42,
+      FlagPersonalAccept: true,
+      FlagContactAccept:  true,
+      utm_source:       'creatorclub',
+      utm_medium:       'referral',
+      utm_campaign:     'friend_get_friend',
+    };
 
-      try {
-        const cisRes = await fetch(cisUrl, {
-          method: 'POST',
-          headers: cisHeaders,
-          body: JSON.stringify(cisPayload),
-        });
+    try {
+      const cisRes = await fetch(cisUrl, {
+        method: 'POST',
+        headers: cisHeaders,
+        body: JSON.stringify(cisPayload),
+      });
 
-        if (!cisRes.ok) {
-          const text = await cisRes.text();
-          cisErrors.push({ projectUuid, cisProjectId, status: cisRes.status, body: text });
-        } else {
-          const cisData = await cisRes.json().catch(() => null);
-          if (cisData && (cisData as { Success?: boolean }).Success === false) {
-            cisErrors.push({
-              projectUuid,
-              cisProjectId,
-              status: 200,
-              body: (cisData as { Message?: string }).Message || 'CIS returned Success: false',
-            });
-          }
+      if (!cisRes.ok) {
+        const text = await cisRes.text();
+        cisErrors.push({ projectUuid, cisProjectId, status: cisRes.status, body: text });
+      } else {
+        const cisData = await cisRes.json().catch(() => null);
+        if (cisData && (cisData as { Success?: boolean }).Success === false) {
+          cisErrors.push({
+            projectUuid,
+            cisProjectId,
+            status: 200,
+            body: (cisData as { Message?: string }).Message || 'CIS returned Success: false',
+          });
         }
-      } catch (err) {
-        cisErrors.push({
-          projectUuid,
-          cisProjectId,
-          message: err instanceof Error ? err.message : String(err),
-        });
       }
+    } catch (err) {
+      cisErrors.push({
+        projectUuid,
+        cisProjectId,
+        message: err instanceof Error ? err.message : String(err),
+      });
     }
 
     const cisError: unknown =

@@ -38,6 +38,7 @@ export interface AffiliateProject {
    */
   materialsUrl: string;
   description?: string;
+  cis_id?: number;
 }
 
 /**
@@ -46,7 +47,7 @@ export interface AffiliateProject {
  * If the backend later adds explicit image/commission fields, wire them into this mapper.
  */
 export const fetchAffiliateProjects = async (): Promise<AffiliateProject[]> => {
-  const projects: Project[] = await getProjects();
+  const projects: Project[] = await getProjects();  
 
   return projects.map((project) => ({
     id: project.id,
@@ -106,6 +107,7 @@ export const fetchAffiliateProjects = async (): Promise<AffiliateProject[]> => {
     })(),
     materialsUrl: project.baseUrl,
     description: project.description,
+    cis_id: project.cisId,
   }));
 };
 
