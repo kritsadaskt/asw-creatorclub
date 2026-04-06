@@ -69,6 +69,8 @@ export interface Project {
   maxComm?: string;
   baseUrl: string;
   createdAt: string;
+  /** AssetWise CIS ProjectID (int). Stored as `projects.cis_id`. */
+  cisId?: number;
 }
 
 export interface AffiliateLink {

@@ -335,7 +335,8 @@ export const saveProject = async (project: Project): Promise<void> => {
       start_comm: project.startComm,
       max_comm: project.maxComm,
       base_url: project.baseUrl,
-      created_at: project.createdAt
+      created_at: project.createdAt,
+      cis_id: project.cisId ?? null,
     }, { onConflict: 'id' });
 
   if (error) {
@@ -374,6 +375,30 @@ export const getProjectById = async (id: string): Promise<Project | null> => {
   return data ? mapDbToProject(data) : null;
 };
 
+/** Resolve app project UUIDs to CIS integer ProjectIDs (`projects.cis_id`). Omits rows with null/missing cis_id. */
+export const getProjectCisIdsByIds = async (projectIds: string[]): Promise<Map<string, number>> => {
+  const map = new Map<string, number>();
+  if (projectIds.length === 0) return map;
+
+  const { data, error } = await supabase
+    .from('projects')
+    .select('id, cis_id')
+    .in('id', projectIds);
+
+  if (error) {
+    console.error('Error loading project cis_id:', error);
+    throw error;
+  }
+
+  for (const row of data || []) {
+    const cid = row.cis_id;
+    if (cid != null && Number.isFinite(Number(cid))) {
+      map.set(row.id as string, Number(cid));
+    }
+  }
+  return map;
+};
+
 export const deleteProject = async (id: string): Promise<void> => {
   const { error } = await supabase
     .from('projects')
@@ -401,7 +426,8 @@ const mapDbToProject = (row: any): Project => ({
   startComm: row.start_comm || undefined,
   maxComm: row.max_comm || undefined,
   baseUrl: row.base_url || '',
-  createdAt: row.created_at || new Date().toISOString()
+  createdAt: row.created_at || new Date().toISOString(),
+  cisId: row.cis_id != null && Number.isFinite(Number(row.cis_id)) ? Number(row.cis_id) : undefined,
 });
 
 // ===== Campaign Operations =====
@@ -573,6 +599,8 @@ export const createFgfLeadWithProjects = async (
 
   const initialChosenProjectId = uniqueProjectIds.length === 1 ? uniqueProjectIds[0] : null;
   const initialStatus: FgfLeadStatus = uniqueProjectIds.length === 1 ? 'verified' : 'new';
+
+  console.log(input);
 
   const { data, error } = await supabase
     .from('fgf_leads')

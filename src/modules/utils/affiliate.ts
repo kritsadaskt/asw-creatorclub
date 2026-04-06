@@ -54,19 +54,56 @@ export const fetchAffiliateProjects = async (): Promise<AffiliateProject[]> => {
     imageUrl: project.imageUrl,
     thumbUrl: project.thumbUrl,
     projectStatus: project.projectStatus ?? '',
-    // Prefer structured commission range; fall back to description.
-    commission:
-      project.startComm && project.maxComm
-        ? `ค่าแนะนำ: ${project.startComm} - ${project.maxComm}`
-        : project.startComm
-          ? `ค่าแนะนำ: ${project.startComm}`
-          : project.maxComm
-            ? `ค่าแนะนำสูงสุด: ${project.maxComm}`
-            : undefined,
+    // Format commission numbers with comma as thousand separator
+    commission: (() => {
+      const formatNum = (value?: string) => {
+        if (!value) return undefined;
+        // Only insert commas if not already present
+        if (/,\d{3}/.test(value)) return value;
+        // Remove any non-digit (such as % or others), format, and add back trailing non-digit
+        const match = value.match(/^(\d+)(.*)$/);
+        if (match) {
+          const numStr = parseInt(match[1], 10).toLocaleString('en-US');
+          return numStr + match[2];
+        }
+        return value;
+      };
+      const startComm = formatNum(project.startComm);
+      const maxComm = formatNum(project.maxComm);
+
+      if (startComm && maxComm) {
+        return `${startComm} - ${maxComm} บ.`;
+      } else if (startComm) {
+        return `${startComm} บ.`;
+      } else if (maxComm) {
+        return `สูงสุด ${maxComm} บ.`;
+      }
+      return undefined;
+    })(),
     googleDriveUrl: project.googleDriveUrl,
     googleDrivePassword: project.googleDrivePassword,
-    startComm: project.startComm,
-    maxComm: project.maxComm,
+    startComm: (() => {
+      const value = project.startComm;
+      if (!value) return value;
+      if (/,\d{3}/.test(value)) return value;
+      const match = value.match(/^(\d+)(.*)$/);
+      if (match) {
+        const numStr = parseInt(match[1], 10).toLocaleString('en-US');
+        return numStr + match[2];
+      }
+      return value;
+    })(),
+    maxComm: (() => {
+      const value = project.maxComm;
+      if (!value) return value;
+      if (/,\d{3}/.test(value)) return value;
+      const match = value.match(/^(\d+)(.*)$/);
+      if (match) {
+        const numStr = parseInt(match[1], 10).toLocaleString('en-US');
+        return numStr + match[2];
+      }
+      return value;
+    })(),
     materialsUrl: project.baseUrl,
     description: project.description,
   }));

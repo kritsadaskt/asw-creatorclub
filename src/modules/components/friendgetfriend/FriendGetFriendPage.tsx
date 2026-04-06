@@ -107,6 +107,12 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
       return;
     }
 
+    // Prevent admin-mode user from submitting FGF leads
+    if (currentUserId === 'admin') {
+      toast.error('กรุณาเข้าสู่ระบบในโหมด Creator ก่อนแนะนำเพื่อน');
+      return;
+    }
+
     try {
       setSubmitting(true);
       const res = await fetch(`${BASE_PATH}/api/fgf/submit`, {

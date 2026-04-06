@@ -24,3 +24,9 @@
     @apply bg-muted text-muted-foreground;
   }
 }
+
+@media (hover: hover) and (pointer: fine) {
+  [data-vaul-drawer] {
+    user-select: text!important;
+  }
+}
