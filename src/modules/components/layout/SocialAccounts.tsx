@@ -2,6 +2,11 @@ import { useEffect, useState } from "react";
 import { FaFacebook, FaInstagram, FaTiktok, FaYoutube, FaXTwitter } from "react-icons/fa6";
 import { Input } from "../shared/Input";
 import { Lemon8Icon } from "../../utils/svg";
+import {
+  isValidSocialUrlForPlatform,
+  SOCIAL_URL_INPUT_TITLES,
+  type SocialPlatform,
+} from "../../utils/social-url";
 
 type SocialAccountsMap = {
   facebook?: string;
@@ -37,24 +42,13 @@ type SocialAccountsProps = {
   }) => void;
 };
 
-const urlRegex = /^https:\/\/.+/;
-
-const SOCIAL_URL_PREFIXES: Record<keyof SocialAccountsMap, string> = {
-  facebook: "https://facebook.com/",
-  instagram: "https://www.instagram.com/",
-  tiktok: "https://www.tiktok.com/@",
-  youtube: "https://www.youtube.com/",
-  twitter: "https://x.com/",
-  lemon8: "https://lemon8.com/",
-};
-
 export default function SocialAccounts({
   initialSocialAccounts,
   initialFollowerCounts,
   requireAtLeastOne = true,
   showErrors = false,
   label = "ลิงก์ URL โซเชียลมีเดีย",
-  description = "กรอกข้อมูล URL หรือ Username ของ Social Media ของคุณ อย่างน้อย 1 แพลตฟอร์ม และระบุจำนวน Follower ในปัจจุบัน",
+  description = "กรอกลิงก์เต็มหรือ username อย่างเดียวก็ได้ ระบบจะจัดรูปแบบให้ตอนบันทึก อย่างน้อย 1 แพลตฟอร์ม และระบุจำนวน Follower",
   onChange,
 }: SocialAccountsProps) {
   const [socialAccounts, setSocialAccounts] = useState<SocialAccountsMap>(
@@ -65,7 +59,6 @@ export default function SocialAccounts({
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [socialError, setSocialError] = useState("");
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   const validate = (accounts: SocialAccountsMap) => {
     const allErrors: Record<string, string> = {};
@@ -82,28 +75,12 @@ export default function SocialAccounts({
       allErrors.social = "กรุณากรอกข้อมูล Social Media อย่างน้อย 1 แพลตฟอร์ม";
     }
 
-    const validateSocialUrl = (key: keyof SocialAccountsMap, label: string) => {
+    const validateSocialUrl = (key: SocialPlatform, label: string) => {
       const rawValue = accounts[key];
       if (!rawValue) return;
 
-      const trimmed = rawValue.trim();
-
-      // Basic requirement: must start with https://
-      if (!urlRegex.test(trimmed)) {
-        allErrors[`${key}Url`] = `กรุณากรอก ${label} ให้เป็นลิงก์ที่ขึ้นต้นด้วย https://`;
-        return;
-      }
-
-      const prefix = SOCIAL_URL_PREFIXES[key];
-
-      // If value starts with our platform prefix, ensure there is a non-slash suffix (username / path)
-      if (prefix && trimmed.startsWith(prefix)) {
-        const suffix = trimmed.slice(prefix.length);
-        const hasNonSlashSuffix = suffix.replace(/\//g, "").length > 0;
-
-        if (!hasNonSlashSuffix) {
-          allErrors[`${key}Url`] = `กรุณากรอก ${label} ให้เป็นลิงก์โปรไฟล์ที่ครบถ้วน รวมถึงชื่อช่องหรือ Username`;
-        }
+      if (!isValidSocialUrlForPlatform(key, rawValue)) {
+        allErrors[`${key}Url`] = SOCIAL_URL_INPUT_TITLES[key] || `กรุณากรอก ${label} ให้ถูกต้อง`;
       }
     };
 
@@ -126,10 +103,9 @@ export default function SocialAccounts({
         return;
       }
 
-      // URL field errors should show only after user blur OR after parent requests showErrors
+      // URL field errors only after submit / parent sets showErrors
       if (key.endsWith("Url")) {
-        const touchedKey = key; // facebookUrl, instagramUrl, ...
-        if (showErrors || touched[touchedKey]) {
+        if (showErrors) {
           visibleErrors[key] = value;
         }
         return;
@@ -161,12 +137,6 @@ export default function SocialAccounts({
     validate(next);
   };
 
-  const handleUrlFocus = (key: keyof SocialAccountsMap) => {
-    const current = socialAccounts[key]?.trim();
-    if (current) return;
-    handleUrlChange(key, SOCIAL_URL_PREFIXES[key]);
-  };
-
   const handleFollowersChange = (key: keyof FollowerCountsMap, value: string) => {
     const numeric = value ? parseInt(value, 10) : undefined;
     const next = { ...followerCounts, [key]: isNaN(Number(numeric)) ? undefined : numeric };
@@ -178,13 +148,6 @@ export default function SocialAccounts({
       errors,
       socialError,
     });
-  };
-
-  const handleBlur = (fieldKey: string) => {
-    const nextTouched = { ...touched, [fieldKey]: true };
-    setTouched(nextTouched);
-    // keep touched for display; validation state doesn't depend on touched
-    validate(socialAccounts);
   };
 
   return (
@@ -209,10 +172,9 @@ export default function SocialAccounts({
             icon={<FaFacebook className="h-5 w-5 text-[#1877F2]" />}
             value={socialAccounts.facebook || ""}
             onChange={(value) => handleUrlChange("facebook", value)}
-            onFocus={() => handleUrlFocus("facebook")}
-            placeholder="https://facebook.com/..."
-            onBlur={() => handleBlur("facebookUrl")}
+            placeholder="เช่น username หรือ facebook.com/…"
             error={errors.facebookUrl}
+            title={SOCIAL_URL_INPUT_TITLES.facebook}
           />
         </div>
         <div>
@@ -235,10 +197,9 @@ export default function SocialAccounts({
             icon={<FaInstagram className="h-5 w-5 text-pink-500" />}
             value={socialAccounts.instagram || ""}
             onChange={(value) => handleUrlChange("instagram", value)}
-            onFocus={() => handleUrlFocus("instagram")}
-            placeholder="https://instagram.com/..."
-            onBlur={() => handleBlur("instagramUrl")}
+            placeholder="เช่น @user หรือ instagram.com/…"
             error={errors.instagramUrl}
+            title={SOCIAL_URL_INPUT_TITLES.instagram}
           />
         </div>
         <div>
@@ -261,10 +222,9 @@ export default function SocialAccounts({
             icon={<FaTiktok className="h-5 w-5 text-black" />}
             value={socialAccounts.tiktok || ""}
             onChange={(value) => handleUrlChange("tiktok", value)}
-            onFocus={() => handleUrlFocus("tiktok")}
-            placeholder="https://tiktok.com/@..."
-            onBlur={() => handleBlur("tiktokUrl")}
+            placeholder="เช่น @user หรือ tiktok.com/…"
             error={errors.tiktokUrl}
+            title={SOCIAL_URL_INPUT_TITLES.tiktok}
           />
         </div>
         <div>
@@ -286,10 +246,9 @@ export default function SocialAccounts({
             icon={<FaYoutube className="h-5 w-5 text-red-600" />}
             value={socialAccounts.youtube || ""}
             onChange={(value) => handleUrlChange("youtube", value)}
-            onFocus={() => handleUrlFocus("youtube")}
-            placeholder="https://youtube.com/..."
-            onBlur={() => handleBlur("youtubeUrl")}
+            placeholder="เช่น ลิงก์ช่องหรือ youtube.com/…"
             error={errors.youtubeUrl}
+            title={SOCIAL_URL_INPUT_TITLES.youtube}
           />
         </div>
         <div>
@@ -311,10 +270,9 @@ export default function SocialAccounts({
             icon={<FaXTwitter className="h-5 w-5 text-black" />}
             value={socialAccounts.twitter || ""}
             onChange={(value) => handleUrlChange("twitter", value)}
-            onFocus={() => handleUrlFocus("twitter")}
-            placeholder="https://x.com/..."
-            onBlur={() => handleBlur("twitterUrl")}
+            placeholder="เช่น @user หรือ x.com/…"
             error={errors.twitterUrl}
+            title={SOCIAL_URL_INPUT_TITLES.twitter}
           />
         </div>
         <div>
@@ -336,10 +294,9 @@ export default function SocialAccounts({
             icon={<Lemon8Icon className="w-5 h-5 text-yellow-500" />}
             value={socialAccounts.lemon8 || ""}
             onChange={(value) => handleUrlChange("lemon8", value)}
-            onFocus={() => handleUrlFocus("lemon8")}
-            placeholder="https://lemon8.com/..."
-            onBlur={() => handleBlur("lemon8Url")}
+            placeholder="เช่น user หรือ lemon8.com/…"
             error={errors.lemon8Url}
+            title={SOCIAL_URL_INPUT_TITLES.lemon8}
           />
         </div>
         <div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logServerError, requestLogContext } from '@/lib/log-server-error';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { sanitizeSocialAccounts, type SocialAccountsInput } from '@/modules/utils/social-url';
 
 export async function POST(request: NextRequest) {
   let body: unknown;
@@ -27,6 +28,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const rawSocialAccounts =
+      creator.socialAccounts !== null &&
+      typeof creator.socialAccounts === 'object' &&
+      !Array.isArray(creator.socialAccounts)
+        ? creator.socialAccounts
+        : {};
+    const socialAccounts = sanitizeSocialAccounts(rawSocialAccounts as SocialAccountsInput);
+
     const { error } = await supabaseAdmin.from('profiles').upsert(
       {
         id,
@@ -42,7 +51,7 @@ export async function POST(request: NextRequest) {
         categories: Array.isArray(creator.categories) ? creator.categories : [],
         followers: typeof creator.followers === 'number' ? creator.followers : 0,
         profile_image: typeof creator.profileImage === 'string' ? creator.profileImage : null,
-        social_accounts: typeof creator.socialAccounts === 'object' ? creator.socialAccounts : {},
+        social_accounts: socialAccounts,
         follower_counts: typeof creator.followerCounts === 'object' ? creator.followerCounts : {},
         budgets: typeof creator.budgets === 'object' ? creator.budgets : {},
         approval_status: 3,

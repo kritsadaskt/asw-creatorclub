@@ -39,6 +39,8 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showSocialSubmitErrors, setShowSocialSubmitErrors] = useState(false);
+  const socialFormValidRef = useRef(true);
   const [profileImageError, setProfileImageError] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'affiliate'>('profile');
   const [newPassword, setNewPassword] = useState('');
@@ -76,10 +78,17 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
   const handleSave = async () => {
     if (!profile) return;
 
+    if (!socialFormValidRef.current) {
+      setShowSocialSubmitErrors(true);
+      toast.error('กรุณาตรวจสอบลิงก์โซเชียลมีเดีย');
+      return;
+    }
+
     try {
       setSaving(true);
       await saveCreator(profile);
       setIsEditing(false);
+      setShowSocialSubmitErrors(false);
       toast.success('บันทึกข้อมูลสำเร็จ!');
     } catch (error) {
       console.error('Error saving profile:', error);
@@ -335,9 +344,11 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                 initialSocialAccounts={profile.socialAccounts}
                 initialFollowerCounts={profile.followerCounts}
                 requireAtLeastOne={false}
+                showErrors={showSocialSubmitErrors}
                 label="บัญชีโซเชียลมีเดีย"
                 description=""
-                onChange={(data) =>
+                onChange={(data) => {
+                  socialFormValidRef.current = data.isValid;
                   setProfile({
                     ...profile,
                     socialAccounts: {
@@ -348,8 +359,8 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                       ...profile.followerCounts,
                       ...data.followerCounts,
                     },
-                  })
-                }
+                  });
+                }}
               />
 
               {/* Password section for Facebook-only accounts */}
