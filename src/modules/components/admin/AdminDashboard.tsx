@@ -61,6 +61,14 @@ const Select = dynamic(() => import('react-select').then((mod) => mod.default), 
   loading: () => <ReactSelectSkeleton />,
 }) as typeof import('react-select').default;
 
+function AssetwiseStaffBadge() {
+  return (
+    <span className="inline-flex items-center shrink-0 px-1.5 py-0.5 rounded-md font-normal text-xs leading-none bg-blue-50 text-blue-700 border border-blue-200/80">
+      ASSETWISE
+    </span>
+  );
+}
+
 const CATEGORIES = [
   'ทั้งหมด',
   'แฟชั่น',
@@ -574,8 +582,11 @@ export function AdminDashboard() {
 
       <div>
         <label className="text-muted-foreground">ชื่อ-นามสกุล</label>
-        <p className="text-foreground">
-          {creator.name} {creator.lastName}
+        <p className="text-foreground flex flex-wrap items-center gap-1.5">
+          <span>
+            {creator.name} {creator.lastName}
+          </span>
+          {creator.type === 'assetwise_staff' && <AssetwiseStaffBadge />}
         </p>
       </div>
 
@@ -979,7 +990,14 @@ export function AdminDashboard() {
                   </Button>
                   <DrawerTitle>โปรไฟล์ผู้แนะนำ (Creator)</DrawerTitle>
                   <DrawerDescription>
-                    {fgfNestedCreator.name} · {fgfNestedCreator.email}
+                    <span className="inline-flex flex-wrap items-center gap-1.5">
+                      <span className="inline-flex items-center flex-wrap gap-1.5">
+                        {fgfNestedCreator.name}
+                        {fgfNestedCreator.type === 'assetwise_staff' && <AssetwiseStaffBadge />}
+                      </span>
+                      <span aria-hidden>·</span>
+                      <span>{fgfNestedCreator.email}</span>
+                    </span>
                   </DrawerDescription>
                 </DrawerHeader>
 
