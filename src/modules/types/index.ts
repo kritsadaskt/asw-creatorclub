@@ -1,3 +1,23 @@
+/** One platform block inside `profiles.profile_analyst` AI JSON. */
+export interface ProfileAnalystPlatformScore {
+  score: number;
+  summary: string;
+}
+
+/**
+ * Parsed `profiles.profile_analyst` json/jsonb (AI influencer analysis).
+ * Field names match stored JSON (snake_case).
+ */
+export interface ProfileAnalystAiResult {
+  categories: string[];
+  overall_quality_score: number;
+  reasoning: string;
+  platform_scores: Record<string, ProfileAnalystPlatformScore>;
+  content_style: string;
+  audience_fit: string;
+  recommendation: string;
+}
+
 export interface CreatorProfile {
   id: string;
   email: string;
@@ -48,6 +68,10 @@ export interface CreatorProfile {
   // Authentication fields
   facebookId?: string; // Facebook user ID (for Facebook login)
   passwordHash?: string; // Hashed password (for traditional login)
+  /** AI profile analysis from Supabase `profiles.profile_analyst` (JSON). */
+  profileAnalyst?: ProfileAnalystAiResult;
+  /** Non-JSON legacy text in `profile_analyst`, shown as a single block in admin. */
+  profileAnalystLegacyText?: string;
 }
 
 export interface Project {

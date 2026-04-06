@@ -90,6 +90,123 @@ const CATEGORIES = [
   'อื่นๆ'
 ];
 
+const PROFILE_ANALYST_PLATFORM_LABELS: Record<string, string> = {
+  tiktok: 'TikTok',
+  instagram: 'Instagram',
+  facebook: 'Facebook',
+  youtube: 'YouTube',
+  twitter: 'Twitter',
+  lemon8: 'Lemon8',
+};
+
+function profileAnalystPlatformLabel(key: string): string {
+  const lower = key.toLowerCase();
+  if (PROFILE_ANALYST_PLATFORM_LABELS[lower]) return PROFILE_ANALYST_PLATFORM_LABELS[lower];
+  if (!key) return key;
+  return key.charAt(0).toUpperCase() + key.slice(1);
+}
+
+function ProfileAnalystAiSection({ creator }: { creator: CreatorProfile }) {
+  const legacy = creator.profileAnalystLegacyText;
+  const ai = creator.profileAnalyst;
+
+  if (legacy) {
+    return (
+      <div className="rounded-lg border border-border p-4 space-y-2">
+        <h4 className="text-sm font-medium text-foreground">ผลวิเคราะห์ด้วย AI</h4>
+        <p className="text-sm text-foreground whitespace-pre-wrap break-words">{legacy}</p>
+      </div>
+    );
+  }
+
+  if (!ai) {
+    return (
+      <div>
+        <h4 className="text-sm font-medium text-foreground mb-1">ผลวิเคราะห์ด้วย AI</h4>
+        <p className="text-sm text-muted-foreground">ยังไม่มีข้อมูล</p>
+      </div>
+    );
+  }
+
+  const platformEntries = Object.entries(ai.platform_scores);
+
+  return (
+    <div className="rounded-lg border border-border p-4">
+      <h4 className="font-medium text-foreground mb-0">ผลวิเคราะห์ด้วย AI</h4>
+      <div className="mb-4">
+        <label className="text-muted-foreground mb-2">คะแนนรวม</label>
+        <p className="text-foreground text-2xl font-medium mt-0.5">
+          {ai.overall_quality_score} / 10
+        </p>
+      </div>
+
+      {ai.categories.length > 0 && (
+        <div className="mb-4">
+          <label className="text-muted-foreground mb-2">หมวดหมู่ที่วิเคราะห์</label>
+          <div className="flex flex-wrap gap-1.5 mt-1">
+            {ai.categories.map((c) => (
+              <span
+                key={c}
+                className="inline-flex px-2 py-0.5 rounded-md bg-primary/10 text-foreground border border-primary/20"
+              >
+                {c}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {platformEntries.length > 0 && (
+        <div>
+          <label className="text-muted-foreground block mb-1">คะแนนรายแพลตฟอร์ม</label>
+          <Accordion type="single" collapsible className="rounded-md border border-border">
+            {platformEntries.map(([key, val]) => (
+              <AccordionItem key={key} value={key} className="border-b-0">
+                <AccordionTrigger className="hover:no-underline px-3 py-2 text-sm">
+                  <span className="font-medium text-left">
+                    {profileAnalystPlatformLabel(key)} — {val.score}/10
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="px-3 pb-3">
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{val.summary}</p>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+      )}
+
+      {ai.reasoning.trim() !== '' && (
+        <div>
+          <label className="text-muted-foreground text-xs">เหตุผลการวิเคราะห์</label>
+          <p className="text-sm text-foreground whitespace-pre-wrap mt-1">{ai.reasoning}</p>
+        </div>
+      )}
+
+      {ai.content_style.trim() !== '' && (
+        <div>
+          <label className="text-muted-foreground text-xs">สไตล์คอนเทนต์</label>
+          <p className="text-sm text-foreground whitespace-pre-wrap mt-1">{ai.content_style}</p>
+        </div>
+      )}
+
+      {ai.audience_fit.trim() !== '' && (
+        <div>
+          <label className="text-muted-foreground text-xs">ความเหมาะสมกับกลุ่มเป้าหมาย</label>
+          <p className="text-sm text-foreground whitespace-pre-wrap mt-1">{ai.audience_fit}</p>
+        </div>
+      )}
+
+      {ai.recommendation.trim() !== '' && (
+        <div>
+          <label className="text-muted-foreground text-xs">ข้อเสนอแนะ</label>
+          <p className="text-sm text-foreground whitespace-pre-wrap mt-1">{ai.recommendation}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AdminDashboard() {
   const [creators, setCreators] = useState<CreatorProfile[]>([]);
   const [filteredCreators, setFilteredCreators] = useState<CreatorProfile[]>([]);
@@ -601,19 +718,29 @@ export function AdminDashboard() {
 
       <div>
         <label className="text-muted-foreground">อีเมล</label>
-        <p className="text-foreground">{creator.email}</p>
+        <p className="text-foreground flex items-center gap-2">
+          <MailIcon className="w-4 h-4 text-primary" /> 
+          <a href={`mailto:${creator.email}`} className="text-primary hover:underline">{creator.email}</a>
+        </p>
       </div>
 
       <div>
         <label className="text-muted-foreground">เบอร์โทรศัพท์</label>
-        <p className="text-foreground">{creator.phone}</p>
+        <p className="text-foreground flex items-center gap-2">
+          <FaPhone className="w-4 h-4 text-primary" /> 
+          <a href={`tel:${creator.phone}`} className="text-primary hover:underline">{creator.phone}</a>
+        </p>
       </div>
 
       <div>
         <label className="text-muted-foreground">หมวดหมู่</label>
-        <p className="text-foreground">
-          {creator.categories && creator.categories.length > 0 ? creator.categories.join(', ') : '-'}
-        </p>
+        <div className="flex gap-2">
+          {creator.categories && creator.categories.length > 0 ? creator.categories.map((category) => (
+            <div key={category} className="flex items-center gap-2 px-2 py-1 rounded-md bg-primary/10 text-primary">
+              {category}
+            </div>
+          )) : <p className="text-muted-foreground">ยังไม่มีข้อมูล</p>}
+        </div> 
       </div>
 
       <div>
@@ -636,6 +763,8 @@ export function AdminDashboard() {
           {getSocialLinks(creator).length === 0 && <p className="text-muted-foreground">ยังไม่มีข้อมูล</p>}
         </div>
       </div>
+
+      <ProfileAnalystAiSection creator={creator} />
 
       {creator.approvalStatus === 3 && (
         <>
