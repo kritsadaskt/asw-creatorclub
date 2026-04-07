@@ -1,6 +1,6 @@
 import { toLowerCase } from "zod";
 
-export function StatusLabel({ status }: { status: string | null }) {
+export function StatusLabel({ status, className }: { status: string | null, className?: string }) {
 
   let statusText = '';
 
@@ -21,7 +21,7 @@ export function StatusLabel({ status }: { status: string | null }) {
   }
       
   return (
-    <div className={`project-status-label absolute top-2 right-2 ${status?.toLowerCase()}`}>
+    <div className={`project-status-label absolute top-2 right-2 ${status?.toLowerCase()} ${className}`}>
       <span className="text-xs shadow-md">
         {statusText}
       </span>

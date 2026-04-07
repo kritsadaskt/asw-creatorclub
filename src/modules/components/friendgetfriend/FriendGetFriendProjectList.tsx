@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from '../ui/select';
 import { StatusBadge } from '../ui/status-badge';
+import { StatusLabel } from '../ui/status-label';
 
 const DEFAULT_ITEMS_PER_PAGE = 10;
 const STATUS_FILTER_ALL = 'all';
@@ -117,8 +118,8 @@ export function FriendGetFriendProjectList({
   };
 
   return (
-    <div className="container pt-10 pb-8">
-      <div className="bg-white rounded-2xl shadow-xl border border-border p-6 md:p-8">
+    <div className="container px-4 lg:px-0 pt-10 pb-8">
+      <div className="bg-white rounded-2xl shadow-xl border border-border p-6 lg:p-8">
         {isLoading ? (
           <div className="py-16 text-center text-muted-foreground">
             <div className="flex items-center justify-center gap-2">
@@ -191,13 +192,13 @@ export function FriendGetFriendProjectList({
                   <table className="min-w-full">
                     <thead className="bg-muted/40">
                       <tr>
-                        <th className="px-3 md:px-6 py-2 text-left font-medium text-foreground w-3/5">
+                        <th className="px-4 w-3/5 md:px-6 py-3 text-left font-medium text-foreground">
                           โครงการ
                         </th>
-                        <th className="px-3 md:px-6 py-2 text-center font-medium text-foreground w-1/5">
+                        <th className="px-4 w-1/5 md:px-6 py-3 text-center font-medium text-foreground hidden lg:table-cell">
                           ค่าแนะนำ
                         </th>
-                        <th className="px-3 md:px-6 py-2 text-center font-medium text-foreground w-1/5">
+                        <th className="px-4 w-1/5 md:px-6 py-3 text-center font-medium text-foreground hidden lg:table-cell">
                           แนะนำเพื่อน
                         </th>
                       </tr>
@@ -205,9 +206,9 @@ export function FriendGetFriendProjectList({
                     <tbody className="divide-y divide-border">
                       {paginatedProjects.map((project) => (
                         <tr key={project.id} className="hover:bg-muted/30">
-                          <td className="px-3 md:px-6 py-3">
-                            <div className="flex items-center gap-4">
-                              <div className="w-26 h-26 rounded bg-muted overflow-hidden flex items-center justify-center text-xs text-muted-foreground flex-shrink-0">
+                          <td className="px-4 md:px-6 py-4">
+                            <div className="flex items-center gap-4 lg:gap-7">
+                              <div className="w-45 h-auto rounded-md bg-muted overflow-hidden flex items-center justify-center text-xs text-muted-foreground aspect-square flex-shrink-0 relative">
                                 {project.imageUrl || project.thumbUrl ? (
                                   // eslint-disable-next-line @next/next/no-img-element
                                   <img
@@ -219,27 +220,41 @@ export function FriendGetFriendProjectList({
                                 ) : (
                                   <span className="px-1 text-center">no thumbnail</span>
                                 )}
+                                <StatusLabel className="block md:hidden z-10" status={getStatusLabel(project.projectStatus)} />
+                                <div className='absolute block md:hidden top-0 right-0 bg-gradient-to-bl from-black/50 via-black/30 to-transparent w-full h-full'></div>
                               </div>
                               <div className="min-w-0">
-                                <h4 className="text-lg font-medium text-foreground truncate mb-4 flex items-center gap-2">
+                                <h4 className="text-xl mb-2 font-medium text-foreground flex items-center gap-2">
                                   {project.name}
-                                  <StatusBadge status={project.projectStatus ?? null} />
+                                  <StatusBadge status={project.projectStatus || null} className="hidden md:inline-block" />
                                 </h4>
-                                <p className="text-sm text-neutral-500 line-clamp-2">
+                                <p className="text-neutral-500 hidden md:block mb-3 line-clamp-2">
                                   {project.description}
                                 </p>
-                                <p className="text-xs text-muted-foreground tabular-nums mt-1.5">
-                                  CIS ID: {hasFgfCisId(project) ? project.cis_id : '—'}
-                                </p>
+                                <div className="flex lg:hidden mt-3">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRecommend(project)}
+                                    disabled={!hasFgfCisId(project)}
+                                    title={
+                                      hasFgfCisId(project)
+                                        ? undefined
+                                        : 'โครงการนี้ยังไม่มีรหัส CIS จึงยังแนะนำเพื่อนไม่ได้'
+                                    }
+                                    className="inline-flex items-center justify-center rounded-lg border border-primary px-3 py-1.5 font-medium text-primary hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed"
+                                  >
+                                    แนะนำเพื่อน
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </td>
-                          <td className="px-3 md:px-6 py-3 align-center">
-                            <div className="text-muted-foreground text-sm text-center max-w-xs">
+                          <td className="px-4 md:px-6 py-4 align-center hidden lg:table-cell">
+                            <div className="text-muted-foreground max-w-xs text-center">
                               {project.commission || 'จะประกาศคอมมิชชั่นเร็ว ๆ นี้'}
                             </div>
                           </td>
-                          <td className="px-3 md:px-6 py-3 align-center">
+                          <td className="px-4 md:px-6 py-4 align-center hidden lg:table-cell">
                             <div className="flex justify-center">
                               <button
                                 type="button"
@@ -250,7 +265,7 @@ export function FriendGetFriendProjectList({
                                     ? undefined
                                     : 'โครงการนี้ยังไม่มีรหัส CIS จึงยังแนะนำเพื่อนไม่ได้'
                                 }
-                                className="inline-flex items-center justify-center rounded-lg border border-primary px-2.5 py-1.5 font-medium text-primary text-sm hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed"
+                                className="inline-flex items-center justify-center rounded-lg border border-primary px-3 py-1.5 font-medium text-primary hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed"
                               >
                                 แนะนำเพื่อน
                               </button>

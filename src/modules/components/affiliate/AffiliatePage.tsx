@@ -353,7 +353,7 @@ function AffiliateProjectList() {
                         <tr key={project.id} className="hover:bg-muted/30">
                           <td className="px-4 md:px-6 py-4">
                             <div className="flex items-center gap-4 lg:gap-7">
-                              <div className="w-30 h-auto rounded-lg bg-muted overflow-hidden flex items-center justify-center text-xs text-muted-foreground aspect-square flex-shrink-0 relative">
+                              <div className="w-45 h-auto rounded-md bg-muted overflow-hidden flex items-center justify-center text-xs text-muted-foreground aspect-square flex-shrink-0 relative">
                                 {project.imageUrl || project.thumbUrl ? (
                                   // eslint-disable-next-line @next/next/no-img-element
                                   <img
@@ -366,7 +366,8 @@ function AffiliateProjectList() {
                                     no thumbnail
                                   </span>
                                 )}
-                                <StatusLabel status={getStatusLabel(project.projectStatus)} />
+                                <StatusLabel className="block md:hidden z-10" status={getStatusLabel(project.projectStatus)} />
+                                <div className='absolute block md:hidden top-0 right-0 bg-gradient-to-bl from-black/50 via-black/30 to-transparent w-full h-full'></div>
                               </div>
                               <div>
                                 <h4 className="text-xl mb-2 font-medium text-foreground flex items-center gap-2">
