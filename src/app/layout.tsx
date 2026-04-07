@@ -27,6 +27,23 @@ export const metadata: Metadata = {
     locale: 'th_TH',
     type: 'website',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'AssetWise Creators Club',
+    site: '@AssetwiseTH',
+    description: 'มาเป็นดาวดวงใหม่ ของวงการอสังหาฯ รับค่าคอมมิชชันสูงสุด 500,000 บาท*',
+    images: [
+      {
+        url: '/creatorclub/creator-club_og.webp',
+        width: 1200,
+        height: 630,
+        alt: 'AssetWise Creators Club',
+      },
+    ],
+  },
+  alternates: {
+    canonical: 'https://assetwise.co.th/creatorclub',
+  },
 };
 
 const GTM_ID = 'GTM-MM872QW';
