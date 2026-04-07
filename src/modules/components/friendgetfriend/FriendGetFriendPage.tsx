@@ -187,7 +187,7 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
         <DrawerContent className='overflow-y-auto'>
           <DrawerHeader className="p-7">
             <div className="flex items-start justify-between gap-4">
-              <DrawerTitle>แนะนำเพื่อน</DrawerTitle>
+              <DrawerTitle>แนะนำเพื่อน ให้กับโครงการ <span className="text-primary">{selectedProject?.name}</span></DrawerTitle>
               <DrawerClose className="text-muted-foreground hover:text-foreground cursor-pointer">
                 <X className="w-5 h-5" />
                 <span className="sr-only">ปิด</span>
@@ -212,7 +212,7 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
             ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-4">
-                <h3 className="font-medium text-foreground">ผู้แนะนำ  <span className="text-neutral-400 text-xs">{referrerHelperText}</span></h3>
+                <h3 className="font-medium text-foreground flex flex-col gap-2">ผู้แนะนำ  <span className="text-neutral-400 text-sm">{referrerHelperText}</span></h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input label="ชื่อ" value={referrerName} onChange={setReferrerName} placeholder="กรอกชื่อผู้แนะนำ" required />
                   <Input label="นามสกุล" value={referrerLastName} onChange={setReferrerLastName} placeholder="กรอกนามสกุลผู้แนะนำ" required />
@@ -229,40 +229,6 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
                   <Input label="อีเมล" type="email" value={leadEmail} onChange={setLeadEmail} placeholder="example@email.com" required />
                   <Input label="เบอร์โทรศัพท์" type="tel" value={leadPhone} onChange={setLeadPhone} placeholder="กรอกเบอร์โทรศัพท์ของผู้ถูกแนะนำ" required />
                 </div>
-              </div>
-
-              <div className="space-y-4 pt-4">
-                <h3 className="font-medium text-foreground">โครงการที่แนะนำ</h3>
-                <p className="text-xs text-muted-foreground">
-                  เลือกได้ 1 โครงการต่อการส่ง — กด &quot;แนะนำเพื่อน&quot; จากโครงการอื่นในตารางเพื่อเปลี่ยนโครงการ
-                </p>
-                {!selectedProject ? (
-                  <p className="text-sm text-muted-foreground">
-                    ยังไม่ได้เลือกโครงการ กรุณากดปุ่มแนะนำเพื่อนจากโครงการที่ต้องการก่อน
-                  </p>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    <div className="inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-foreground w-full max-w-md">
-                      <div className="flex flex-col items-start gap-0.5 min-w-0 flex-1">
-                        <span className="font-medium leading-tight">{selectedProject.name}</span>
-                        <span className="text-xs text-muted-foreground tabular-nums">
-                          CIS ID:{' '}
-                          {selectedProject.cisId != null && Number.isFinite(selectedProject.cisId)
-                            ? selectedProject.cisId
-                            : '—'}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => clearSelectedProject()}
-                        className="shrink-0 text-muted-foreground hover:text-foreground cursor-pointer self-start"
-                        aria-label={`ลบโครงการ ${selectedProject.name}`}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
 
               <div className="space-y-2 pt-4">

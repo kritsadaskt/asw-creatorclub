@@ -2,24 +2,24 @@
 @import './tailwind.css';
 @import './theme.css';
 
-.project-status-badge {
+.project-status-badge, .project-status-label {
   span {
     @apply inline-flex items-center rounded-full bg-muted px-4 py-1;
   }
 }
-.project-status-badge.ready {
+.project-status-badge.ready, .project-status-label.ready {
   span {
     @apply bg-blue-500 text-white;
   }
 }
 
-.project-status-badge.new {
+.project-status-badge.new, .project-status-label.new {
   span {
     @apply bg-green-500 text-white;
   }
 }
 
-.project-status-badge.sold_out {
+.project-status-badge.sold_out, .project-status-label.sold_out {
   span {
     @apply bg-muted text-muted-foreground;
   }

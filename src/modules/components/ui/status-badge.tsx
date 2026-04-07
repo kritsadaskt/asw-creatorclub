@@ -1,4 +1,4 @@
-export function StatusBadge({ status }: { status: string | null }) {
+export function StatusBadge({ status, className }: { status: string | null, className?: string }) {
 
   let statusText = '';
 
@@ -19,7 +19,7 @@ export function StatusBadge({ status }: { status: string | null }) {
   }
       
   return (
-    <div className={`project-status-badge ${status}`}>
+    <div className={`project-status-badge ${status} ${className}`}>
       <span className="text-xs">
         {statusText}
       </span>

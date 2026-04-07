@@ -5,11 +5,44 @@ import '@/styles/index.css';
 
 export const metadata: Metadata = {
   title: 'AssetWise Creators Club',
-  description: 'AssetWise Creator Club',
+  description: 'มาเป็นดาวดวงใหม่ ของวงการอสังหาฯ รับค่าคอมมิชชันสูงสุด 500,000 บาท*',
   icons: {
     icon: '/creatorclub/asw-favicon.png',
     shortcut: '/creatorclub/asw-favicon.png',
     apple: '/creatorclub/asw-favicon.png',
+  },
+  openGraph: {
+    title: 'AssetWise Creators Club',
+    description: 'มาเป็นดาวดวงใหม่ ของวงการอสังหาฯ รับค่าคอมมิชชันสูงสุด 500,000 บาท*',
+    images: [
+      {
+        url: '/creatorclub/creator-club_og.webp',
+        width: 1200,
+        height: 630,
+        alt: 'AssetWise Creators Club',
+      },
+    ],
+    url: 'https://assetwise.co.th/creatorclub',
+    siteName: 'AssetWise Creators Club',
+    locale: 'th_TH',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'AssetWise Creators Club',
+    site: '@AssetwiseTH',
+    description: 'มาเป็นดาวดวงใหม่ ของวงการอสังหาฯ รับค่าคอมมิชชันสูงสุด 500,000 บาท*',
+    images: [
+      {
+        url: '/creatorclub/creator-club_og.webp',
+        width: 1200,
+        height: 630,
+        alt: 'AssetWise Creators Club',
+      },
+    ],
+  },
+  alternates: {
+    canonical: 'https://assetwise.co.th/creatorclub',
   },
 };
 
