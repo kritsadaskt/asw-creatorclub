@@ -4,7 +4,7 @@ import { SessionProvider } from '@/modules/context/SessionContext';
 import '@/styles/index.css';
 
 export const metadata: Metadata = {
-  title: 'AssetWise Creators Club',
+  title: 'AssetWise Creator Club',
   description: 'มาเป็นดาวดวงใหม่ ของวงการอสังหาฯ รับค่าคอมมิชชันสูงสุด 500,000 บาท*',
   icons: {
     icon: '/creatorclub/asw-favicon.png',
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     apple: '/creatorclub/asw-favicon.png',
   },
   openGraph: {
-    title: 'AssetWise Creators Club',
+    title: 'AssetWise Creator Club',
     description: 'มาเป็นดาวดวงใหม่ ของวงการอสังหาฯ รับค่าคอมมิชชันสูงสุด 500,000 บาท*',
     images: [
       {
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
       },
     ],
     url: 'https://assetwise.co.th/creatorclub',
-    siteName: 'AssetWise Creators Club',
+    siteName: 'AssetWise Creator Club',
     locale: 'th_TH',
     type: 'website',
   },
