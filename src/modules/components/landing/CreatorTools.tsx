@@ -24,7 +24,7 @@ export function CreatorTools() {
             <p className="text-black w-2/3">ชวนเพื่อนมาเป็นเพื่อนบ้าน ในโครงการบ้านและคอนโดมิเนียมของ ASSETWISE รับค่าแนะนำสูงสุด 500,000 บาท*</p>
             <Image src={fgf_icon} alt="FRIEND GET FRIENDS" width={500} height={500} className="absolute -bottom-[30%] left-0 lg:-bottom-[35%] lg:-right-[15%] lg:left-auto w-full lg:w-[320px] h-auto" />
             <div className="h-5"></div>
-            <Link href="/friendgetfriend" className="bg-accent hover:bg-accent/90 text-accent-foreground px-4 py-2 rounded-md">ดูเพิ่มเติม</Link>
+            <Link href="/friendgetfriends" className="bg-accent hover:bg-accent/90 text-accent-foreground px-4 py-2 rounded-md">ดูเพิ่มเติม</Link>
           </div>
         </div>
       </div>
