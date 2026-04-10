@@ -420,11 +420,6 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
                   ) : shlinkStats[selectedLink.id] != null ? (
                     <span className="font-semibold tabular-nums text-foreground">
                       {shlinkStats[selectedLink.id]!.total.toLocaleString('th-TH')}
-                      {shlinkStats[selectedLink.id]!.nonBots != null && (
-                        <span className="text-muted-foreground font-normal text-xs ml-1.5">
-                          (ไม่รวมบอท: {shlinkStats[selectedLink.id]!.nonBots!.toLocaleString('th-TH')})
-                        </span>
-                      )}
                     </span>
                   ) : (
                     <span className="text-muted-foreground">—</span>
