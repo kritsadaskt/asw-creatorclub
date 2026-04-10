@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     const cisPayload = {
       ProjectID:          cisProjectId,
       ContactChannelID: 21,
-      ContactTypeID:    35,
+      ContactTypeID:    179,
       RefID:            numericRefId,
       Fname:            data.leadName,
       Lname:            data.leadLastName,
