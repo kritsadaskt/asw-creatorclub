@@ -1,8 +1,7 @@
 import { Header } from "@/modules/components/landing/Header";
 import Footer from "@/modules/components/landing/Footer";
-import fgf_policy01 from "@/assets/fgf-policy-01.jpg";
-import fgf_policy02 from "@/assets/fgf-policy-02.jpg";
 import Image from "next/image";
+import Link from "next/link";
 
 function Fgf_Policy() {
   return (
@@ -17,8 +16,12 @@ function Fgf_Policy() {
             <p>“ผู้แนะนำ” หมายถึง ลูกค้า ลูกบ้าน หรือบุคคลทั่วไป ที่ต้องการแนะนำเพื่อนญาติหรือลูกค้า มาจองบ้านหรือห้องชุดกับบริษัท แอสเซทไวส์ จำกัด (มหาชน) และบริษัทในเครือ (เฉพาะยูนิตและโครงการที่บริษัทฯ กำหนด รายละเอียดยูนิตและโครงการที่เข้าร่วม สอบถามเพิ่มเติมได้ที่สำนักงานขายโครงการนั้น ๆ หรือ <a href='tel:02-168-0000' className='text-primary underline'>02-168-0000</a>)</p>
             <div className="h-7"></div>
             <h4 className="font-medium mb-5">โปรโมชั่นสำหรับ 36 โครงการที่เข้าร่วมแคมเปญ รับค่าแนะนําสูงสุด 500,000 บาท* ดังนี้</h4>
-            <Image src={fgf_policy01} alt=""/>
-            <Image src={fgf_policy02} alt=""/>
+            <Link href={'/fgf-policy-01.jpg'} target="_blank">
+              <img src={'/creatorclub/fgf-policy-01.jpg'} alt="FRIEND GET FRIENDS" width={1000} height={1000} className="w-full h-auto" />
+            </Link>
+            <Link href={'/fgf-policy-02.jpg'} target="_blank">
+              <img src={'/creatorclub/fgf-policy-02.jpg'} alt="FRIEND GET FRIENDS" width={1000} height={1000} className="w-full h-auto" />
+            </Link>
             <div className="h-7"></div>
             <h4 className="font-medium mb-5">เงื่อนไขการเข้าร่วมแคมเปญ</h4>
             <ol className="list-decimal list-inside flex flex-col gap-2 font-normal">
