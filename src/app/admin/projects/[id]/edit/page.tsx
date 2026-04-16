@@ -83,7 +83,6 @@ export default function AdminProjectEditPage() {
         onSaved={(p) => setProject(p)}
         heading="แก้ไขโครงการ"
       />
-      <ProjectMaterialsLibrary projectId={project.id} />
     </div>
   );
 }
