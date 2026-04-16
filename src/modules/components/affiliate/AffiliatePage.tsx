@@ -372,6 +372,7 @@ function AffiliateProjectList() {
                               <div>
                                 <h4 className="text-xl mb-2 font-medium text-foreground flex items-center gap-2">
                                   { project.name }
+                                  <StatusBadge className="hidden md:flex" status={project.projectStatus ?? null} />
                                 </h4>
                                 <p className="text-neutral-500 hidden md:block mb-3">
                                   {project.description}
