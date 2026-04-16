@@ -397,7 +397,7 @@ function AffiliateProjectList() {
                           </td>
                           <td className="px-4 md:px-6 py-4 align-center hidden lg:table-cell">
                             <div className="text-muted-foreground max-w-xs text-center">
-                              {project.commission || 'จะประกาศคอมมิชชั่นเร็ว ๆ นี้'}
+                              {project.commission || 'จะประกาศค่าแนะนำเร็วๆ นี้'}
                             </div>
                           </td>
                           <td className="px-4 md:px-6 py-4 align-center hidden lg:table-cell">

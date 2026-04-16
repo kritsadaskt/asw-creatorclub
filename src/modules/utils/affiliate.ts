@@ -70,15 +70,20 @@ export const fetchAffiliateProjects = async (): Promise<AffiliateProject[]> => {
         return value;
       };
 
+      if (project.startComm === undefined && project.maxComm === undefined) {
+        return undefined;
+      }
+
       const startComm = formatNum(project.startComm);
       const maxComm = formatNum(project.maxComm);
 
-      if (startComm && maxComm && startComm !== maxComm) {
-        return `${startComm} - ${maxComm} บ.`;
+      if (startComm && maxComm) {
+        if (startComm !== maxComm) {
+          return `${startComm} - ${maxComm} บ.`;
+        }
       } else if (startComm === maxComm) {
         return `${maxComm} บ.`;
       }
-
       return undefined;
     })(),
     googleDriveUrl: project.googleDriveUrl,
