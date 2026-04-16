@@ -251,7 +251,7 @@ export function ProjectForm({ mode, initialProject, onCancel, onSaved, heading }
                   onChange={() => setProjectStatus('sold_out')}
                   className="w-4 h-4 text-primary"
                 />
-                <span>Pre-sale</span>
+                <span>ขายหมด</span>
               </label>
             </div>
           </div>
