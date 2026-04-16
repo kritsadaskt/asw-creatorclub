@@ -61,7 +61,7 @@ export function ProjectManagement() {
     { value: 'undefined', label: 'ไม่ระบุ' },
     { value: 'ready', label: 'พร้อมอยู่' },
     { value: 'new', label: 'โครงการใหม่' },
-    { value: 'sold_out', label: 'Pre-sale' },
+    { value: 'sold_out', label: 'ขายหมด' },
   ];
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
