@@ -1,3 +1,11 @@
+/** Nodemailer attachment shape (path or content). */
+export type SendEmailAttachment = {
+  filename?: string;
+  path?: string;
+  content?: string | Buffer;
+  contentType?: string;
+};
+
 export type SendEmailOptions = {
   to: string | string[];
   subject: string;
@@ -6,6 +14,7 @@ export type SendEmailOptions = {
   cc?: string | string[];
   bcc?: string | string[];
   replyTo?: string;
+  attachments?: SendEmailAttachment[];
 };
 
 export type SendEmailResult =

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logServerError, requestLogContext } from '@/lib/log-server-error';
+import { findLatestCreatorClubManualPdf } from '@/lib/find-latest-creator-club-manual-pdf';
 import { sendEmail } from '@/lib/email/send-email';
 import { buildApprovalEmailMessage } from '@/modules/utils/email';
 import { getCreatorById } from '@/modules/utils/storage';
@@ -16,10 +17,27 @@ export async function POST(
     }
 
     const message = buildApprovalEmailMessage(creator);
+
+    const manual = await findLatestCreatorClubManualPdf();
+    if (!manual) {
+      console.warn(
+        '[approval-email] No Creator Club manual PDF in public/ matching AssetWise_CreatorClub_Manual*.pdf — sending without attachment',
+      );
+    }
+
     const result = await sendEmail({
       to: message.to,
       subject: message.subject,
       html: message.html,
+      attachments: manual
+        ? [
+            {
+              filename: manual.filename,
+              path: manual.absolutePath,
+              contentType: 'application/pdf',
+            },
+          ]
+        : undefined,
     });
 
     if (result.sent) {
