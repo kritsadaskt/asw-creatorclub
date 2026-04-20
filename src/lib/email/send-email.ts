@@ -41,6 +41,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
       cc: options.cc,
       bcc: options.bcc,
       replyTo: options.replyTo,
+      ...(options.attachments?.length ? { attachments: options.attachments } : {}),
     });
 
     return { sent: true };
