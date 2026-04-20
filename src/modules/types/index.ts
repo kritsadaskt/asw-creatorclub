@@ -68,6 +68,9 @@ export interface CreatorProfile {
   // Authentication fields
   facebookId?: string; // Facebook user ID (for Facebook login)
   passwordHash?: string; // Hashed password (for traditional login)
+  /** Access flags for admin/marketing dashboards. */
+  isAdmin?: boolean;
+  isMkt?: boolean;
   /** AI profile analysis from Supabase `profiles.profile_analyst` (JSON). */
   profileAnalyst?: ProfileAnalystAiResult;
   /** Non-JSON legacy text in `profile_analyst`, shown as a single block in admin. */
@@ -163,7 +166,7 @@ export interface FgfLeadWithProjects {
   projectIds: string[];
 }
 
-export type UserRole = 'creator' | 'admin';
+export type UserRole = 'creator' | 'admin' | 'marketing';
 
 /** Payload for `logServerError` — omit `created_at`; DB default uses Bangkok wall time. */
 export interface LogServerErrorPayload {

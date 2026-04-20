@@ -34,7 +34,7 @@ export interface NavLinkItem {
 
 interface HeaderProps {
   /** Provide to enable the login modal on public pages. */
-  onLogin?: (id: string, role: 'creator' | 'admin') => void;
+  onLogin?: (id: string, role: 'creator' | 'admin' | 'marketing') => void;
   /** Override the default logout behaviour. Called after internal cleanup + redirect. */
   onLogout?: () => void;
   /** When this flips the header re-reads the session (use after login on the same page). */
@@ -60,7 +60,7 @@ function HeaderUserDropdownMenu({
 }: {
   avatarUrl: string | null;
   displayName: string | null;
-  role: 'creator' | 'admin' | null;
+  role: 'creator' | 'admin' | 'marketing' | null;
   onAvatarLoadError: () => void;
   onLogout: () => void;
   router: HeaderNavRouter;
@@ -94,10 +94,10 @@ function HeaderUserDropdownMenu({
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {role === 'admin' && (
+        {(role === 'admin' || role === 'marketing') && (
           <DropdownMenuItem
             onClick={() => {
-              router.push('/admin/dashboard');
+              router.push(role === 'admin' ? '/admin/dashboard' : '/creators');
             }}
             className="cursor-pointer group"
           >
@@ -215,7 +215,7 @@ export function Header({
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [role, setRole] = useState<'creator' | 'admin' | null>(null);
+  const [role, setRole] = useState<'creator' | 'admin' | 'marketing' | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -255,7 +255,7 @@ export function Header({
         setIsLoadingProfile(false);
       }
     } else {
-      setDisplayName('Admin');
+      setDisplayName(session.role === 'marketing' ? 'Marketing' : 'Admin');
       setAvatarUrl(null);
       setIsLoadingProfile(false);
     }
@@ -288,7 +288,7 @@ export function Header({
     }
   };
 
-  const handleLoginFromModal = (id: string, loginRole: 'creator' | 'admin') => {
+  const handleLoginFromModal = (id: string, loginRole: 'creator' | 'admin' | 'marketing') => {
     void loadFromSession();
     onLogin?.(id, loginRole);
   };

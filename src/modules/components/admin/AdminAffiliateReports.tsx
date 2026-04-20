@@ -80,11 +80,11 @@ export function AdminAffiliateReports({ data, loading, error, onSelectCreator }:
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <TableShell
-          title="10 อันดับครีเอเตอร์ — Getlink"
+          title="10 อันดับครีเอเตอร์"
           description={
             onSelectCreator
-              ? 'เรียงตามจำนวนลิงก์ที่สร้าง (มากสุดก่อน) พร้อมยอดคลิกรวมจาก Shlink — คลิกชื่อเพื่อดูรายละเอียด'
-              : 'เรียงตามจำนวนลิงก์ที่สร้าง (มากสุดก่อน) พร้อมยอดคลิกรวมจาก Shlink'
+              ? 'เรียงตามจำนวนลิงก์ที่สร้าง (มากสุดก่อน) พร้อมยอดคลิกรวม — คลิกชื่อเพื่อดูรายละเอียด'
+              : 'เรียงตามจำนวนลิงก์ที่สร้าง (มากสุดก่อน) พร้อมยอดคลิกรวม'
           }
         >
           {topCreators.length === 0 ? (
@@ -133,7 +133,7 @@ export function AdminAffiliateReports({ data, loading, error, onSelectCreator }:
         </TableShell>
 
         <TableShell
-          title="10 อันดับโครงการ — Getlink"
+          title="10 อันดับโครงการ"
           description="เรียงตามจำนวนลิงก์รวม พร้อมจำนวนครีเอเตอร์ที่ไม่ซ้ำที่เคยสร้างลิงก์โครงการนั้น"
           className="[animation-delay:150ms]"
         >

@@ -54,7 +54,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       if (role === 'creator') {
         router.push(redirectTo ?? '/profile');
       } else if (role === 'admin') {
-        router.push('/admin');
+        router.push('/admin/dashboard');
+      } else if (role === 'marketing') {
+        router.push('/creators');
       }
     },
     [router],

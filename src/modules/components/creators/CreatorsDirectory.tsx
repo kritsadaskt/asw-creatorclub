@@ -8,6 +8,15 @@ import type { CreatorProfile } from '@/modules/types';
 import { getCreators } from '@/modules/utils/storage';
 import { Button } from '@/modules/components/shared/Button';
 import { FileXIcon } from 'lucide-react';
+import {
+  PaginationEllipsis,
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/modules/components/ui/pagination';
 
 const Select = dynamic(() => import('react-select').then((mod) => mod.default), {
   ssr: false,
@@ -47,6 +56,8 @@ const ranges: { [key: string]: { min: number; max?: number } } = {
   '500k+': { min: 500000 },
 };
 
+const PAGE_SIZE = 12;
+
 export function CreatorsDirectory() {
   const [creators, setCreators] = useState<CreatorProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,6 +65,7 @@ export function CreatorsDirectory() {
   const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
   const [followerRange, setFollowerRange] = useState('all');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('card');
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     const load = async () => {
@@ -112,6 +124,26 @@ export function CreatorsDirectory() {
 
     return rows;
   }, [creators, selectedCategory, searchQuery, followerRange]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, selectedCategory, followerRange]);
+
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(filteredCreators.length / PAGE_SIZE)),
+    [filteredCreators.length],
+  );
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
+  const pagedCreators = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredCreators.slice(start, start + PAGE_SIZE);
+  }, [filteredCreators, page]);
 
   const CreatorsHeader = () => {
     return (
@@ -302,7 +334,7 @@ export function CreatorsDirectory() {
             </p>
           ) : viewMode === 'card' ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {filteredCreators.map((creator) => {
+              {pagedCreators.map((creator) => {
                 return (
                   <CreatorCard key={creator.id} creator={creator} />
                 );
@@ -329,7 +361,7 @@ export function CreatorsDirectory() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredCreators.map((creator) => {
+                  {pagedCreators.map((creator) => {
                     const socialCount = Object.values(creator.socialAccounts).filter(Boolean).length;
                     return (
                       <tr
@@ -360,6 +392,114 @@ export function CreatorsDirectory() {
                   })}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {!loading && filteredCreators.length > 0 && (
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-muted-foreground shrink-0">
+                แสดง {(page - 1) * PAGE_SIZE + 1}–
+                {Math.min(page * PAGE_SIZE, filteredCreators.length)} จาก {filteredCreators.length} คน
+              </p>
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (page > 1) setPage(page - 1);
+                      }}
+                      className={page <= 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      aria-disabled={page <= 1}
+                    />
+                  </PaginationItem>
+                  {totalPages <= 7 ? (
+                    Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                      <PaginationItem key={p}>
+                        <PaginationLink
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setPage(p);
+                          }}
+                          isActive={page === p}
+                          className="cursor-pointer"
+                        >
+                          {p}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))
+                  ) : (
+                    <>
+                      <PaginationItem>
+                        <PaginationLink
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setPage(1);
+                          }}
+                          isActive={page === 1}
+                          className="cursor-pointer"
+                        >
+                          1
+                        </PaginationLink>
+                      </PaginationItem>
+                      {page > 3 && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )}
+                      {[page - 1, page, page + 1]
+                        .filter((p) => p >= 2 && p <= totalPages - 1)
+                        .map((p) => (
+                          <PaginationItem key={p}>
+                            <PaginationLink
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setPage(p);
+                              }}
+                              isActive={page === p}
+                              className="cursor-pointer"
+                            >
+                              {p}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+                      {page < totalPages - 2 && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )}
+                      <PaginationItem>
+                        <PaginationLink
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setPage(totalPages);
+                          }}
+                          isActive={page === totalPages}
+                          className="cursor-pointer"
+                        >
+                          {totalPages}
+                        </PaginationLink>
+                      </PaginationItem>
+                    </>
+                  )}
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (page < totalPages) setPage(page + 1);
+                      }}
+                      className={page >= totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      aria-disabled={page >= totalPages}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           )}
         </div>

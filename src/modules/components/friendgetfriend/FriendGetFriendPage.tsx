@@ -26,7 +26,7 @@ import {
 import { X, CheckCircle2 } from 'lucide-react';
 
 interface FriendGetFriendPageProps {
-  onLogin?: (id: string, role: 'creator' | 'admin') => void;
+  onLogin?: (id: string, role: 'creator' | 'admin' | 'marketing') => void;
 }
 
 /** Project picked for FGF submit; `cisId` from Supabase `projects.cis_id` when set. */

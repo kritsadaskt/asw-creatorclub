@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server';
 
-export type SessionRole = 'creator' | 'admin';
+export type SessionRole = 'creator' | 'admin' | 'marketing';
 
 export interface SessionData {
   id: string;
@@ -25,7 +25,7 @@ function decodeSession(value: string): SessionData | null {
     const parsed = JSON.parse(json) as SessionData;
     if (
       typeof parsed.id === 'string' &&
-      (parsed.role === 'creator' || parsed.role === 'admin')
+      (parsed.role === 'creator' || parsed.role === 'admin' || parsed.role === 'marketing')
     ) {
       return parsed;
     }
@@ -78,7 +78,7 @@ export function getServerSession(request: NextRequest): SessionData | null {
     const parsed = JSON.parse(json) as SessionData;
     if (
       typeof parsed.id === 'string' &&
-      (parsed.role === 'creator' || parsed.role === 'admin')
+      (parsed.role === 'creator' || parsed.role === 'admin' || parsed.role === 'marketing')
     ) {
       return parsed;
     }

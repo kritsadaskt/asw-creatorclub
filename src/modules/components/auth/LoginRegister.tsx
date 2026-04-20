@@ -16,9 +16,10 @@ import { hashPassword, validatePassword, validatePasswordConfirm } from '../../u
 import { setSession } from '../../utils/auth';
 import { BASE_PATH } from '@/lib/publicPath';
 import { formatGenericErrorToast } from '../../utils/toast-error';
+import { loginAdminOrMarketingWithSupabase } from '../../utils/admin-marketing-auth';
 
 interface LoginRegisterProps {
-  onLogin: (id: string, role: 'creator' | 'admin') => void;
+  onLogin: (id: string, role: 'creator' | 'admin' | 'marketing') => void;
 }
 
 export function LoginRegister({ onLogin }: LoginRegisterProps) {
@@ -103,20 +104,24 @@ export function LoginRegister({ onLogin }: LoginRegisterProps) {
     setLoading(true);
 
     try {
-      // Admin login shortcut
-      if (email === 'admin@creatorsclub.com' && password === 'admin') {
-        setCurrentUser('admin', 'admin');
-        setSession({ id: 'admin', role: 'admin' });
-        toast.success('เข้าสู่ระบบสำเร็จ!', {
-          description: 'ยินดีต้อนรับผู้ดูแลระบบ'
-        });
-        onLogin('admin', 'admin');
-        return;
-      }
-
       const pendingFacebookId = sessionStorage.getItem('pendingFacebookId');
 
       if (isLogin) {
+        const adminOrMkt = await loginAdminOrMarketingWithSupabase(email.trim(), password);
+        if (adminOrMkt.status === 'ok') {
+          setCurrentUser(adminOrMkt.id, adminOrMkt.role);
+          setSession({ id: adminOrMkt.id, role: adminOrMkt.role });
+          toast.success('เข้าสู่ระบบสำเร็จ!', {
+            description: `ยินดีต้อนรับ ${adminOrMkt.name}`,
+          });
+          onLogin(adminOrMkt.id, adminOrMkt.role);
+          return;
+        }
+        if (adminOrMkt.status === 'forbidden') {
+          setError(adminOrMkt.message);
+          return;
+        }
+
         // Login with password
         const creator = await authenticateCreator(email, password);
         if (creator) {

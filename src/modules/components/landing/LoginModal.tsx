@@ -17,10 +17,11 @@ import { loginWithFacebook, getFacebookUserInfo, fetchAndUploadFacebookProfileIm
 import { isFacebookProfileImageUrl } from '../../utils/profileImage';
 import { setSession } from '../../utils/auth';
 import { formatGenericErrorToast } from '../../utils/toast-error';
+import { loginAdminOrMarketingWithSupabase } from '../../utils/admin-marketing-auth';
 
 interface LoginModalProps {
   onClose: () => void;
-  onLogin: (id: string, role: 'creator' | 'admin') => void;
+  onLogin: (id: string, role: 'creator' | 'admin' | 'marketing') => void;
 }
 
 export function LoginModal({ onClose, onLogin }: LoginModalProps) {
@@ -92,15 +93,20 @@ export function LoginModal({ onClose, onLogin }: LoginModalProps) {
     setLoading(true);
 
     try {
-      // Admin login shortcut
-      if (email === 'admin@creatorsclub.com' && password === 'admin') {
-        setCurrentUser('admin', 'admin');
-        setSession({ id: 'admin', role: 'admin' });
+      // Admin/Marketing login from Supabase Authentication.
+      const adminOrMkt = await loginAdminOrMarketingWithSupabase(email.trim(), password);
+      if (adminOrMkt.status === 'ok') {
+        setCurrentUser(adminOrMkt.id, adminOrMkt.role);
+        setSession({ id: adminOrMkt.id, role: adminOrMkt.role });
         toast.success('เข้าสู่ระบบสำเร็จ!', {
-          description: 'ยินดีต้อนรับผู้ดูแลระบบ',
+          description: `ยินดีต้อนรับ ${adminOrMkt.name}`,
         });
-        onLogin('admin', 'admin');
+        onLogin(adminOrMkt.id, adminOrMkt.role);
         onClose();
+        return;
+      }
+      if (adminOrMkt.status === 'forbidden') {
+        setError(adminOrMkt.message);
         return;
       }
 
