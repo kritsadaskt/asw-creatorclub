@@ -43,7 +43,7 @@ export function Input({
   const resolvedId = id ?? `input-${reactId.replace(/:/g, '')}`;
 
   return (
-    <div className="pt-4">
+    <div className="">
       <div className="wrapper relative">
         {icon && (
           <span className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 text-muted-foreground">

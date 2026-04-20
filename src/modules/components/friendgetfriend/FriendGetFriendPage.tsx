@@ -184,18 +184,27 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
       />
 
       <Drawer direction="right" open={isRecommendDrawerOpen} onOpenChange={handleDrawerOpenChange}>
-        <DrawerContent className='overflow-y-auto'>
-          <DrawerHeader className="p-7">
-            <div className="flex items-start justify-between gap-4">
-              <DrawerTitle>แนะนำเพื่อน ให้กับโครงการ <span className="text-primary">{selectedProject?.name}</span></DrawerTitle>
-              <DrawerClose className="text-muted-foreground hover:text-foreground cursor-pointer">
+        <DrawerContent
+          className="fgf-recommend-drawer-content flex h-full min-h-0 max-h-[100dvh] flex-col overflow-x-hidden p-0"
+          style={{ touchAction: 'pan-y' }}
+        >
+          <DrawerHeader className="shrink-0 border-b border-border p-5 pb-4">
+            <div className="flex min-w-0 items-start justify-between gap-4">
+              <DrawerTitle className="min-w-0 flex-1 text-left leading-snug break-words pr-2">
+                แนะนำเพื่อน ให้กับโครงการ{' '}
+                <span className="text-primary text-2xl font-medium block">{selectedProject?.name}</span>
+              </DrawerTitle>
+              <DrawerClose className="shrink-0 text-muted-foreground hover:text-foreground cursor-pointer">
                 <X className="w-5 h-5" />
                 <span className="sr-only">ปิด</span>
               </DrawerClose>
             </div>
           </DrawerHeader>
 
-          <div className="px-7 pb-7">
+          <div
+            className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain px-5 pb-7 pt-4"
+            style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' }}
+          >
             {submitSuccess ? (
               <div className="flex flex-col items-center justify-center py-12 space-y-4 text-center">
                 <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
@@ -213,7 +222,7 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-4">
                 <h3 className="font-medium text-foreground flex flex-col gap-2">ผู้แนะนำ  <span className="text-neutral-400 text-sm">{referrerHelperText}</span></h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 md:gap-y-4">
                   <Input label="ชื่อ" value={referrerName} onChange={setReferrerName} placeholder="กรอกชื่อผู้แนะนำ" required />
                   <Input label="นามสกุล" value={referrerLastName} onChange={setReferrerLastName} placeholder="กรอกนามสกุลผู้แนะนำ" required />
                   <Input label="อีเมล" type="email" value={referrerEmail} onChange={setReferrerEmail} placeholder="example@email.com" required />
@@ -223,7 +232,7 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
 
               <div className="space-y-4 pt-4">
                 <h3 className="font-medium text-foreground">ผู้ถูกแนะนำ</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <Input label="ชื่อ" value={leadName} onChange={setLeadName} placeholder="กรอกชื่อผู้ถูกแนะนำ" required />
                   <Input label="นามสกุล" value={leadLastName} onChange={setLeadLastName} placeholder="กรอกนามสกุลผู้ถูกแนะนำ" required />
                   <Input label="อีเมล" type="email" value={leadEmail} onChange={setLeadEmail} placeholder="example@email.com" required />
