@@ -3,47 +3,18 @@ import { logServerError, requestLogContext } from '@/lib/log-server-error';
 import { getServerSession } from '@/modules/utils/auth';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import {
-  getShlinkRestV3Root,
+  fetchShlinkShortUrlMeta,
   longUrlBelongsToCreator,
   parseShlinkShortCode,
   visitsFromShlinkShortUrlJson,
   type ShlinkVisitStats,
 } from '@/lib/shlink-server';
 
-const FETCH_TIMEOUT_MS = 12_000;
-
 export type ShlinkStatsResponse = {
   stats: Record<string, ShlinkVisitStats | null>;
   /** Sum of `total` for non-null stats (convenience for UI). */
   totalClicksAll: number;
 };
-
-async function fetchShlinkShortUrlMeta(
-  apiKey: string,
-  shortCode: string,
-  domain: string
-): Promise<Record<string, unknown> | null> {
-  const root = getShlinkRestV3Root();
-  const url = `${root}/short-urls/${encodeURIComponent(shortCode)}?domain=${encodeURIComponent(domain)}`;
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-  try {
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        'X-Api-Key': apiKey,
-      },
-      signal: controller.signal,
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as Record<string, unknown>;
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(t);
-  }
-}
 
 export async function GET(request: NextRequest) {
   const apiKey = process.env.SHLINK_API_KEY;

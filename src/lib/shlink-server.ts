@@ -73,3 +73,33 @@ export function visitsFromShlinkShortUrlJson(data: Record<string, unknown>): Shl
   }
   return null;
 }
+
+const SHLINK_FETCH_TIMEOUT_MS = 12_000;
+
+/** GET short-url metadata from Shlink REST v3 (server-side only). */
+export async function fetchShlinkShortUrlMeta(
+  apiKey: string,
+  shortCode: string,
+  domain: string
+): Promise<Record<string, unknown> | null> {
+  const root = getShlinkRestV3Root();
+  const url = `${root}/short-urls/${encodeURIComponent(shortCode)}?domain=${encodeURIComponent(domain)}`;
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), SHLINK_FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        'X-Api-Key': apiKey,
+      },
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as Record<string, unknown>;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(t);
+  }
+}
