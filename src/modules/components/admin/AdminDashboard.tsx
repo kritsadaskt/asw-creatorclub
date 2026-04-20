@@ -44,7 +44,10 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { cn } from '../ui/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { AdminDashboardCharts } from './AdminDashboardCharts';
+import { AdminAffiliateReports } from './AdminAffiliateReports';
+import type { AdminAffiliateReportsResponse } from '@/modules/types/adminAffiliateReports';
 
 /** react-select only on client — avoids SSR/hydration drift and mount swap vs skeleton. */
 function ReactSelectSkeleton() {
@@ -219,6 +222,9 @@ export function AdminDashboard() {
   const [followerRange, setFollowerRange] = useState('all');
   const [customFollowers, setCustomFollowers] = useState('');
   const [loading, setLoading] = useState(true);
+  const [affiliateReport, setAffiliateReport] = useState<AdminAffiliateReportsResponse | null>(null);
+  const [affiliateReportLoading, setAffiliateReportLoading] = useState(true);
+  const [affiliateReportError, setAffiliateReportError] = useState<string | null>(null);
   const [creatorAffiliateLinks, setCreatorAffiliateLinks] = useState<AffiliateLink[]>([]);
   const [affiliateLinksLoading, setAffiliateLinksLoading] = useState(false);
   const [decisionDialog, setDecisionDialog] = useState<{
@@ -290,6 +296,46 @@ export function AdminDashboard() {
 
   useEffect(() => {
     loadCreators();
+  }, []);
+
+  useEffect(() => {
+    const user = getCurrentUser();
+    if (!user || user.role !== 'admin') {
+      setAffiliateReportLoading(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        setAffiliateReportLoading(true);
+        setAffiliateReportError(null);
+        const res = await fetch(`${BASE_PATH}/api/admin/affiliate-reports`, { credentials: 'same-origin' });
+        const json = (await res.json().catch(() => ({}))) as Partial<AdminAffiliateReportsResponse> & {
+          error?: string;
+        };
+        if (cancelled) return;
+        if (!res.ok) {
+          setAffiliateReport(null);
+          setAffiliateReportError(json.error ?? 'ไม่สามารถโหลดรายงาน Affiliate ได้');
+          return;
+        }
+        setAffiliateReport({
+          topCreators: json.topCreators ?? [],
+          topProjects: json.topProjects ?? [],
+          shlinkConfigured: Boolean(json.shlinkConfigured),
+        });
+      } catch {
+        if (!cancelled) {
+          setAffiliateReport(null);
+          setAffiliateReportError('ไม่สามารถโหลดรายงาน Affiliate ได้');
+        }
+      } finally {
+        if (!cancelled) setAffiliateReportLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -851,11 +897,28 @@ export function AdminDashboard() {
     <div className="container mx-auto p-6">
       <h2 className="mb-4">แดชบอร์ดผู้ดูแลระบบ</h2>
 
-      <div className="mb-6">
-        <AdminDashboardCharts creators={creators} loading={loading} />
-      </div>
+      <Tabs defaultValue="overview" className="w-full gap-4">
+        <TabsList className="w-full max-w-md grid grid-cols-2 h-auto p-1">
+          <TabsTrigger value="overview" className="py-2">
+            ภาพรวม
+          </TabsTrigger>
+          <TabsTrigger value="creators" className="py-2">
+            จัดการครีเอเตอร์
+          </TabsTrigger>
+        </TabsList>
 
-      <div className="flex flex-col gap-6">
+        <TabsContent value="overview" className="mt-4 flex flex-col gap-6">
+          <div>
+            <AdminDashboardCharts creators={creators} loading={loading} />
+          </div>
+          <AdminAffiliateReports
+            data={affiliateReport}
+            loading={affiliateReportLoading}
+            error={affiliateReportError}
+          />
+        </TabsContent>
+
+        <TabsContent value="creators" className="mt-4 flex flex-col gap-6">
         {/* Filters */}
         <div className="bg-white rounded-xl shadow-sm border border-border p-6">
           <h3 className="text-neutral-700 text-xl font-medium mb-2">ค้นหาและกรองข้อมูล</h3>
@@ -1059,7 +1122,8 @@ export function AdminDashboard() {
             </>
           )}
         </div>
-      </div>
+        </TabsContent>
+      </Tabs>
 
       <Drawer
         direction="right"
