@@ -30,3 +30,8 @@
     user-select: text!important;
   }
 }
+
+/* Friend Get Friends recommend drawer: vaul/style.css sets touch-action:none on [data-vaul-drawer], which blocks vertical scrolling on mobile */
+.fgf-recommend-drawer-content[data-vaul-drawer] {
+  touch-action: pan-y;
+}
