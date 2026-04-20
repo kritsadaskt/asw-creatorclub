@@ -10,7 +10,7 @@ import {
 } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, LogOut, Menu, User, X } from 'lucide-react';
+import { LayoutDashboard, LayoutGrid, LogOut, Menu, User, Users, X } from 'lucide-react';
 import { LoginModal } from './LoginModal';
 import { BASE_PATH } from '@/lib/publicPath';
 import { useSession } from '@/modules/context/SessionContext';
@@ -95,15 +95,26 @@ function HeaderUserDropdownMenu({
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {(role === 'admin' || role === 'marketing') && (
-          <DropdownMenuItem
-            onClick={() => {
-              router.push(role === 'admin' ? '/admin/dashboard' : '/creators');
-            }}
-            className="cursor-pointer group"
-          >
-            <LayoutDashboard className="w-4 h-4 mr-2 group-hover:stroke-white" />
-            Dashboard
-          </DropdownMenuItem>
+          <>
+            <DropdownMenuItem
+              onClick={() => {
+                router.push(role === 'admin' ? '/admin/dashboard' : '/creators');
+              }}
+              className="cursor-pointer group"
+            >
+              <LayoutDashboard className="w-4 h-4 mr-2 group-hover:stroke-white" />
+              Dashboard
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                router.push('/creators');
+              }}
+              className="cursor-pointer group"
+            >
+            <Users className="w-4 h-4 mr-2 group-hover:stroke-white" />
+              Creators
+            </DropdownMenuItem>
+          </>
         )}
         {role === 'creator' && (
           <DropdownMenuItem

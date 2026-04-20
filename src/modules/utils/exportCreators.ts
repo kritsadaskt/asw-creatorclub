@@ -14,7 +14,6 @@ export async function exportCreatorsToXlsx(creators: CreatorProfile[]) {
     'พื้นที่': creator.baseLocation,
     'จังหวัด': creator.province ?? '',
     'หมวดหมู่': creator.categories.join(', '),
-    'ผู้ติดตามรวม': creator.followers,
     'Facebook': creator.socialAccounts.facebook ?? '',
     'Instagram': creator.socialAccounts.instagram ?? '',
     'TikTok': creator.socialAccounts.tiktok ?? '',

@@ -48,6 +48,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { AdminDashboardCharts } from './AdminDashboardCharts';
 import { AdminAffiliateReports } from './AdminAffiliateReports';
 import type { AdminAffiliateReportsResponse } from '@/modules/types/adminAffiliateReports';
+import { CREATOR_CATEGORIES } from '../landing/registerInviteCategories';
 
 /** react-select only on client — avoids SSR/hydration drift and mount swap vs skeleton. */
 function ReactSelectSkeleton() {
@@ -80,18 +81,7 @@ function AssetwiseHouseholdBadge() {
   );
 }
 
-const CATEGORIES = [
-  'ทั้งหมด',
-  'แฟชั่น',
-  'ความงาม',
-  'อาหาร',
-  'ท่องเที่ยว',
-  'เทคโนโลยี',
-  'ไลฟ์สไตล์',
-  'กีฬา',
-  'เกม',
-  'อื่นๆ'
-];
+const CATEGORIES = ['ทั้งหมด', ...CREATOR_CATEGORIES.map((category) => category.label)];
 
 const PROFILE_ANALYST_PLATFORM_LABELS: Record<string, string> = {
   tiktok: 'TikTok',
@@ -446,7 +436,7 @@ export function AdminDashboard() {
     try {
       setLoading(true);
       const allCreators = await getCreators();
-      setCreators(allCreators);
+      setCreators(allCreators.filter((creator) => !creator.isAdmin && !creator.isMkt));
     } catch (error) {
       console.error('Error loading Creators:', error);
       toast.error('ไม่สามารถโหลดข้อมูลได้');
