@@ -9,6 +9,8 @@ type Props = {
   data: AdminAffiliateReportsResponse | null;
   loading: boolean;
   error: string | null;
+  /** When set, name column opens creator detail (e.g. admin drawer). */
+  onSelectCreator?: (creatorId: string) => void | Promise<void>;
 };
 
 function TableShell({
@@ -37,7 +39,7 @@ function TableShell({
   );
 }
 
-export function AdminAffiliateReports({ data, loading, error }: Props) {
+export function AdminAffiliateReports({ data, loading, error, onSelectCreator }: Props) {
   if (loading) {
     return (
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -79,7 +81,11 @@ export function AdminAffiliateReports({ data, loading, error }: Props) {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <TableShell
           title="10 อันดับครีเอเตอร์ — Getlink"
-          description="เรียงตามจำนวนลิงก์ที่สร้าง (มากสุดก่อน) พร้อมยอดคลิกรวมจาก Shlink"
+          description={
+            onSelectCreator
+              ? 'เรียงตามจำนวนลิงก์ที่สร้าง (มากสุดก่อน) พร้อมยอดคลิกรวมจาก Shlink — คลิกชื่อเพื่อดูรายละเอียด'
+              : 'เรียงตามจำนวนลิงก์ที่สร้าง (มากสุดก่อน) พร้อมยอดคลิกรวมจาก Shlink'
+          }
         >
           {topCreators.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6 text-center">ยังไม่มีข้อมูลลิงก์</p>
@@ -98,7 +104,20 @@ export function AdminAffiliateReports({ data, loading, error }: Props) {
                   {topCreators.map((row, idx) => (
                     <tr key={row.creatorId} className="border-b border-border/80">
                       <td className="py-2.5 pr-3 text-muted-foreground">{idx + 1}</td>
-                      <td className="py-2.5 pr-3 text-foreground">{row.displayName}</td>
+                      <td className="py-2.5 pr-3 text-foreground align-top">
+                        {onSelectCreator ? (
+                          <button
+                            type="button"
+                            className="text-left text-primary hover:underline underline-offset-2 cursor-pointer max-w-full break-words"
+                            onClick={() => void onSelectCreator(row.creatorId)}
+                            aria-label={`ดูรายละเอียด ${row.displayName}`}
+                          >
+                            {row.displayName}
+                          </button>
+                        ) : (
+                          row.displayName
+                        )}
+                      </td>
                       <td className="py-2.5 pr-3 text-right font-mono tabular-nums">
                         {row.linkCount.toLocaleString()}
                       </td>

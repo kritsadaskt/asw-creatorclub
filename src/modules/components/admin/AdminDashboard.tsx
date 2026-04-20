@@ -521,6 +521,22 @@ export function AdminDashboard() {
     }
   };
 
+  const openCreatorDetailFromReport = async (creatorId: string) => {
+    try {
+      setSelectedFgf(null);
+      setFgfNestedCreator(null);
+      const profile = await getCreatorById(creatorId);
+      if (!profile) {
+        toast.error('ไม่พบข้อมูลครีเอเตอร์');
+        return;
+      }
+      setSelectedCreator(profile);
+    } catch (error) {
+      console.error('openCreatorDetailFromReport', error);
+      toast.error('ไม่สามารถโหลดข้อมูลครีเอเตอร์ได้');
+    }
+  };
+
   const buildFgfCisPayload = (row: FgfLeadWithProjects) => {
     const { lead, projectIds } = row;
     return {
@@ -915,6 +931,7 @@ export function AdminDashboard() {
             data={affiliateReport}
             loading={affiliateReportLoading}
             error={affiliateReportError}
+            onSelectCreator={openCreatorDetailFromReport}
           />
         </TabsContent>
 
