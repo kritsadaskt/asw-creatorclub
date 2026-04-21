@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.3](https://github.com/kritsadaskt/asw-creatorclub/compare/v1.2.2...v1.2.3) (2026-04-21)
+
+
+### Bug Fixes
+
+* แก้ logic สำหรับ mkt ในการ login และดูหน้า /creators ([402e1cb](https://github.com/kritsadaskt/asw-creatorclub/commit/402e1cb53686a1e1b8b90307748de5ca10e71d9d))
+
 ### [1.2.2](https://github.com/kritsadaskt/asw-creatorclub/compare/v1.2.1...v1.2.2) (2026-04-21)
 
 
