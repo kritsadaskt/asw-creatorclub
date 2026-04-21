@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.2](https://github.com/kritsadaskt/asw-creatorclub/compare/v1.2.1...v1.2.2) (2026-04-21)
+
+
+### Bug Fixes
+
+* เปลี่ยน dropdown item ของ categories เป็นดึงมาจาก DB แทน Hard code / ซ่อนช่อง budget สำหรับพนักงานตอนสมัคร ([b1a9157](https://github.com/kritsadaskt/asw-creatorclub/commit/b1a91573004d743d56a31dad6d3e6c7898a49400))
+
 ### [1.2.1](https://github.com/kritsadaskt/asw-creatorclub/compare/v1.2.0...v1.2.1) (2026-04-21)
 
 ## [1.2.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v1.1.0...v1.2.0) (2026-04-21)
