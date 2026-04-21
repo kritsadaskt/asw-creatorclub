@@ -254,6 +254,7 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
               Affiliate
             </button>
           </nav>
+          <small className="text-muted-foreground text-sm">version : {process.env.NEXT_PUBLIC_APP_VERSION}</small>
         </aside>
 
         {/* Main content */}
