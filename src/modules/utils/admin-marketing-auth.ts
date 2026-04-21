@@ -27,7 +27,7 @@ export async function loginAdminOrMarketingWithSupabase(
   const isAdmin = Boolean(profile?.isAdmin);
   const isMkt = Boolean(profile?.isMkt);
 
-  if (!isAdmin) {
+  if (!isAdmin && !isMkt) {
     await supabase.auth.signOut();
     return {
       status: 'forbidden',

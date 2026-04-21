@@ -47,7 +47,7 @@ export default async function CreatorsPage() {
   const canAccess =
     role === 'admin'
       ? Boolean(data?.is_admin)
-      : Boolean(data?.is_admin) && Boolean(data?.is_mkt);
+      : Boolean(data?.is_mkt);
   if (!canAccess) {
     redirect('/');
   }
