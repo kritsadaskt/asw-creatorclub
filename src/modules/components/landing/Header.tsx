@@ -96,15 +96,17 @@ function HeaderUserDropdownMenu({
         <DropdownMenuSeparator />
         {(role === 'admin' || role === 'marketing') && (
           <>
-            <DropdownMenuItem
-              onClick={() => {
-                router.push(role === 'admin' ? '/admin/dashboard' : '/creators');
-              }}
-              className="cursor-pointer group"
-            >
-              <LayoutDashboard className="w-4 h-4 mr-2 group-hover:stroke-white" />
-              Dashboard
-            </DropdownMenuItem>
+            {(role === 'admin' && (
+              <DropdownMenuItem
+                onClick={() => {
+                  router.push(role === 'admin' ? '/admin/dashboard' : '/creators');
+                }}
+                className="cursor-pointer group"
+              >
+                <LayoutDashboard className="w-4 h-4 mr-2 group-hover:stroke-white" />
+                Dashboard
+              </DropdownMenuItem>
+            ))}
             <DropdownMenuItem
               onClick={() => {
                 router.push('/creators');
