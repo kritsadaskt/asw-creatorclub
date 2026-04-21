@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.3.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v1.2.3...v1.3.0) (2026-04-21)
+
+
+### Features
+
+* ปรับแก้หน้าตาของ Creators Directory ([3129210](https://github.com/kritsadaskt/asw-creatorclub/commit/3129210c4fc00dfda4fdbdcb232572e6eb1ec579))
+* เพิ่ม stats cards จำนวน link และยอดคลิกรวมมรา dashboard ([a7f646a](https://github.com/kritsadaskt/asw-creatorclub/commit/a7f646a079aae33138045af14be23b7e5fe26c68))
+
 ### [1.2.3](https://github.com/kritsadaskt/asw-creatorclub/compare/v1.2.2...v1.2.3) (2026-04-21)
 
 
