@@ -31,10 +31,13 @@ import {
   type ChartConfig,
 } from '../ui/chart';
 import { cn } from '../ui/utils';
+import type { AdminAffiliateReportsResponse } from '@/modules/types/adminAffiliateReports';
 
 type Props = {
   creators: CreatorProfile[];
   loading: boolean;
+  affiliateReport: AdminAffiliateReportsResponse | null;
+  affiliateReportLoading: boolean;
 };
 
 const barChartConfig = {
@@ -73,6 +76,16 @@ const baseLocationChartConfig = {
   count: { label: 'จำนวน' },
 } satisfies ChartConfig;
 
+function LoadingDots() {
+  return (
+    <span className="inline-flex items-end gap-1" aria-label="กำลังโหลด" aria-live="polite">
+      <span className="size-1.5 rounded-full bg-muted-foreground/70 animate-bounce [animation-delay:0ms]" />
+      <span className="size-1.5 rounded-full bg-muted-foreground/70 animate-bounce [animation-delay:120ms]" />
+      <span className="size-1.5 rounded-full bg-muted-foreground/70 animate-bounce [animation-delay:240ms]" />
+    </span>
+  );
+}
+
 function filterListedCreators(creators: CreatorProfile[]) {
   return creators.filter((c) => !c.email.toLowerCase().includes('@creatorclub.com'));
 }
@@ -93,7 +106,7 @@ function normalizeCreatorType(typeRaw: string | undefined): 'staff' | 'household
   return 'general';
 }
 
-export function AdminDashboardCharts({ creators, loading }: Props) {
+export function AdminDashboardCharts({ creators, loading, affiliateReport, affiliateReportLoading }: Props) {
   const listed = useMemo(() => filterListedCreators(creators), [creators]);
   const approvedListed = useMemo(
     () => listed.filter((creator) => creator.approvalStatus === 1),
@@ -214,30 +227,73 @@ export function AdminDashboardCharts({ creators, loading }: Props) {
   );
 
   const statCards = (
-    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-      {[
-        { label: 'ทั้งหมด', value: approvalStats.all },
-        { label: 'รออนุมัติ', value: approvalStats.pending },
-        { label: 'อนุมัติแล้ว', value: approvalStats.approved },
-        { label: 'ถูกปฏิเสธ', value: approvalStats.rejected },
-      ].map((item, idx) => (
-        <div
-          key={item.label}
-          className={cn(
-            'rounded-xl border border-border bg-white p-4 shadow-sm',
-            'animate-in fade-in-0 slide-in-from-bottom-2 duration-500 fill-mode-both',
-            idx === 1 && '[animation-delay:80ms]',
-            idx === 2 && '[animation-delay:160ms]',
-            idx === 3 && '[animation-delay:240ms]',
-          )}
-        >
-          <p className="text-sm text-muted-foreground">{item.label}</p>
-          <p className="mt-1 text-2xl font-semibold text-foreground tabular-nums">
-            {item.value.toLocaleString()}
-          </p>
-        </div>
-      ))}
-    </div>
+    <>
+      <h4 className="text-lg font-medium mb-2">ภาพรวมครีเอเตอร์</h4>
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        {[
+          { label: 'ทั้งหมด', value: approvalStats.all },
+          { label: 'รออนุมัติ', value: approvalStats.pending },
+          { label: 'อนุมัติแล้ว', value: approvalStats.approved },
+          { label: 'ถูกปฏิเสธ', value: approvalStats.rejected },
+        ].map((item, idx) => (
+          <div
+            key={item.label}
+            className={cn(
+              'rounded-xl border border-border bg-white p-4 shadow-sm',
+              'animate-in fade-in-0 slide-in-from-bottom-2 duration-500 fill-mode-both',
+              idx === 1 && '[animation-delay:80ms]',
+              idx === 2 && '[animation-delay:160ms]',
+              idx === 3 && '[animation-delay:240ms]',
+            )}
+          >
+            <p className="text-sm text-muted-foreground">{item.label}</p>
+            <p className="mt-1 text-2xl font-semibold text-foreground tabular-nums">
+              {item.value.toLocaleString()}
+            </p>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+
+  const affStatsCards = (
+    <>
+      <h4 className="text-lg font-medium mb-2">ภาพรวมลิงค์ Affiliate</h4>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {[
+          {
+            label: 'จำนวนลิงก์ทั้งหมด',
+            value:
+              affiliateReportLoading || !affiliateReport
+                ? <LoadingDots />
+                : affiliateReport.totalLinks.toLocaleString(),
+          },
+          {
+            label: 'จำนวนคลิกทั้งหมด (Shlink)',
+            value:
+              affiliateReportLoading || !affiliateReport
+                ? <LoadingDots />
+                : affiliateReport.totalClicks == null
+                  ? '—'
+                  : affiliateReport.totalClicks.toLocaleString(),
+          },
+        ].map((item, idx) => (
+          <div
+            key={item.label}
+            className={cn(
+              'rounded-xl border border-border bg-white p-4 shadow-sm',
+              'animate-in fade-in-0 slide-in-from-bottom-2 duration-500 fill-mode-both',
+              idx === 1 && '[animation-delay:80ms]',
+            )}
+          >
+            <p className="text-sm text-muted-foreground">{item.label}</p>
+            <p className="mt-1 min-h-8 flex items-center text-2xl font-semibold text-foreground tabular-nums">
+              {item.value}
+            </p>
+          </div>
+        ))}
+      </div>
+    </>
   );
 
   if (loading) {
@@ -247,6 +303,7 @@ export function AdminDashboardCharts({ creators, loading }: Props) {
   return (
     <div className="space-y-6">
       {statCards}
+      {affStatsCards}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <div
         className={cn(

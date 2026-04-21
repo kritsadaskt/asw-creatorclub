@@ -343,6 +343,8 @@ export function AdminDashboard() {
           topCreators: json.topCreators ?? [],
           topProjects: json.topProjects ?? [],
           shlinkConfigured: Boolean(json.shlinkConfigured),
+          totalLinks: typeof json.totalLinks === 'number' ? json.totalLinks : 0,
+          totalClicks: typeof json.totalClicks === 'number' ? json.totalClicks : null,
         });
       } catch {
         if (!cancelled) {
@@ -985,7 +987,12 @@ export function AdminDashboard() {
 
         <TabsContent value="overview" className="mt-4 flex flex-col gap-6">
           <div>
-            <AdminDashboardCharts creators={creators} loading={loading} />
+            <AdminDashboardCharts
+              creators={creators}
+              loading={loading}
+              affiliateReport={affiliateReport}
+              affiliateReportLoading={affiliateReportLoading}
+            />
           </div>
           <AdminAffiliateReports
             data={affiliateReport}

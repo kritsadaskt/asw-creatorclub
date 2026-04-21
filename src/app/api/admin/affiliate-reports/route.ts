@@ -121,6 +121,9 @@ export async function GET(request: NextRequest) {
     const sortedCreators = [...creatorLinkCount.entries()]
       .filter(([creatorId]) => !adminCreatorIds.has(creatorId))
       .sort((a, b) => b[1] - a[1]);
+    const creatorEntriesExcludingAdmin = [...creatorLinkCount.entries()].filter(
+      ([creatorId]) => !adminCreatorIds.has(creatorId),
+    );
     const topCreatorEntries = sortedCreators.slice(0, 10);
     const topCreatorIds = topCreatorEntries.map(([id]) => id);
 
@@ -143,6 +146,15 @@ export async function GET(request: NextRequest) {
 
     const apiKey = process.env.SHLINK_API_KEY;
     const shlinkConfigured = Boolean(apiKey);
+    const totalLinks = creatorEntriesExcludingAdmin.reduce((sum, [, linkCount]) => sum + linkCount, 0);
+    let totalClicks: number | null = null;
+    if (apiKey) {
+      totalClicks = 0;
+      for (const [creatorId] of creatorEntriesExcludingAdmin) {
+        const links = creatorLinksMap.get(creatorId) ?? [];
+        totalClicks += await sumClicksForCreatorLinks(apiKey, creatorId, links);
+      }
+    }
 
     const topCreators: AdminAffiliateTopCreatorRow[] = [];
     for (const [creatorId, linkCount] of topCreatorEntries) {
@@ -199,6 +211,8 @@ export async function GET(request: NextRequest) {
       topCreators,
       topProjects,
       shlinkConfigured,
+      totalLinks,
+      totalClicks,
     };
     return NextResponse.json(body, { status: 200 });
   } catch (err) {
