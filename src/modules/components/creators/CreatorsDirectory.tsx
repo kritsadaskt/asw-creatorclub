@@ -2,29 +2,31 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { LayoutGrid, Loader2, Table } from 'lucide-react';
+import { Eye, LayoutGrid, Loader2, Mail, Phone, Table, X } from 'lucide-react';
 import { toast } from 'sonner';
 import type { CreatorProfile } from '@/modules/types';
 import { getCreators } from '@/modules/utils/storage';
 import { Button } from '@/modules/components/shared/Button';
 import { FileXIcon } from 'lucide-react';
+import {
+  PaginationEllipsis,
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/modules/components/ui/pagination';
+import { Drawer, DrawerClose, DrawerContent, DrawerHeader, DrawerTitle } from '@/modules/components/ui/drawer';
+import { ImageWithFallback } from '@/modules/components/figma/ImageWithFallback';
+import { getProfileImageUrl } from '@/modules/utils/profileImage';
+import { CREATOR_CATEGORIES } from '@/modules/components/landing/registerInviteCategories';
 
 const Select = dynamic(() => import('react-select').then((mod) => mod.default), {
   ssr: false,
 }) as typeof import('react-select').default;
 
-const CATEGORIES = [
-  'ทั้งหมด',
-  'แฟชั่น',
-  'ความงาม',
-  'อาหาร',
-  'ท่องเที่ยว',
-  'เทคโนโลยี',
-  'ไลฟ์สไตล์',
-  'กีฬา',
-  'เกม',
-  'อื่นๆ',
-];
+const CATEGORIES = ['ทั้งหมด', ...CREATOR_CATEGORIES.map((category) => category.label)];
 
 const followerOptions: Array<{ value: string; label: string }> = [
   { value: 'all', label: 'ทั้งหมด' },
@@ -47,6 +49,8 @@ const ranges: { [key: string]: { min: number; max?: number } } = {
   '500k+': { min: 500000 },
 };
 
+const PAGE_SIZE = 12;
+
 export function CreatorsDirectory() {
   const [creators, setCreators] = useState<CreatorProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,13 +58,19 @@ export function CreatorsDirectory() {
   const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
   const [followerRange, setFollowerRange] = useState('all');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('card');
+  const [page, setPage] = useState(1);
+  const [selectedCreator, setSelectedCreator] = useState<CreatorProfile | null>(null);
 
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
         const allCreators = await getCreators();
-        setCreators(allCreators.filter((c) => c.approvalStatus === 1));
+        setCreators(
+          allCreators.filter(
+            (c) => c.approvalStatus === 1 && !c.isAdmin && !c.isMkt,
+          ),
+        );
       } catch (error) {
         console.error('Error loading approved creators:', error);
         toast.error('ไม่สามารถโหลดข้อมูลครีเอเตอร์ได้');
@@ -113,6 +123,26 @@ export function CreatorsDirectory() {
     return rows;
   }, [creators, selectedCategory, searchQuery, followerRange]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, selectedCategory, followerRange]);
+
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(filteredCreators.length / PAGE_SIZE)),
+    [filteredCreators.length],
+  );
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
+  const pagedCreators = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredCreators.slice(start, start + PAGE_SIZE);
+  }, [filteredCreators, page]);
+
   const CreatorsHeader = () => {
     return (
       <div className="bg-gradient-to-br from-primary/10 to-primary/5 p-6">
@@ -132,7 +162,8 @@ export function CreatorsDirectory() {
     return (
       <div
         key={creator.id}
-        className="rounded-xl border border-border p-4 transition-colors hover:border-primary/40"
+        onClick={() => setSelectedCreator(creator)}
+        className="rounded-xl border border-border p-4 transition-colors hover:border-primary/40 cursor-pointer"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -145,40 +176,34 @@ export function CreatorsDirectory() {
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <div className="text-xs text-muted-foreground">โทรศัพท์</div>
-            <div className="truncate text-foreground">{creator.phone || '-'}</div>
+          <div className="flex items-center gap-2">
+            <Phone className="w-4 h-4 text-primary" />
+            <a
+              href={`tel:${creator.phone}`}
+              className="text-primary hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {creator.phone || '-'}
+            </a>
           </div>
-          <div>
-            <div className="text-xs text-muted-foreground">ผู้ติดตามรวม</div>
-            <div className="text-foreground">{creator.followers.toLocaleString()}</div>
-          </div>
-          <div className="col-span-2">
+          <div className="">
             <div className="text-xs text-muted-foreground">พื้นที่ / จังหวัด</div>
             <div className="truncate text-foreground">
               {[creator.baseLocation, creator.province].filter(Boolean).join(' / ') || '-'}
             </div>
           </div>
           <div className="col-span-2">
-            <div className="text-xs text-muted-foreground">หมวดหมู่</div>
-            <div className="truncate text-foreground">
-              {creator.categories && creator.categories.length > 0
-                ? creator.categories.join(', ')
-                : '-'}
-            </div>
-          </div>
-          <div>
-            <div className="text-xs text-muted-foreground">โซเชียล</div>
-            <div className="text-foreground">{socialCount > 0 ? `${socialCount} ช่องทาง` : '-'}</div>
-          </div>
-          <div>
-            <div className="text-xs text-muted-foreground">ลงทะเบียน</div>
+            <div className="text-xs text-muted-foreground mb-2">หมวดหมู่</div>
             <div className="text-foreground">
-              {new Date(creator.createdAt).toLocaleDateString('th-TH', {
-                year: '2-digit',
-                month: 'short',
-                day: 'numeric',
-              })}
+              {creator.categories && creator.categories.length > 0 ?
+                <div className="flex flex-wrap gap-2">
+                  {creator.categories.map((category) => (
+                    <div key={category} className="flex shrink-0 items-center gap-2 px-2 py-1 rounded-md bg-primary/10 text-primary text-xs">
+                      {category}
+                    </div>
+                  ))}
+                </div>
+                : '-'}
             </div>
           </div>
         </div>
@@ -241,7 +266,7 @@ export function CreatorsDirectory() {
                 ครีเอเตอร์ที่ผ่านการอนุมัติ ({filteredCreators.length.toLocaleString()} คน)
               </h3>
               <p className="text-xs text-muted-foreground">
-                แสดงเฉพาะครีเอเตอร์ที่สถานะอนุมัติแล้ว (Approved)
+                แสดงเฉพาะครีเอเตอร์ที่สถานะอนุมัติแล้ว คลิกชื่อเพื่อดูรายละเอียด
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -302,7 +327,7 @@ export function CreatorsDirectory() {
             </p>
           ) : viewMode === 'card' ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {filteredCreators.map((creator) => {
+              {pagedCreators.map((creator) => {
                 return (
                   <CreatorCard key={creator.id} creator={creator} />
                 );
@@ -320,21 +345,17 @@ export function CreatorsDirectory() {
                       พื้นที่ / จังหวัด
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">หมวดหมู่</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
-                      ผู้ติดตามรวม
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
-                      ช่องทางโซเชียล
-                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredCreators.map((creator) => {
+                  {pagedCreators.map((creator) => {
                     const socialCount = Object.values(creator.socialAccounts).filter(Boolean).length;
                     return (
                       <tr
                         key={creator.id}
-                        className="border-b border-border/80 hover:bg-input-background/40 transition-colors"
+                        className="border-b border-border/80 hover:bg-input-background/40 transition-colors cursor-pointer"
+                        onClick={() => setSelectedCreator(creator)}
                       >
                         <td className="px-4 py-2.5 text-sm text-foreground">
                           {[creator.name, creator.lastName].filter(Boolean).join(' ')}
@@ -350,10 +371,15 @@ export function CreatorsDirectory() {
                             : '-'}
                         </td>
                         <td className="px-4 py-2.5 text-sm text-foreground">
-                          {creator.followers.toLocaleString()}
-                        </td>
-                        <td className="px-4 py-2.5 text-sm text-foreground">
-                          {socialCount > 0 ? `${socialCount} ช่องทาง` : '-'}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="cursor-pointer rounded-full p-2"
+                            center
+                            onClick={() => setSelectedCreator(creator)}
+                          >
+                            <Eye className="h-5 w-5" />
+                          </Button>
                         </td>
                       </tr>
                     );
@@ -362,8 +388,232 @@ export function CreatorsDirectory() {
               </table>
             </div>
           )}
+
+          {!loading && filteredCreators.length > 0 && (
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-muted-foreground shrink-0">
+                แสดง {(page - 1) * PAGE_SIZE + 1}–
+                {Math.min(page * PAGE_SIZE, filteredCreators.length)} จาก {filteredCreators.length} คน
+              </p>
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (page > 1) setPage(page - 1);
+                      }}
+                      className={page <= 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      aria-disabled={page <= 1}
+                    />
+                  </PaginationItem>
+                  {totalPages <= 7 ? (
+                    Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                      <PaginationItem key={p}>
+                        <PaginationLink
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setPage(p);
+                          }}
+                          isActive={page === p}
+                          className="cursor-pointer"
+                        >
+                          {p}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))
+                  ) : (
+                    <>
+                      <PaginationItem>
+                        <PaginationLink
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setPage(1);
+                          }}
+                          isActive={page === 1}
+                          className="cursor-pointer"
+                        >
+                          1
+                        </PaginationLink>
+                      </PaginationItem>
+                      {page > 3 && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )}
+                      {[page - 1, page, page + 1]
+                        .filter((p) => p >= 2 && p <= totalPages - 1)
+                        .map((p) => (
+                          <PaginationItem key={p}>
+                            <PaginationLink
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setPage(p);
+                              }}
+                              isActive={page === p}
+                              className="cursor-pointer"
+                            >
+                              {p}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+                      {page < totalPages - 2 && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )}
+                      <PaginationItem>
+                        <PaginationLink
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setPage(totalPages);
+                          }}
+                          isActive={page === totalPages}
+                          className="cursor-pointer"
+                        >
+                          {totalPages}
+                        </PaginationLink>
+                      </PaginationItem>
+                    </>
+                  )}
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (page < totalPages) setPage(page + 1);
+                      }}
+                      className={page >= totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      aria-disabled={page >= totalPages}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </div>
       </div>
+
+      <Drawer
+        direction="right"
+        open={!!selectedCreator}
+        onOpenChange={(open) => {
+          if (!open) setSelectedCreator(null);
+        }}
+      >
+        <DrawerContent className="overflow-y-auto overflow-x-hidden">
+          {selectedCreator && (
+            <>
+              <DrawerHeader className="p-7">
+                <div className="flex items-start justify-between gap-4">
+                  <DrawerTitle>รายละเอียด Creator</DrawerTitle>
+                  <DrawerClose className="text-muted-foreground hover:text-foreground cursor-pointer">
+                    <X className="w-5 h-5" />
+                    <span className="sr-only">ปิด</span>
+                  </DrawerClose>
+                </div>
+              </DrawerHeader>
+
+              <div className="px-7 pb-7 space-y-4">
+                <div className="flex justify-center mb-2">
+                  {getProfileImageUrl(selectedCreator) ? (
+                    <ImageWithFallback
+                      src={getProfileImageUrl(selectedCreator)!}
+                      alt={selectedCreator.name}
+                      className="w-32 h-32 rounded-full object-cover border-4 border-primary/20"
+                    />
+                  ) : (
+                    <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center border-4 border-primary/20">
+                      <span className="text-primary text-5xl">{selectedCreator.name.charAt(0).toUpperCase()}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-muted-foreground">ชื่อ-นามสกุล</label>
+                  <p className="text-foreground">
+                    {[selectedCreator.name, selectedCreator.lastName].filter(Boolean).join(' ')}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-muted-foreground">อีเมล</label>
+                  <p className="text-foreground flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-primary" />
+                    <a href={`mailto:${selectedCreator.email}`} className="text-primary hover:underline break-all">
+                      {selectedCreator.email}
+                    </a>
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-muted-foreground">เบอร์โทรศัพท์</label>
+                  <p className="text-foreground flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-primary" />
+                    <a href={`tel:${selectedCreator.phone}`} className="text-primary hover:underline">
+                      {selectedCreator.phone || '-'}
+                    </a>
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-muted-foreground">พื้นที่ / จังหวัด</label>
+                  <p className="text-foreground">
+                    {[selectedCreator.baseLocation, selectedCreator.province].filter(Boolean).join(' / ') || '-'}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-muted-foreground mb-2">หมวดหมู่</label>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedCreator.categories && selectedCreator.categories.length > 0 ? (
+                      selectedCreator.categories.map((category) => (
+                        <div
+                          key={category}
+                          className="flex items-center gap-2 px-2 py-1 rounded-md bg-primary/10 text-primary"
+                        >
+                          {category}
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground">ยังไม่มีข้อมูล</p>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-muted-foreground mb-2">ช่องทางโซเชียล</label>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(selectedCreator.socialAccounts).map(([platform, url]) => {
+                      return (
+                        <div key={platform} className="flex items-center">
+                          {platform} : <a href={url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">
+                            {url}
+                          </a>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-muted-foreground">วันที่ลงทะเบียน</label>
+                  <p className="text-foreground">
+                    {new Date(selectedCreator.createdAt).toLocaleDateString('th-TH', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
+        </DrawerContent>
+      </Drawer>
     </>
   );
 }

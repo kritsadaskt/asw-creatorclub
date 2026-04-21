@@ -34,7 +34,7 @@ type ProjectStatusValue = 'ready' | 'new';
 type StatusFilterValue = typeof STATUS_FILTER_ALL | ProjectStatusValue;
 
 type FriendGetFriendProjectListProps = {
-  onLogin?: (id: string, role: 'creator' | 'admin') => void;
+  onLogin?: (id: string, role: 'creator' | 'admin' | 'marketing') => void;
   onRecommend?: (project: AffiliateProject) => void;
 };
 

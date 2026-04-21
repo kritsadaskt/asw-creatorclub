@@ -1,44 +1,42 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const BASIC_AUTH_USER = 'online';
-const BASIC_AUTH_PASS = 'CreatorsClub26';
+const SESSION_COOKIE_NAME = 'asw_session';
+type SessionPayload = { role?: string };
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (!pathname.startsWith('/creators')) {
+  const isCreatorsRoute = pathname.startsWith('/creators');
+  const isAdminRoute = pathname.startsWith('/admin');
+  if (!isCreatorsRoute && !isAdminRoute) {
     return NextResponse.next();
   }
 
-  const authHeader = request.headers.get('authorization');
-
-  if (!authHeader?.startsWith('Basic ')) {
-    return new NextResponse('Authentication required', {
-      status: 401,
-      headers: {
-        'WWW-Authenticate': 'Basic realm="Creators Directory"',
-      },
-    });
+  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  if (!sessionCookie) {
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
-  const base64Credentials = authHeader.slice('Basic '.length).trim();
-  const decoded = Buffer.from(base64Credentials, 'base64').toString('utf-8');
-  const [user, pass] = decoded.split(':');
+  let session: SessionPayload | null = null;
+  try {
+    session = JSON.parse(Buffer.from(sessionCookie, 'base64').toString('utf-8')) as SessionPayload;
+  } catch {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
 
-  if (user !== BASIC_AUTH_USER || pass !== BASIC_AUTH_PASS) {
-    return new NextResponse('Unauthorized', {
-      status: 401,
-      headers: {
-        'WWW-Authenticate': 'Basic realm="Creators Directory"',
-      },
-    });
+  const role = session?.role;
+  if (isAdminRoute && role !== 'admin') {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+  if (isCreatorsRoute && role !== 'admin' && role !== 'marketing') {
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/creators/:path*'],
+  matcher: ['/creators/:path*', '/admin/:path*'],
 };
 

@@ -302,6 +302,8 @@ const mapDbToCreatorProfile = (row: any): CreatorProfile => {
     createdAt: row.created_at || new Date().toISOString(),
     facebookId: row.facebook_id,
     passwordHash: row.password_hash,
+    isAdmin: Boolean(row.is_admin),
+    isMkt: Boolean(row.is_mkt),
     ...analyst,
   };
 };
@@ -904,11 +906,11 @@ const mapDbToCampaign = (row: any): Campaign => ({
 
 // ===== Current User Operations (still use localStorage for session) =====
 
-export const setCurrentUser = (id: string, role: 'creator' | 'admin'): void => {
+export const setCurrentUser = (id: string, role: 'creator' | 'admin' | 'marketing'): void => {
   setSession({ id, role });
 };
 
-export const getCurrentUser = (): { id: string; role: 'creator' | 'admin' } | null => {
+export const getCurrentUser = (): { id: string; role: 'creator' | 'admin' | 'marketing' } | null => {
   const session = getSession();
   return session ? { id: session.id, role: session.role } : null;
 };

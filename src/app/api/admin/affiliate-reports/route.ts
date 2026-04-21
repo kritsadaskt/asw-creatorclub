@@ -100,7 +100,27 @@ export async function GET(request: NextRequest) {
       projectAgg.set(pid, cur);
     }
 
-    const sortedCreators = [...creatorLinkCount.entries()].sort((a, b) => b[1] - a[1]);
+    const allCreatorIds = [...creatorLinkCount.keys()];
+    const adminCreatorIds = new Set<string>();
+    if (allCreatorIds.length > 0) {
+      const { data: adminRows, error: adminError } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .in('id', allCreatorIds)
+        .eq('is_admin', true);
+      if (adminError) {
+        console.error('affiliate-reports profiles is_admin:', adminError);
+      } else {
+        for (const row of adminRows ?? []) {
+          const r = row as { id: string };
+          adminCreatorIds.add(r.id);
+        }
+      }
+    }
+
+    const sortedCreators = [...creatorLinkCount.entries()]
+      .filter(([creatorId]) => !adminCreatorIds.has(creatorId))
+      .sort((a, b) => b[1] - a[1]);
     const topCreatorEntries = sortedCreators.slice(0, 10);
     const topCreatorIds = topCreatorEntries.map(([id]) => id);
 

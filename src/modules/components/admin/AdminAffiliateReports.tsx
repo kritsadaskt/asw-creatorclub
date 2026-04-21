@@ -71,7 +71,7 @@ export function AdminAffiliateReports({ data, loading, error, onSelectCreator }:
   const { topCreators, topProjects, shlinkConfigured } = data;
 
   return (
-    <div className="mt-6 space-y-4">
+    <div className="space-y-4">
       {!shlinkConfigured && (
         <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200/80 rounded-lg px-3 py-2">
           ยังไม่ได้ตั้งค่า Shlink API — คอลัมน์ยอดคลิกรวมจะไม่แสดงตัวเลข
@@ -80,11 +80,11 @@ export function AdminAffiliateReports({ data, loading, error, onSelectCreator }:
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <TableShell
-          title="10 อันดับครีเอเตอร์ — Getlink"
+          title="10 อันดับครีเอเตอร์"
           description={
             onSelectCreator
-              ? 'เรียงตามจำนวนลิงก์ที่สร้าง (มากสุดก่อน) พร้อมยอดคลิกรวมจาก Shlink — คลิกชื่อเพื่อดูรายละเอียด'
-              : 'เรียงตามจำนวนลิงก์ที่สร้าง (มากสุดก่อน) พร้อมยอดคลิกรวมจาก Shlink'
+              ? 'เรียงตามจำนวนลิงก์ที่สร้าง (มากสุดก่อน) พร้อมยอดคลิกรวม — คลิกชื่อเพื่อดูรายละเอียด'
+              : 'เรียงตามจำนวนลิงก์ที่สร้าง (มากสุดก่อน) พร้อมยอดคลิกรวม'
           }
         >
           {topCreators.length === 0 ? (
@@ -133,7 +133,7 @@ export function AdminAffiliateReports({ data, loading, error, onSelectCreator }:
         </TableShell>
 
         <TableShell
-          title="10 อันดับโครงการ — Getlink"
+          title="10 อันดับโครงการ"
           description="เรียงตามจำนวนลิงก์รวม พร้อมจำนวนครีเอเตอร์ที่ไม่ซ้ำที่เคยสร้างลิงก์โครงการนั้น"
           className="[animation-delay:150ms]"
         >

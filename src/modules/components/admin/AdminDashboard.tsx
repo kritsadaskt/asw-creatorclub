@@ -26,6 +26,7 @@ import {
   ChevronRight,
   Loader2,
   MailIcon,
+  MousePointerClick,
   SendHorizontal,
   UserRound,
 } from 'lucide-react';
@@ -48,6 +49,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { AdminDashboardCharts } from './AdminDashboardCharts';
 import { AdminAffiliateReports } from './AdminAffiliateReports';
 import type { AdminAffiliateReportsResponse } from '@/modules/types/adminAffiliateReports';
+import { CREATOR_CATEGORIES } from '../landing/registerInviteCategories';
+import type { ShlinkVisitStats } from '@/lib/shlink-server';
 
 /** react-select only on client — avoids SSR/hydration drift and mount swap vs skeleton. */
 function ReactSelectSkeleton() {
@@ -80,18 +83,7 @@ function AssetwiseHouseholdBadge() {
   );
 }
 
-const CATEGORIES = [
-  'ทั้งหมด',
-  'แฟชั่น',
-  'ความงาม',
-  'อาหาร',
-  'ท่องเที่ยว',
-  'เทคโนโลยี',
-  'ไลฟ์สไตล์',
-  'กีฬา',
-  'เกม',
-  'อื่นๆ'
-];
+const CATEGORIES = ['ทั้งหมด', ...CREATOR_CATEGORIES.map((category) => category.label)];
 
 const PROFILE_ANALYST_PLATFORM_LABELS: Record<string, string> = {
   tiktok: 'TikTok',
@@ -227,6 +219,9 @@ export function AdminDashboard() {
   const [affiliateReportError, setAffiliateReportError] = useState<string | null>(null);
   const [creatorAffiliateLinks, setCreatorAffiliateLinks] = useState<AffiliateLink[]>([]);
   const [affiliateLinksLoading, setAffiliateLinksLoading] = useState(false);
+  const [affiliateLinkClicks, setAffiliateLinkClicks] = useState<Record<string, ShlinkVisitStats | null>>({});
+  const [affiliateLinkClicksLoading, setAffiliateLinkClicksLoading] = useState(false);
+  const [affiliateLinkClicksEnabled, setAffiliateLinkClicksEnabled] = useState(true);
   const [decisionDialog, setDecisionDialog] = useState<{
     open: boolean;
     creator: CreatorProfile | null;
@@ -424,18 +419,41 @@ export function AdminDashboard() {
     const loadCreatorAffiliateLinks = async () => {
       if (!affiliateDrawerCreator) {
         setCreatorAffiliateLinks([]);
+        setAffiliateLinkClicks({});
+        setAffiliateLinkClicksEnabled(true);
         return;
       }
 
       try {
         setAffiliateLinksLoading(true);
-        const links = await getAffiliateLinksByCreator(affiliateDrawerCreator.id);
+        setAffiliateLinkClicksLoading(true);
+        const [links, clickStatsRes] = await Promise.all([
+          getAffiliateLinksByCreator(affiliateDrawerCreator.id),
+          fetch(`${BASE_PATH}/api/admin/creators/${affiliateDrawerCreator.id}/affiliate-clicks`, {
+            credentials: 'same-origin',
+          }),
+        ]);
         setCreatorAffiliateLinks(links);
+
+        const clickStatsJson = (await clickStatsRes.json().catch(() => ({}))) as {
+          stats?: Record<string, ShlinkVisitStats | null>;
+          shlinkConfigured?: boolean;
+        };
+        if (clickStatsRes.ok) {
+          setAffiliateLinkClicks(clickStatsJson.stats ?? {});
+          setAffiliateLinkClicksEnabled(Boolean(clickStatsJson.shlinkConfigured));
+        } else {
+          setAffiliateLinkClicks({});
+          setAffiliateLinkClicksEnabled(true);
+        }
       } catch (error) {
         console.error('Error loading affiliate links by creator:', error);
         toast.error('ไม่สามารถโหลดลิงก์ Affiliate ของครีเอเตอร์ได้');
+        setAffiliateLinkClicks({});
+        setAffiliateLinkClicksEnabled(true);
       } finally {
         setAffiliateLinksLoading(false);
+        setAffiliateLinkClicksLoading(false);
       }
     };
 
@@ -446,7 +464,7 @@ export function AdminDashboard() {
     try {
       setLoading(true);
       const allCreators = await getCreators();
-      setCreators(allCreators);
+      setCreators(allCreators.filter((creator) => !creator.isAdmin && !creator.isMkt));
     } catch (error) {
       console.error('Error loading Creators:', error);
       toast.error('ไม่สามารถโหลดข้อมูลได้');
@@ -857,14 +875,31 @@ export function AdminDashboard() {
               {creatorAffiliateLinks.map((link) => (
                 <AccordionItem key={link.id} value={link.id}>
                   <AccordionTrigger className="hover:no-underline px-4">
-                    <div className="flex flex-col text-left">
-                      <span className="font-medium text-foreground">{link.campaignName}</span>
-                      <span className="text-muted-foreground">
-                        {new Date(link.createdAt).toLocaleDateString('th-TH', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        })}
+                    <div className="flex w-full items-center justify-between gap-4">
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium text-foreground">{link.campaignName}</span>
+                        <span className="text-muted-foreground">
+                          {new Date(link.createdAt).toLocaleDateString('th-TH', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          })}
+                        </span>
+                      </div>
+                      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-xs text-primary">
+                        {affiliateLinkClicksLoading ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            กำลังโหลดคลิก...
+                          </>
+                        ) : !affiliateLinkClicksEnabled ? (
+                          'Shlink ไม่พร้อมใช้งาน'
+                        ) : (
+                          <>
+                            <MousePointerClick className="h-3.5 w-3.5" />
+                            {(affiliateLinkClicks[link.id]?.total ?? 0).toLocaleString()} คลิก
+                          </>
+                        )}
                       </span>
                     </div>
                   </AccordionTrigger>

@@ -23,7 +23,7 @@ const ASW_HOUSEHOLD_INVITE_TYPE = 'asw_household';
 type SelectOption = { value: string; label: string };
 
 interface RegisterSectionProps {
-  onLogin: (id: string, role: 'creator' | 'admin', redirectTo?: string) => void;
+  onLogin: (id: string, role: 'creator' | 'admin' | 'marketing', redirectTo?: string) => void;
   /** When set, the category field is hidden and these labels are saved (invite link flow). */
   fixedCategoryLabels?: string[];
   variant?: 'landing' | 'standalone';

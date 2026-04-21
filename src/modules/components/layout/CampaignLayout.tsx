@@ -16,11 +16,13 @@ export function CampaignLayout({ children }: CampaignLayoutProps) {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
-  const handleLogin = (id: string, role: 'creator' | 'admin') => {
+  const handleLogin = (id: string, role: 'creator' | 'admin' | 'marketing') => {
     setIsLoggedIn(true);
 
     if (role === 'admin') {
       router.push('/admin');
+    } else if (role === 'marketing') {
+      router.push('/creators');
     } else {
       router.push('/profile');
     }
