@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v1.1.0...v1.2.0) (2026-04-21)
+
+
+### Features
+
+* เพิ่มแบบฟอร์มแจ้งปัญหาการใช้งาน ([90fecb9](https://github.com/kritsadaskt/asw-creatorclub/commit/90fecb90a0a5d396d1f0756f2d812aa6b67224f6))
+
+
+### Bug Fixes
+
+* อัพเดต workflow ([1c78ef5](https://github.com/kritsadaskt/asw-creatorclub/commit/1c78ef5b59f47598dd8bec5d904197ffc5d9821e))
+
 ## 1.1.0 (2026-04-21)
 
 
