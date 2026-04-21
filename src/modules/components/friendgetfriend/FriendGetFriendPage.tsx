@@ -29,6 +29,14 @@ interface FriendGetFriendPageProps {
   onLogin?: (id: string, role: 'creator' | 'admin' | 'marketing') => void;
 }
 
+type FgfSubmitErrorBody = {
+  error?: string;
+  details?: {
+    fieldErrors?: Record<string, string[]>;
+    formErrors?: string[];
+  }
+}
+
 /** Project picked for FGF submit; `cisId` from Supabase `projects.cis_id` when set. */
 type SelectedFgfProject = {
   id: string;
@@ -140,18 +148,34 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
           referrerTel: referrerPhone.trim(),
           leadName: leadName.trim(),
           leadLastName: leadLastName.trim(),
-          leadEmail: leadEmail.trim(),
+          leadEmail: leadEmail === '' ? 'no-email@example.com' : leadEmail.trim(),
           leadTel: leadPhone.trim(),
           cisId: selectedProject.cisId,
         }),
       });
       if (!res.ok) {
-        const body = await res.json().catch(() => ({})) as { error?: string };
+        const body = await res.json().catch(() => ({})) as FgfSubmitErrorBody;
+        let errorMessage = '';
         console.error('FGF submit failed', body);
+        if (body.details?.fieldErrors) {
+          for (const field in body.details.fieldErrors) {
+            switch (field) {
+              case 'leadTel':
+                errorMessage += 'กรุณากรอกเบอร์โทรศัพท์ของผู้ถูกแนะนำ';
+                break;
+              default:
+                errorMessage += `${field}: ${body.details.fieldErrors[field].join(', ')}\n`;
+                break;
+            }
+          }
+        }
+
+        console.log('errorMessage', errorMessage);
+
         toast.error(
           formatGenericErrorToast(
             'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง',
-            body.error || undefined,
+            errorMessage,
           ),
         );
         return;
@@ -226,7 +250,7 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
                   <Input label="ชื่อ" value={referrerName} onChange={setReferrerName} placeholder="กรอกชื่อผู้แนะนำ" required />
                   <Input label="นามสกุล" value={referrerLastName} onChange={setReferrerLastName} placeholder="กรอกนามสกุลผู้แนะนำ" required />
                   <Input label="อีเมล" type="email" value={referrerEmail} onChange={setReferrerEmail} placeholder="example@email.com" required />
-                  <Input label="เบอร์โทรศัพท์" type="tel" value={referrerPhone} onChange={setReferrerPhone} placeholder="กรอกเบอร์โทรศัพท์ที่ติดต่อได้" required />
+                  <Input label="เบอร์โทรศัพท์" type="tel" value={referrerPhone} onChange={setReferrerPhone} pattern="^(\+66|0)[ \d-]{8,11}$" placeholder="กรอกเบอร์โทรศัพท์ที่ติดต่อได้" required />
                 </div>
               </div>
 
@@ -235,8 +259,8 @@ export function FriendGetFriendPage({ onLogin }: FriendGetFriendPageProps) {
                 <div className="grid grid-cols-2 gap-4">
                   <Input label="ชื่อ" value={leadName} onChange={setLeadName} placeholder="กรอกชื่อผู้ถูกแนะนำ" required />
                   <Input label="นามสกุล" value={leadLastName} onChange={setLeadLastName} placeholder="กรอกนามสกุลผู้ถูกแนะนำ" required />
-                  <Input label="อีเมล" type="email" value={leadEmail} onChange={setLeadEmail} placeholder="example@email.com" required />
-                  <Input label="เบอร์โทรศัพท์" type="tel" value={leadPhone} onChange={setLeadPhone} placeholder="กรอกเบอร์โทรศัพท์ของผู้ถูกแนะนำ" required />
+                  <Input label="อีเมล" type="email" value={leadEmail} onChange={setLeadEmail} placeholder="example@email.com" />
+                  <Input label="เบอร์โทรศัพท์" type="tel" value={leadPhone} onChange={setLeadPhone} pattern="^(\+66|0)[ \d-]{8,11}$" placeholder="กรอกเบอร์โทรศัพท์ของผู้ถูกแนะนำ" required />
                 </div>
               </div>
 
