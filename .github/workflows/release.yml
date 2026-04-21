@@ -1,0 +1,42 @@
+name: Release and Bump Version
+
+on:
+  push:
+    branches:
+      - main # หรือเปลี่ยนเป็นชื่อ branch prod ของคุณ
+
+jobs:
+  release:
+    # ป้องกัน loop: ถ้า commit message มีคำว่า chore(release) จะไม่รัน action นี้
+    if: "!contains(github.event.head_commit.message, 'chore(release)')"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # สำคัญ: ต้องโหลด history มาทั้งหมดเพื่อให้ standard-version คำนวณเลขได้ถูกต้อง
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Config Git
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+      - name: Run Standard Version
+        run: npm run release
+
+      - name: Push changes and tags
+        run: |
+          # ใช้ --follow-tags เพื่อ push ทั้ง commit ที่แก้เลข version และ git tag ไปพร้อมกัน
+          git push --follow-tags origin main
