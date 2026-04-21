@@ -40,3 +40,10 @@ jobs:
         run: |
           # ใช้ --follow-tags เพื่อ push ทั้ง commit ที่แก้เลข version และ git tag ไปพร้อมกัน
           git push --follow-tags origin main
+
+      - name: Merge main back to dev
+        run: |
+          git fetch origin dev
+          git checkout dev
+          git merge main
+          git push origin dev

@@ -24,6 +24,7 @@ import { ImageWithFallback } from '../figma/ImageWithFallback';
 import {
   ChevronLeft,
   ChevronRight,
+  LinkIcon,
   Loader2,
   MailIcon,
   MousePointerClick,
@@ -914,9 +915,9 @@ export function AdminDashboard() {
                             href={postLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="block text-sm text-primary hover:underline break-all"
+                            className="text-sm text-primary hover:underline break-all flex items-center gap-2"
                           >
-                            {postLink}
+                            <LinkIcon className="w-4 h-4" /> {postLink}
                           </a>
                         ))
                       )}

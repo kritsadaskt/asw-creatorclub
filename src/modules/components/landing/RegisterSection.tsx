@@ -82,7 +82,6 @@ export function RegisterSection({
   const [loading, setLoading] = useState(false);
   const [projectOptions, setProjectOptions] = useState<ProjectGroup[]>([]);
   const [facebookLoading, setFacebookLoading] = useState(false);
-
   // Social media fields (managed via SocialAccounts component)
   const [socialData, setSocialData] = useState<{
     socialAccounts: {
