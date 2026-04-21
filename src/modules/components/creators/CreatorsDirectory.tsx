@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Eye, LayoutGrid, Loader2, Mail, Phone, Table, X } from 'lucide-react';
+import { FaFacebook, FaInstagram, FaTiktok, FaYoutube, FaXTwitter } from 'react-icons/fa6';
 import { toast } from 'sonner';
 import type { CreatorProfile } from '@/modules/types';
 import { getCreators } from '@/modules/utils/storage';
@@ -21,6 +22,7 @@ import { Drawer, DrawerClose, DrawerContent, DrawerHeader, DrawerTitle } from '@
 import { ImageWithFallback } from '@/modules/components/figma/ImageWithFallback';
 import { getProfileImageUrl } from '@/modules/utils/profileImage';
 import { CREATOR_CATEGORIES } from '@/modules/components/landing/registerInviteCategories';
+import { Lemon8Icon } from '@/modules/utils/svg';
 
 const Select = dynamic(() => import('react-select').then((mod) => mod.default), {
   ssr: false,
@@ -28,7 +30,17 @@ const Select = dynamic(() => import('react-select').then((mod) => mod.default), 
 
 const CATEGORIES = ['ทั้งหมด', ...CREATOR_CATEGORIES.map((category) => category.label)];
 
-const followerOptions: Array<{ value: string; label: string }> = [
+const socialPlatformOptions: Array<{ value: 'all' | SocialPlatform; label: string }> = [
+  { value: 'all', label: 'ทั้งหมด' },
+  { value: 'facebook', label: 'Facebook' },
+  { value: 'instagram', label: 'Instagram' },
+  { value: 'tiktok', label: 'TikTok' },
+  { value: 'youtube', label: 'YouTube' },
+  { value: 'twitter', label: 'X (Twitter)' },
+  { value: 'lemon8', label: 'Lemon8' },
+];
+
+const socialFollowerOptions: Array<{ value: string; label: string }> = [
   { value: 'all', label: 'ทั้งหมด' },
   { value: '0-1k', label: '0 - 1,000' },
   { value: '1k-10k', label: '1,000 - 10,000' },
@@ -51,12 +63,55 @@ const ranges: { [key: string]: { min: number; max?: number } } = {
 
 const PAGE_SIZE = 12;
 
+type SocialPlatform = keyof CreatorProfile['socialAccounts'];
+
+const SOCIAL_ICON_MAP: Record<SocialPlatform, ReactNode> = {
+  facebook: <FaFacebook className="h-4 w-4 text-[#1877F2]" />,
+  instagram: <FaInstagram className="h-4 w-4 text-pink-500" />,
+  tiktok: <FaTiktok className="h-4 w-4 text-black" />,
+  youtube: <FaYoutube className="h-4 w-4 text-red-600" />,
+  twitter: <FaXTwitter className="h-4 w-4 text-black" />,
+  lemon8: <Lemon8Icon className="h-4 w-4 text-yellow-500" />,
+};
+
+const socialList = (
+  socialAccounts: CreatorProfile['socialAccounts'],
+  followerCounts: CreatorProfile['followerCounts'],
+) => (
+  <div className="flex flex-wrap gap-2">
+    {(Object.entries(socialAccounts) as Array<[SocialPlatform, string | undefined]>)
+      .filter(([, url]) => Boolean(url))
+      .map(([platform, url]) => {
+        const followers = followerCounts?.[platform];
+        const followerLabel =
+          typeof followers === 'number' && Number.isFinite(followers)
+            ? followers.toLocaleString()
+            : 'ไม่ระบุ';
+        return (
+        <a
+          key={platform}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-2.5 py-1 text-xs hover:bg-muted/50"
+          aria-label={platform}
+          title={platform}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {SOCIAL_ICON_MAP[platform]}
+          <span className="text-foreground">{followerLabel}</span>
+        </a>
+      )})}
+  </div>
+)
+
 export function CreatorsDirectory() {
   const [creators, setCreators] = useState<CreatorProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
-  const [followerRange, setFollowerRange] = useState('all');
+  const [socialPlatformFilter, setSocialPlatformFilter] = useState<'all' | SocialPlatform>('all');
+  const [socialFollowerRange, setSocialFollowerRange] = useState('all');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('card');
   const [page, setPage] = useState(1);
   const [selectedCreator, setSelectedCreator] = useState<CreatorProfile | null>(null);
@@ -107,25 +162,30 @@ export function CreatorsDirectory() {
       });
     }
 
-    if (followerRange !== 'all') {
-      const range = ranges[followerRange];
-      if (range) {
-        rows = rows.filter((creator) => {
-          const followers = creator.followers;
-          if (range.max) {
-            return followers >= range.min && followers < range.max;
-          }
-          return followers >= range.min;
-        });
-      }
+    if (socialPlatformFilter !== 'all') {
+      rows = rows.filter((creator) => {
+        const socialUrl = creator.socialAccounts?.[socialPlatformFilter];
+        if (!socialUrl) return false;
+
+        if (socialFollowerRange === 'all') return true;
+        const socialRange = ranges[socialFollowerRange];
+        if (!socialRange) return true;
+
+        const followers = creator.followerCounts?.[socialPlatformFilter];
+        if (typeof followers !== 'number' || !Number.isFinite(followers)) return false;
+        if (socialRange.max) {
+          return followers >= socialRange.min && followers < socialRange.max;
+        }
+        return followers >= socialRange.min;
+      });
     }
 
     return rows;
-  }, [creators, selectedCategory, searchQuery, followerRange]);
+  }, [creators, selectedCategory, searchQuery, socialPlatformFilter, socialFollowerRange]);
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, selectedCategory, followerRange]);
+  }, [searchQuery, selectedCategory, socialPlatformFilter, socialFollowerRange]);
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(filteredCreators.length / PAGE_SIZE)),
@@ -206,6 +266,9 @@ export function CreatorsDirectory() {
                 : '-'}
             </div>
           </div>
+          <div className="col-span-2">
+            {socialList(creator.socialAccounts, creator.followerCounts)}
+          </div>
         </div>
       </div>
     )
@@ -217,7 +280,7 @@ export function CreatorsDirectory() {
       <div className="container mx-auto py-6">
         <div className="mb-6 rounded-xl border border-border bg-white p-6 shadow-sm">
           <h3 className="mb-4 text-lg font-medium text-neutral-700">ค้นหาและกรองข้อมูล</h3>
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm text-muted-foreground">ค้นหา (ชื่อ / อีเมล / เบอร์ / จังหวัด)</label>
               <input
@@ -244,14 +307,33 @@ export function CreatorsDirectory() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm text-muted-foreground">ผู้ติดตาม (Follower)</label>
+              <label className="text-sm text-muted-foreground">ช่องทางโซเชียล</label>
               <Select
-                options={followerOptions}
-                value={followerOptions.find((o) => o.value === followerRange)}
+                options={socialPlatformOptions}
+                value={socialPlatformOptions.find((o) => o.value === socialPlatformFilter)}
                 onChange={(option) => {
-                  setFollowerRange(option?.value ?? 'all');
+                  const value = option?.value ?? 'all';
+                  setSocialPlatformFilter(value);
+                  if (value === 'all') {
+                    setSocialFollowerRange('all');
+                  }
                 }}
                 isClearable={false}
+                classNamePrefix="react-select"
+                placeholder="ทั้งหมด"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm text-muted-foreground">ผู้ติดตามในช่องทางที่เลือก</label>
+              <Select
+                options={socialFollowerOptions}
+                value={socialFollowerOptions.find((o) => o.value === socialFollowerRange)}
+                onChange={(option) => {
+                  setSocialFollowerRange(option?.value ?? 'all');
+                }}
+                isClearable={false}
+                isDisabled={socialPlatformFilter === 'all'}
                 classNamePrefix="react-select"
                 placeholder="ทั้งหมด"
               />
@@ -311,7 +393,7 @@ export function CreatorsDirectory() {
                 }}
               >
                 <FileXIcon className="h-5 w-5" />
-                Export
+                Export {filteredCreators.length.toLocaleString()}
               </Button>
             </div>
           </div>
@@ -587,17 +669,7 @@ export function CreatorsDirectory() {
                 </div>
                 <div>
                   <label className="text-muted-foreground mb-2">ช่องทางโซเชียล</label>
-                  <div className="flex flex-wrap gap-2">
-                    {Object.entries(selectedCreator.socialAccounts).map(([platform, url]) => {
-                      return (
-                        <div key={platform} className="flex items-center">
-                          {platform} : <a href={url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">
-                            {url}
-                          </a>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  {socialList(selectedCreator.socialAccounts, selectedCreator.followerCounts)}
                 </div>
                 <div>
                   <label className="text-muted-foreground">วันที่ลงทะเบียน</label>

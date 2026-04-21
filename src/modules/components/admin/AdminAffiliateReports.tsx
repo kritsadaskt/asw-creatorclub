@@ -97,7 +97,6 @@ export function AdminAffiliateReports({ data, loading, error, onSelectCreator }:
                     <th className="py-2 pr-3 font-medium w-10">#</th>
                     <th className="py-2 pr-3 font-medium">ชื่อครีเอเตอร์</th>
                     <th className="py-2 pr-3 font-medium text-right whitespace-nowrap">จำนวนลิงก์</th>
-                    <th className="py-2 font-medium text-right whitespace-nowrap">ยอดคลิกรวม</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -120,9 +119,6 @@ export function AdminAffiliateReports({ data, loading, error, onSelectCreator }:
                       </td>
                       <td className="py-2.5 pr-3 text-right font-mono tabular-nums">
                         {row.linkCount.toLocaleString()}
-                      </td>
-                      <td className="py-2.5 text-right font-mono tabular-nums">
-                        {row.totalClicks == null ? '—' : row.totalClicks.toLocaleString()}
                       </td>
                     </tr>
                   ))}

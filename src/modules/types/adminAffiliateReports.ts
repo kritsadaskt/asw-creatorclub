@@ -16,4 +16,6 @@ export type AdminAffiliateReportsResponse = {
   topCreators: AdminAffiliateTopCreatorRow[];
   topProjects: AdminAffiliateTopProjectRow[];
   shlinkConfigured: boolean;
+  totalLinks: number;
+  totalClicks: number | null;
 };
