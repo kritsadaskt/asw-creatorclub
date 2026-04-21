@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { type ReactNode, useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
 import { Button } from '../shared/Button';
@@ -31,6 +31,7 @@ import {
   SendHorizontal,
   UserRound,
 } from 'lucide-react';
+import { FaFacebook, FaInstagram, FaTiktok, FaYoutube, FaXTwitter } from 'react-icons/fa6';
 import { FaPhone } from 'react-icons/fa6';
 import { BASE_PATH } from '@/lib/publicPath';
 import { formatGenericErrorToast } from '../../utils/toast-error';
@@ -51,6 +52,7 @@ import { AdminDashboardCharts } from './AdminDashboardCharts';
 import { AdminAffiliateReports } from './AdminAffiliateReports';
 import type { AdminAffiliateReportsResponse } from '@/modules/types/adminAffiliateReports';
 import type { ShlinkVisitStats } from '@/lib/shlink-server';
+import { Lemon8Icon } from '@/modules/utils/svg';
 
 /** react-select only on client — avoids SSR/hydration drift and mount swap vs skeleton. */
 function ReactSelectSkeleton() {
@@ -80,6 +82,57 @@ function AssetwiseHouseholdBadge() {
     <span className="inline-flex items-center shrink-0 px-1.5 py-0.5 rounded-md font-normal text-xs leading-none bg-green-50 text-green-700 border border-green-200/80">
       ลูกบ้าน
     </span>
+  );
+}
+
+type SocialPlatform = keyof CreatorProfile['socialAccounts'];
+
+const SOCIAL_ICON_MAP: Record<SocialPlatform, ReactNode> = {
+  facebook: <FaFacebook className="h-4 w-4 text-[#1877F2]" />,
+  instagram: <FaInstagram className="h-4 w-4 text-pink-500" />,
+  tiktok: <FaTiktok className="h-4 w-4 text-black" />,
+  youtube: <FaYoutube className="h-4 w-4 text-red-600" />,
+  twitter: <FaXTwitter className="h-4 w-4 text-black" />,
+  lemon8: <Lemon8Icon className="h-4 w-4 text-yellow-500" />,
+};
+
+function socialList(
+  socialAccounts: CreatorProfile['socialAccounts'],
+  followerCounts: CreatorProfile['followerCounts'],
+) {
+  const items = (Object.entries(socialAccounts) as Array<[SocialPlatform, string | undefined]>).filter(
+    ([, url]) => Boolean(url),
+  );
+
+  if (items.length === 0) {
+    return <p className="text-muted-foreground">ยังไม่มีข้อมูล</p>;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {items.map(([platform, url]) => {
+        const followers = followerCounts?.[platform];
+        const followerLabel =
+          typeof followers === 'number' && Number.isFinite(followers)
+            ? followers.toLocaleString()
+            : 'ไม่ระบุ';
+
+        return (
+          <a
+            key={platform}
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-2.5 py-1 text-xs hover:bg-muted/50"
+            aria-label={platform}
+            title={platform}
+          >
+            {SOCIAL_ICON_MAP[platform]}
+            <span className="text-foreground">{followerLabel}</span>
+          </a>
+        );
+      })}
+    </div>
   );
 }
 
@@ -852,23 +905,7 @@ export function AdminDashboard() {
 
       <div>
         <label className="text-muted-foreground">บัญชีโซเชียลมีเดีย</label>
-        <div className="flex flex-col gap-2">
-          {getSocialLinks(creator).map((social, idx) => (
-            <div key={idx} className="flex items-center gap-2">
-              <span className="font-medium text-foreground w-24">{
-              social.name + ': '}</span>
-              <a
-                href={social.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline break-all"
-              >
-                {social.url.replace(/^https?:\/\//, "")}
-              </a>
-            </div>
-          ))}
-          {getSocialLinks(creator).length === 0 && <p className="text-muted-foreground">ยังไม่มีข้อมูล</p>}
-        </div>
+        {socialList(creator.socialAccounts, creator.followerCounts)}
       </div>
 
       <ProfileAnalystAiSection creator={creator} />

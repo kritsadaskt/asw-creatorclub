@@ -269,7 +269,7 @@ export function AdminDashboardCharts({ creators, loading, affiliateReport, affil
                 : affiliateReport.totalLinks.toLocaleString(),
           },
           {
-            label: 'จำนวนคลิกทั้งหมด (Shlink)',
+            label: 'จำนวนคลิกทั้งหมด',
             value:
               affiliateReportLoading || !affiliateReport
                 ? <LoadingDots />
