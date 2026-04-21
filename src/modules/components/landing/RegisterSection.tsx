@@ -14,8 +14,8 @@ import SocialAccounts from '../layout/SocialAccounts';
 import { BASE_PATH } from '@/lib/publicPath';
 import { formatGenericErrorToast } from '../../utils/toast-error';
 import { Switch } from '../ui/switch';
-import { CREATOR_CATEGORIES } from './registerInviteCategories';
 import Link from 'next/link';
+import { supabase } from '../../utils/supabase';
 
 /** Invite `type` query value: show project dropdown and save as resident (no status toggle). */
 const ASW_HOUSEHOLD_INVITE_TYPE = 'asw_household';
@@ -115,6 +115,7 @@ export function RegisterSection({
   const [budget, setBudget] = useState('');
 
   const [creatorCategory, setCreatorCategory] = useState<SelectOption[]>([]);
+  const [creatorCategoryOptions, setCreatorCategoryOptions] = useState<SelectOption[]>([]);
 
   const PARTNERS_TYPE = [
     { value: 'MUT', label: 'MUT' },
@@ -181,6 +182,34 @@ export function RegisterSection({
         console.error('Failed to load project options', err);
         setProjectOptions([]);
       });
+  }, []);
+
+  useEffect(() => {
+    const loadCreatorCategories = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('creator_categories')
+          .select('th_label,en_label')
+          .eq('is_active', true)
+          .order('id', { ascending: true });
+
+        if (error) throw error;
+
+        const options = (data || [])
+          .map((row) => {
+            const label = (row.th_label || row.en_label || '').trim();
+            return label ? { value: label, label } : null;
+          })
+          .filter((opt): opt is SelectOption => opt !== null);
+
+        setCreatorCategoryOptions(options);
+      } catch (error) {
+        console.error('Failed to load creator categories:', error);
+        setCreatorCategoryOptions([]);
+      }
+    };
+
+    void loadCreatorCategories();
   }, []);
 
   useEffect(() => {
@@ -852,7 +881,7 @@ export function RegisterSection({
               <div className="block"><span className="text-muted-foreground text-sm">เลือกได้มากกว่า 1 รายการ</span></div>
               <Select
                 instanceId="register-creator-category"
-                options={CREATOR_CATEGORIES}
+                options={creatorCategoryOptions}
                 isMulti
                 value={creatorCategory}
                 onChange={(selected) =>
@@ -870,20 +899,20 @@ export function RegisterSection({
             />
 
             {/* Budget per Post */}
-            <div className="space-y-4 mb-5">
-              <div className="flex items-center gap-4">
-                <Input
-                  label="Budgets"
-                  type="number"
-                  value={budget}
-                  onChange={setBudget}
-                  placeholder="0"
-                />
-                <span className="self-end">บาท/โพสต์</span>
-              </div>
-            </div>
-
             {!hideStatusField && (
+            <>
+              <div className="space-y-4 mb-5">
+                <div className="flex items-center gap-4">
+                  <Input
+                    label="Budgets"
+                    type="number"
+                    value={budget}
+                    onChange={setBudget}
+                    placeholder="0"
+                  />
+                  <span className="self-end">บาท/โพสต์</span>
+                </div>
+              </div>
               <div className="flex flex-col gap-1">
                 <h3 className="font-semibold text-primary">คุณเป็นลูกบ้านแอสเซทไวส์หรือไม่ ?</h3>
                 <div className="flex items-start gap-4 pt-2">
@@ -892,6 +921,7 @@ export function RegisterSection({
                   <span className="font-normal text-neutral-600">ใช่</span>
                 </div>
               </div>
+              </>
             )}
 
             {(needsHouseholdProject || (!hideStatusField && status === 'resident')) && (
