@@ -53,3 +53,7 @@ next-env.d.ts
 .omc/
 .idea/
 .vscode/
+
+# Docs
+RLS_MIGRATION_PHASES.md
+auth-migration.md

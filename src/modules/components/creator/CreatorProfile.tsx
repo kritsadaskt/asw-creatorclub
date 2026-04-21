@@ -22,18 +22,6 @@ interface CreatorProfileProps {
   creatorId: string;
 }
 
-const CATEGORIES = [
-  'แฟชั่น',
-  'ความงาม',
-  'อาหาร',
-  'ท่องเที่ยว',
-  'เทคโนโลยี',
-  'ไลฟ์สไตล์',
-  'กีฬา',
-  'เกม',
-  'อื่นๆ'
-];
-
 export function CreatorProfile({ creatorId }: CreatorProfileProps) {
   const [profile, setProfile] = useState<CreatorProfileType | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -47,11 +35,37 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
+  const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
   const profileImageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadProfile();
   }, [creatorId]);
+
+  useEffect(() => {
+    const loadCategoryOptions = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('creator_categories')
+          .select('th_label,en_label')
+          .eq('is_active', true)
+          .order('id', { ascending: true });
+
+        if (error) {
+          throw error;
+        }
+
+        const nextOptions = (data || [])
+          .map((row) => (row.th_label || row.en_label || '').trim())
+          .filter(Boolean);
+        setCategoryOptions(nextOptions);
+      } catch (error) {
+        console.error('Error loading category options:', error);
+      }
+    };
+
+    void loadCategoryOptions();
+  }, []);
 
   const loadProfile = async () => {
     try {
@@ -317,7 +331,7 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                       คุณเป็นครีเอเตอร์สายไหน ? <span className="text-destructive">*</span>
                     </h3>
                     <Select
-                      options={CATEGORIES.map((cat) => ({
+                      options={categoryOptions.map((cat) => ({
                         value: cat,
                         label: cat,
                       }))}

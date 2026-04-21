@@ -50,7 +50,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { AdminDashboardCharts } from './AdminDashboardCharts';
 import { AdminAffiliateReports } from './AdminAffiliateReports';
 import type { AdminAffiliateReportsResponse } from '@/modules/types/adminAffiliateReports';
-import { CREATOR_CATEGORIES } from '../landing/registerInviteCategories';
 import type { ShlinkVisitStats } from '@/lib/shlink-server';
 
 /** react-select only on client — avoids SSR/hydration drift and mount swap vs skeleton. */
@@ -83,8 +82,6 @@ function AssetwiseHouseholdBadge() {
     </span>
   );
 }
-
-const CATEGORIES = ['ทั้งหมด', ...CREATOR_CATEGORIES.map((category) => category.label)];
 
 const PROFILE_ANALYST_PLATFORM_LABELS: Record<string, string> = {
   tiktok: 'TikTok',
@@ -208,6 +205,7 @@ export function AdminDashboard() {
   const [filteredCreators, setFilteredCreators] = useState<CreatorProfile[]>([]);
   const [approvalFilter, setApprovalFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'inactive'>('pending');
   const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
+  const [categoryLabels, setCategoryLabels] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCreator, setSelectedCreator] = useState<CreatorProfile | null>(null);
   const CREATORS_PAGE_SIZE = 15;
@@ -242,7 +240,10 @@ export function AdminDashboard() {
   const [fgfCisSubmitting, setFgfCisSubmitting] = useState(false);
   const [projectNameById, setProjectNameById] = useState<Record<string, string>>({});
 
-  const categoryOptions = CATEGORIES.map((cat) => ({ value: cat, label: cat }));
+  const categoryOptions = useMemo(
+    () => ['ทั้งหมด', ...categoryLabels].map((cat) => ({ value: cat, label: cat })),
+    [categoryLabels],
+  );
 
   const fgfCisOptions: Array<{ value: typeof fgfCisFilter; label: string }> = [
     { value: 'all', label: 'ทั้งหมด' },
@@ -292,6 +293,29 @@ export function AdminDashboard() {
 
   useEffect(() => {
     loadCreators();
+  }, []);
+
+  useEffect(() => {
+    const loadCategoryOptions = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('creator_categories')
+          .select('th_label,en_label')
+          .eq('is_active', true)
+          .order('id', { ascending: true });
+        if (error) throw error;
+
+        const labels = (data || [])
+          .map((row) => (row.th_label || row.en_label || '').trim())
+          .filter(Boolean);
+        setCategoryLabels(labels);
+      } catch (error) {
+        console.error('Error loading admin category options:', error);
+        setCategoryLabels([]);
+      }
+    };
+
+    void loadCategoryOptions();
   }, []);
 
   useEffect(() => {
