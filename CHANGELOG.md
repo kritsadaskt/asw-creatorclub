@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.3.2](https://github.com/kritsadaskt/asw-creatorclub/compare/v1.3.1...v1.3.2) (2026-04-22)
+
+
+### Bug Fixes
+
+* ปรับ label ลูกบ้าน ([c3f97f2](https://github.com/kritsadaskt/asw-creatorclub/commit/c3f97f2f20080ec01eee453f6e84f21f1e4dfd71))
+
 ### [1.3.1](https://github.com/kritsadaskt/asw-creatorclub/compare/v1.3.0...v1.3.1) (2026-04-22)
 
 
