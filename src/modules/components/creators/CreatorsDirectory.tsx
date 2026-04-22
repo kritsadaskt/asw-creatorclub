@@ -219,6 +219,8 @@ export function CreatorsDirectory() {
   const CreatorCard = ({ creator }: { creator: CreatorProfile }) => {
     const fullName = [creator.name, creator.lastName].filter(Boolean).join(' ');
     const socialCount = Object.values(creator.socialAccounts).filter(Boolean).length;
+    const creatorType = (creator.type ?? '').trim().toLowerCase();
+    const isAswStaff = creatorType === 'assetwise_staff' || creatorType === 'asw_staff';
     return (
       <div
         key={creator.id}
@@ -230,9 +232,11 @@ export function CreatorsDirectory() {
             <div className="truncate text-base font-medium text-foreground">{fullName}</div>
             <div className="truncate text-sm text-muted-foreground">{creator.email}</div>
           </div>
-          <div className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-            Approved
-          </div>
+          {isAswStaff && (
+            <div className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+              ASW Staff
+            </div>
+          )}
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-3 text-sm">

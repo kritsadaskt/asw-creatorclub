@@ -2,6 +2,7 @@ import { randomInt } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { logServerError, requestLogContext } from '@/lib/log-server-error';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 const FgfSubmitSchema = z.object({
   referrerName:     z.string().min(1),
@@ -22,6 +23,38 @@ const FgfSubmitSchema = z.object({
 function formatCisDate(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
+function isUuid(value: string | undefined): boolean {
+  if (!value) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function extractCisIds(
+  payload: unknown,
+): { contactLogId: number | null; customerId: number | null } {
+  if (!payload || typeof payload !== 'object') {
+    return { contactLogId: null, customerId: null };
+  }
+
+  const data = (payload as { Data?: unknown }).Data;
+  if (!data || typeof data !== 'object') {
+    return { contactLogId: null, customerId: null };
+  }
+
+  const rawContactLogId = (data as { ContactLogID?: unknown }).ContactLogID;
+  const rawCustomerId = (data as { CustomerID?: unknown }).CustomerID;
+
+  const contactLogId =
+    typeof rawContactLogId === 'number' && Number.isFinite(rawContactLogId)
+      ? rawContactLogId
+      : null;
+  const customerId =
+    typeof rawCustomerId === 'number' && Number.isFinite(rawCustomerId)
+      ? rawCustomerId
+      : null;
+
+  return { contactLogId, customerId };
 }
 
 export async function POST(request: NextRequest) {
@@ -67,6 +100,63 @@ export async function POST(request: NextRequest) {
     const numericRefId = randomInt(1, 0x7fffffff);
     const now = formatCisDate(new Date());
     const cisProjectId = data.cisId;
+    const { data: projectRow, error: projectResolveError } = await supabaseAdmin
+      .from('projects')
+      .select('id')
+      .eq('cis_id', cisProjectId)
+      .maybeSingle();
+    if (projectResolveError) {
+      console.warn('[fgf/submit] Failed to resolve project by cis_id:', projectResolveError);
+    }
+    const resolvedProjectId = typeof projectRow?.id === 'string' ? projectRow.id : null;
+    const refCreatorId = isUuid(sessionUserId) ? sessionUserId : null;
+
+    const { data: insertedLead, error: insertLeadError } = await supabaseAdmin
+      .from('fgf_leads')
+      .insert({
+        referrer_name: data.referrerName,
+        referrer_last_name: data.referrerLastName,
+        referrer_email: data.referrerEmail,
+        referrer_tel: data.referrerTel,
+        ref_uid: sessionUserId ?? null,
+        referrer_creator_id: refCreatorId,
+        lead_name: data.leadName,
+        lead_last_name: data.leadLastName,
+        lead_email: data.leadEmail,
+        lead_tel: data.leadTel,
+        status: 'verified',
+        chosen_project_id: resolvedProjectId,
+      })
+      .select('id')
+      .single();
+
+    if (insertLeadError || !insertedLead?.id) {
+      console.error('[fgf/submit] Failed to insert fgf_leads row:', insertLeadError);
+      await logServerError({
+        environment: process.env.NODE_ENV ?? 'development',
+        source: 'api:fgf/submit',
+        severity: 'error',
+        message: 'FGF_LEAD_INSERT_FAILED',
+        context: {
+          ...requestLogContext(request),
+          cisId: cisProjectId,
+        },
+      });
+      return NextResponse.json({ error: 'ไม่สามารถบันทึกข้อมูลลีดได้' }, { status: 500 });
+    }
+
+    if (resolvedProjectId) {
+      const { error: linkProjectError } = await supabaseAdmin
+        .from('fgf_lead_projects')
+        .insert({
+          fgf_lead_id: insertedLead.id,
+          project_id: resolvedProjectId,
+        });
+      if (linkProjectError) {
+        console.error('[fgf/submit] Failed to insert fgf_lead_projects row:', linkProjectError);
+      }
+    }
+
     const refBase = [
       'CreatorClub FGF',
       `Referrer: ${data.referrerName} ${data.referrerLastName} (${data.referrerTel})`,
@@ -120,6 +210,13 @@ export async function POST(request: NextRequest) {
     });
 
     if (!cisRes.ok) {
+      await supabaseAdmin
+        .from('fgf_leads')
+        .update({
+          status: 'verified',
+          crm_response: responseJson ?? responseText,
+        })
+        .eq('id', insertedLead.id);
       await logServerError({
         environment: process.env.NODE_ENV ?? 'development',
         source: 'api:fgf/submit',
@@ -148,6 +245,13 @@ export async function POST(request: NextRequest) {
       (responseJson as { Success?: boolean }).Success === false
     ) {
       const msg = (responseJson as { Message?: string }).Message || 'CIS returned Success: false';
+      await supabaseAdmin
+        .from('fgf_leads')
+        .update({
+          status: 'verified',
+          crm_response: responseJson ?? responseText,
+        })
+        .eq('id', insertedLead.id);
       await logServerError({
         environment: process.env.NODE_ENV ?? 'development',
         source: 'api:fgf/submit',
@@ -165,7 +269,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true, cis: responseJson ?? responseText });
+    const cisIds = extractCisIds(responseJson);
+
+    await supabaseAdmin
+      .from('fgf_leads')
+      .update({
+        status: 'uploaded',
+        uploaded_to_crm: true,
+        uploaded_at: new Date().toISOString(),
+        uploaded_by: refCreatorId,
+        crm_response: responseJson ?? responseText,
+        cis_contactLogID: cisIds.contactLogId,
+        cis_customerID: cisIds.customerId,
+      })
+      .eq('id', insertedLead.id);
+
+    return NextResponse.json({ success: true, cis: responseJson ?? responseText, fgfLeadId: insertedLead.id });
   } catch (error) {
     console.error('FGF submit error:', error);
     await logServerError({

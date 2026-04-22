@@ -15,12 +15,18 @@ export async function exportCreatorsToXlsx(creators: CreatorProfile[]) {
     'จังหวัด': creator.province ?? '',
     'หมวดหมู่': creator.categories.join(', '),
     'Facebook': creator.socialAccounts.facebook ?? '',
+    'Facebook Followers': creator.followerCounts.facebook ?? '',
     'Instagram': creator.socialAccounts.instagram ?? '',
+    'Instagram Followers': creator.followerCounts.instagram ?? '',
     'TikTok': creator.socialAccounts.tiktok ?? '',
+    'TikTok Followers': creator.followerCounts.tiktok ?? '',
     'YouTube': creator.socialAccounts.youtube ?? '',
+    'YouTube Followers': creator.followerCounts.youtube ?? '',
     'Twitter': creator.socialAccounts.twitter ?? '',
+    'Twitter Followers': creator.followerCounts.twitter ?? '',
     'Lemon8': creator.socialAccounts.lemon8 ?? '',
-    'สถานะ': 'อนุมัติแล้ว',
+    'Lemon8 Followers': creator.followerCounts.lemon8 ?? '',
+    'ประเภท': creator.type === 'asw_household' ? 'ลูกบ้านแอสเซทไวส์' : creator.type === 'assetwise_staff' ? 'พนักงาน Assetwise' : 'บุคคลทั่วไป',
     'วันที่ลงทะเบียน': creator.createdAt,
   }));
 
@@ -28,6 +34,6 @@ export async function exportCreatorsToXlsx(creators: CreatorProfile[]) {
   const workbook = utils.book_new();
   utils.book_append_sheet(workbook, worksheet, 'Creators');
 
-  writeFile(workbook, 'creators-approved.xlsx');
+  writeFile(workbook, `${new Date().toISOString().split('T')[0]}_exported_asw-creatorclub_creators.xlsx`);
 }
 

@@ -136,6 +136,11 @@ function socialList(
   );
 }
 
+function isAswHouseholdType(typeRaw: string | undefined): boolean {
+  const type = (typeRaw ?? '').trim().toLowerCase();
+  return type === 'asw_household' || type === 'asw_houshold';
+}
+
 const PROFILE_ANALYST_PLATFORM_LABELS: Record<string, string> = {
   tiktok: 'TikTok',
   instagram: 'Instagram',
@@ -258,6 +263,7 @@ export function AdminDashboard() {
   const [filteredCreators, setFilteredCreators] = useState<CreatorProfile[]>([]);
   const [approvalFilter, setApprovalFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'inactive'>('pending');
   const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
+  const [selectedCreatorType, setSelectedCreatorType] = useState<'all' | 'assetwise_staff' | 'asw_household'>('all');
   const [categoryLabels, setCategoryLabels] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCreator, setSelectedCreator] = useState<CreatorProfile | null>(null);
@@ -342,6 +348,11 @@ export function AdminDashboard() {
     { value: '100k-500k', label: '100,000 - 500,000' },
     { value: '500k+', label: '500,000+' },
     { value: 'custom', label: 'กำหนดเอง' },
+  ];
+  const creatorTypeOptions: Array<{ value: 'all' | 'assetwise_staff' | 'asw_household'; label: string }> = [
+    { value: 'all', label: 'ทั้งหมด' },
+    { value: 'assetwise_staff', label: 'พนักงาน' },
+    { value: 'asw_household', label: 'ลูกบ้าน' },
   ];
 
   useEffect(() => {
@@ -437,7 +448,7 @@ export function AdminDashboard() {
   useEffect(() => {
     setCreatorPage(1);
     filterCreators();
-  }, [creators, selectedCategory, searchQuery, followerRange, customFollowers, approvalFilter]);
+  }, [creators, selectedCategory, selectedCreatorType, searchQuery, followerRange, customFollowers, approvalFilter]);
 
   const creatorsBaseFiltered = useMemo(() => {
     let filtered = [...creators];
@@ -447,6 +458,16 @@ export function AdminDashboard() {
 
     if (selectedCategory !== 'ทั้งหมด') {
       filtered = filtered.filter((creator) => creator.categories && creator.categories.includes(selectedCategory));
+    }
+
+    if (selectedCreatorType !== 'all') {
+      filtered = filtered.filter((creator) => {
+        const rawType = (creator.type ?? '').trim().toLowerCase();
+        if (selectedCreatorType === 'assetwise_staff') {
+          return rawType === 'assetwise_staff';
+        }
+        return rawType === 'asw_household' || rawType === 'asw_houshold';
+      });
     }
 
     const q = searchQuery.trim().toLowerCase();
@@ -481,7 +502,7 @@ export function AdminDashboard() {
     }
 
     return filtered;
-  }, [creators, customFollowers, followerRange, searchQuery, selectedCategory]);
+  }, [creators, customFollowers, followerRange, searchQuery, selectedCategory, selectedCreatorType]);
 
   const creatorStatusCounts = useMemo(() => {
     const rows = creatorsBaseFiltered;
@@ -892,6 +913,17 @@ export function AdminDashboard() {
         </p>
       </div>
 
+      {isAswHouseholdType(creator.type) && (
+        <div>
+          <label className="text-muted-foreground">โครงการ</label>
+          <p className="text-foreground">
+            {creator.projectName
+              ? projectNameById[creator.projectName] || creator.projectName
+              : 'ไม่ระบุ'}
+          </p>
+        </div>
+      )}
+
       <div>
         <label className="text-muted-foreground">หมวดหมู่</label>
         <div className="flex gap-2">
@@ -1081,6 +1113,20 @@ export function AdminDashboard() {
                   if (value !== 'custom') {
                     setCustomFollowers('');
                   }
+                }}
+                isClearable={false}
+                classNamePrefix="react-select"
+                placeholder="ทั้งหมด"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label>ประเภทผู้ใช้</label>
+              <Select
+                options={creatorTypeOptions}
+                value={creatorTypeOptions.find((o) => o.value === selectedCreatorType)}
+                onChange={(option) => {
+                  setSelectedCreatorType(option?.value ?? 'all');
                 }}
                 isClearable={false}
                 classNamePrefix="react-select"
