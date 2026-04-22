@@ -79,7 +79,7 @@ function AssetwiseStaffBadge() {
 
 function AssetwiseHouseholdBadge() {
   return (
-    <span className="inline-flex items-center shrink-0 px-1.5 py-0.5 rounded-md font-normal text-xs leading-none bg-green-50 text-green-700 border border-green-200/80">
+    <span className="inline-flex items-center shrink-0 px-1.5 py-0.5 rounded-md font-normal text-xs leading-none bg-violet-50 text-violet-700 border border-violet-200/80">
       ลูกบ้าน
     </span>
   );
@@ -1230,7 +1230,7 @@ export function AdminDashboard() {
                         key={creator.id}
                         className="border-b border-border hover:bg-input-background/30 transition-colors"
                       >
-                        <td className="py-3 px-4 text-sm text-foreground">{creator.name} {creator.lastName} {creator.type === 'assetwise_staff' && <AssetwiseStaffBadge />} {creator.type === 'asw_houshold' && <AssetwiseHouseholdBadge />}</td>
+                        <td className="py-3 px-4 text-sm text-foreground xxx">{creator.name} {creator.lastName} {creator.type === 'assetwise_staff' && <AssetwiseStaffBadge />} {creator.type === 'asw_household' && <AssetwiseHouseholdBadge />}</td>
                         <td className="py-3 px-4 text-sm text-foreground">{creator.email}</td>
                         <td className="py-3 px-4 text-sm text-foreground">{creator.phone || '-'}</td>
                         <td className="py-3 px-4 text-sm text-foreground">{getSocialLinks(creator).length} ช่องทาง</td>
