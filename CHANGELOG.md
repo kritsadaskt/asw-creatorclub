@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.3.1](https://github.com/kritsadaskt/asw-creatorclub/compare/v1.3.0...v1.3.1) (2026-04-22)
+
+
+### Bug Fixes
+
+* บันทึกข้อมูล FGF Leads ลง DB ด้วย ([12b4406](https://github.com/kritsadaskt/asw-creatorclub/commit/12b44067a353b69d1095301a1edaed48376a4b12))
+* เพิ่ม filter ลูกบ้าน ([ae994cb](https://github.com/kritsadaskt/asw-creatorclub/commit/ae994cbfccb9be2ef4c9b79b122ec3415b666636))
+
 ## [1.3.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v1.2.3...v1.3.0) (2026-04-21)
 
 
