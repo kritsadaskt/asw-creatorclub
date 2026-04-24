@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.5.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v1.4.0...v1.5.0) (2026-04-24)
+
+
+### Features
+
+* ปรับปรุง UI - Creator Dashboard ([96a571e](https://github.com/kritsadaskt/asw-creatorclub/commit/96a571e502b0ecdc9593a1b99ece43b052369384))
+
 ## [1.4.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v1.3.2...v1.4.0) (2026-04-24)
 
 
