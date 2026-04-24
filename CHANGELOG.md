@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.4.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v1.3.2...v1.4.0) (2026-04-24)
+
+
+### Features
+
+* update UI creator profile ([b10c8fd](https://github.com/kritsadaskt/asw-creatorclub/commit/b10c8fd32a30467dbccc84c60e51c72105cdd59c))
+* เพิ่มปุ่ม บันทึก / ยกเลิก หน้า creator profile ([34f4c9b](https://github.com/kritsadaskt/asw-creatorclub/commit/34f4c9b0b560a7a8feef750a79f281cdbe69dc72))
+
 ### [1.3.2](https://github.com/kritsadaskt/asw-creatorclub/compare/v1.3.1...v1.3.2) (2026-04-22)
 
 
