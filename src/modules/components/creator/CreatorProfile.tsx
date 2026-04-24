@@ -17,6 +17,7 @@ import { supabase } from '../../utils/supabase';
 import { hashPassword, validatePassword, validatePasswordConfirm } from '../../utils/password';
 import Select from 'react-select';
 import SocialAccounts from '../layout/SocialAccounts';
+import { FaEdit, FaSave, FaUndo } from 'react-icons/fa';
 
 interface CreatorProfileProps {
   creatorId: string;
@@ -74,10 +75,6 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
       if (creator) {
         setProfile(creator);
         setProfileImageError(false);
-        // Auto-enable editing if profile is incomplete
-        if (!creator.categories || creator.categories.length === 0 || creator.followers === 0) {
-          setIsEditing(true);
-        }
       } else {
         toast.error('ไม่พบข้อมูลโปรไฟล์');
       }
@@ -201,11 +198,17 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
               <img
                 src={getProfileImageUrl(profile)}
                 alt="Profile Image"
-                className="h-full w-full object-cover"
+                className={`h-full w-full object-cover transition-all duration-200 ${
+                  isEditing ? 'group-hover:blur-[2px] group-hover:brightness-75' : ''
+                }`}
                 onError={() => setProfileImageError(true)}
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center bg-primary/10 text-primary text-4xl font-medium">
+              <div
+                className={`flex h-full w-full items-center justify-center bg-primary/10 text-primary text-4xl font-medium transition-all duration-200 ${
+                  isEditing ? 'group-hover:blur-[2px] group-hover:brightness-75' : ''
+                }`}
+              >
                 {profile.name ? profile.name.charAt(0).toUpperCase() : '?'}
               </div>
             )}
@@ -221,13 +224,18 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
             />
             <button
               type="button"
-              disabled={imageUploading}
-              onClick={() => profileImageInputRef.current?.click()}
+              disabled={imageUploading || !isEditing}
+              onClick={() => {
+                if (!isEditing) return;
+                profileImageInputRef.current?.click();
+              }}
               aria-label={imageUploading ? 'กำลังอัปโหลดรูปโปรไฟล์' : 'เปลี่ยนรูปโปรไฟล์'}
-              className={`absolute inset-0 z-10 flex flex-col items-center justify-center gap-1.5 rounded-full px-3 text-center text-sm font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] transition-all duration-200 border border-white/25 bg-black/35 backdrop-blur-md hover:bg-black/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+              className={`absolute inset-0 z-10 flex flex-col items-center justify-center gap-1.5 rounded-full px-3 text-center text-sm font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] transition-all duration-200 border border-white/25 bg-black/35 backdrop-blur-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                 imageUploading
                   ? 'opacity-100 cursor-wait'
-                  : 'cursor-pointer max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100'
+                  : !isEditing
+                    ? 'opacity-0 pointer-events-none'
+                    : 'cursor-pointer opacity-0 group-hover:opacity-100 focus-visible:opacity-100'
               }`}
             >
               {imageUploading ? (
@@ -273,6 +281,25 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
 
         {/* Main content */}
         <div className="flex-1 space-y-6">
+          <div className="flex justify-end gap-3">
+            {isEditing ? (
+              <>
+                <button className='flex cursor-pointer items-center gap-2 bg-transparent border-2 border-red-500 hover:bg-red-500 hover:text-white text-red-500 px-4 py-2 rounded-lg' onClick={() => setIsEditing(false)}>
+                  <FaUndo className="w-4 h-4" />
+                  ยกเลิก
+                </button>
+                <button className='flex cursor-pointer items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg' onClick={handleSave} disabled={saving}>
+                  <FaSave className="w-4 h-4" />
+                  {saving ? 'กำลังบันทึก...' : 'บันทึก'}
+                </button>
+              </>
+            ) : (
+              <button className='flex cursor-pointer items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg' onClick={() => setIsEditing(true)}>
+                <FaEdit className="w-4 h-4" />
+                แก้ไข
+              </button>
+            )}
+          </div>
           {activeTab === 'profile' ? (
             <>
               {/* Basic Info */}
@@ -284,6 +311,7 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                     label="ชื่อ"
                     value={profile.name}
                     onChange={(value) => setProfile({ ...profile, name: value })}
+                    disabled={!isEditing}
                     placeholder="กรอกชื่อ"
                     required
                   />
@@ -292,6 +320,7 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                     label="นามสกุล"
                     value={profile.lastName || ''}
                     onChange={(value) => setProfile({ ...profile, lastName: value || undefined })}
+                    disabled={!isEditing}
                     placeholder="กรอกนามสกุล"
                     required
                   />
@@ -301,6 +330,7 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                   type="email"
                   value={profile.email}
                   onChange={(value) => setProfile({ ...profile, email: value })}
+                  disabled={!isEditing}
                   placeholder="กรอกอีเมล"
                   required
                 />
@@ -310,6 +340,7 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                   type="tel"
                   value={profile.phone}
                   onChange={(value) => setProfile({ ...profile, phone: value })}
+                  disabled={!isEditing}
                   placeholder="กรอกเบอร์โทรศัพท์"
                   required
                 />
@@ -320,6 +351,7 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                     label="จังหวัดที่อยู่อาศัย"
                     value={profile.province}
                     onChange={(value) => setProfile({ ...profile, province: value || undefined })}
+                    disabled={!isEditing}
                     placeholder="กรอกจังหวัดที่อยู่อาศัย"
                     required
                   />
@@ -350,6 +382,7 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                     }
                       placeholder="เลือกหมวดหมู่"
                       classNamePrefix="react-select"
+                      isDisabled={!isEditing}
                     />
                   </div>
                 </div>
@@ -360,6 +393,7 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                 initialFollowerCounts={profile.followerCounts}
                 requireAtLeastOne={false}
                 showErrors={showSocialSubmitErrors}
+                disabled={!isEditing}
                 label="บัญชีโซเชียลมีเดีย"
                 description=""
                 onChange={(data) => {
@@ -391,6 +425,7 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                       type="password"
                       value={newPassword}
                       onChange={setNewPassword}
+                      disabled={!isEditing}
                       placeholder="กรอกรหัสผ่านใหม่"
                     />
                     <Input
@@ -398,6 +433,7 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                       type="password"
                       value={confirmPassword}
                       onChange={setConfirmPassword}
+                      disabled={!isEditing}
                       placeholder="กรอกรหัสผ่านใหม่อีกครั้ง"
                     />
                   </div>
@@ -405,19 +441,13 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                     <Button
                       type="button"
                       onClick={handleSetPassword}
-                      disabled={passwordSaving || !newPassword || !confirmPassword}
+                      disabled={!isEditing || passwordSaving || !newPassword || !confirmPassword}
                     >
                       {passwordSaving ? 'กำลังตั้งรหัสผ่าน...' : 'ตั้งรหัสผ่าน'}
                     </Button>
                   </div>
                 </div>
               )}
-
-              <div className="flex gap-3 pt-4">
-                <Button onClick={handleSave} fullWidth disabled={saving}>
-                  {saving ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
-                </Button>
-              </div>
             </>
           ) : (
             <div className="space-y-6">
