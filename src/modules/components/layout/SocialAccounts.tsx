@@ -31,6 +31,7 @@ type SocialAccountsProps = {
   initialFollowerCounts?: FollowerCountsMap;
   requireAtLeastOne?: boolean;
   showErrors?: boolean;
+  disabled?: boolean;
   label?: string;
   description?: string;
   onChange?: (data: {
@@ -47,6 +48,7 @@ export default function SocialAccounts({
   initialFollowerCounts,
   requireAtLeastOne = true,
   showErrors = false,
+  disabled = false,
   label = "ลิงก์ URL โซเชียลมีเดีย",
   description = "กรอกลิงก์เต็มหรือ username อย่างเดียวก็ได้ ระบบจะจัดรูปแบบให้ตอนบันทึก อย่างน้อย 1 แพลตฟอร์ม และระบุจำนวน Follower",
   onChange,
@@ -172,6 +174,7 @@ export default function SocialAccounts({
             icon={<FaFacebook className="h-5 w-5 text-[#1877F2]" />}
             value={socialAccounts.facebook || ""}
             onChange={(value) => handleUrlChange("facebook", value)}
+            disabled={disabled}
             placeholder="เช่น username หรือ facebook.com/…"
             error={errors.facebookUrl}
             title={SOCIAL_URL_INPUT_TITLES.facebook}
@@ -183,6 +186,7 @@ export default function SocialAccounts({
             type="number"
             value={followerCounts.facebook?.toString() || ""}
             onChange={(value) => handleFollowersChange("facebook", value)}
+            disabled={disabled}
             placeholder="0"
             min={0}
           />
@@ -197,6 +201,7 @@ export default function SocialAccounts({
             icon={<FaInstagram className="h-5 w-5 text-pink-500" />}
             value={socialAccounts.instagram || ""}
             onChange={(value) => handleUrlChange("instagram", value)}
+            disabled={disabled}
             placeholder="เช่น @user หรือ instagram.com/…"
             error={errors.instagramUrl}
             title={SOCIAL_URL_INPUT_TITLES.instagram}
@@ -208,6 +213,7 @@ export default function SocialAccounts({
             type="number"
             value={followerCounts.instagram?.toString() || ""}
             onChange={(value) => handleFollowersChange("instagram", value)}
+            disabled={disabled}
             placeholder="0"
             min={0}
           />
@@ -222,6 +228,7 @@ export default function SocialAccounts({
             icon={<FaTiktok className="h-5 w-5 text-black" />}
             value={socialAccounts.tiktok || ""}
             onChange={(value) => handleUrlChange("tiktok", value)}
+            disabled={disabled}
             placeholder="เช่น @user หรือ tiktok.com/…"
             error={errors.tiktokUrl}
             title={SOCIAL_URL_INPUT_TITLES.tiktok}
@@ -233,6 +240,7 @@ export default function SocialAccounts({
             type="number"
             value={followerCounts.tiktok?.toString() || ""}
             onChange={(value) => handleFollowersChange("tiktok", value)}
+            disabled={disabled}
             placeholder="0"
           />
         </div>
@@ -246,6 +254,7 @@ export default function SocialAccounts({
             icon={<FaYoutube className="h-5 w-5 text-red-600" />}
             value={socialAccounts.youtube || ""}
             onChange={(value) => handleUrlChange("youtube", value)}
+            disabled={disabled}
             placeholder="เช่น ลิงก์ช่องหรือ youtube.com/…"
             error={errors.youtubeUrl}
             title={SOCIAL_URL_INPUT_TITLES.youtube}
@@ -257,6 +266,7 @@ export default function SocialAccounts({
             type="number"
             value={followerCounts.youtube?.toString() || ""}
             onChange={(value) => handleFollowersChange("youtube", value)}
+            disabled={disabled}
             placeholder="0"
           />
         </div>
@@ -270,6 +280,7 @@ export default function SocialAccounts({
             icon={<FaXTwitter className="h-5 w-5 text-black" />}
             value={socialAccounts.twitter || ""}
             onChange={(value) => handleUrlChange("twitter", value)}
+            disabled={disabled}
             placeholder="เช่น @user หรือ x.com/…"
             error={errors.twitterUrl}
             title={SOCIAL_URL_INPUT_TITLES.twitter}
@@ -281,6 +292,7 @@ export default function SocialAccounts({
             type="number"
             value={followerCounts.twitter?.toString() || ""}
             onChange={(value) => handleFollowersChange("twitter", value)}
+            disabled={disabled}
             placeholder="0"
           />
         </div>
@@ -294,6 +306,7 @@ export default function SocialAccounts({
             icon={<Lemon8Icon className="w-5 h-5 text-yellow-500" />}
             value={socialAccounts.lemon8 || ""}
             onChange={(value) => handleUrlChange("lemon8", value)}
+            disabled={disabled}
             placeholder="เช่น user หรือ lemon8.com/…"
             error={errors.lemon8Url}
             title={SOCIAL_URL_INPUT_TITLES.lemon8}
@@ -305,6 +318,7 @@ export default function SocialAccounts({
             type="number"
             value={followerCounts.lemon8?.toString() || ""}
             onChange={(value) => handleFollowersChange("lemon8", value)}
+            disabled={disabled}
             placeholder="0"
           />
         </div>

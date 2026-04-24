@@ -194,7 +194,7 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-0 py-4 md:p-6">
+    <div className="max-w-4xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h2>ลิงค์ Affiliate ของฉัน</h2>
         <Button onClick={() => router.push('/affiliate')} variant="outline">สร้างลิงก์ Affiliate</Button>
