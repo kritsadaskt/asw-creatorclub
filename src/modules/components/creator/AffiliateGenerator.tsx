@@ -20,6 +20,7 @@ import {
   DrawerTitle,
 } from '../ui/drawer';
 import { FaRegTrashAlt } from 'react-icons/fa';
+import { AffiliateClickTrendChart } from './AffiliateClickTrendChart';
 
 interface AffiliateGeneratorProps {
   creatorId: string;
@@ -47,7 +48,14 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
   const [shlinkStats, setShlinkStats] = useState<Record<string, ShlinkStatEntry>>({});
   const [shlinkStatsLoading, setShlinkStatsLoading] = useState(false);
   const [shlinkTotalClicks, setShlinkTotalClicks] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const router = useRouter();
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768);
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const refreshShlinkStats = useCallback(async () => {
     setShlinkStatsLoading(true);
@@ -197,11 +205,14 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
     <div className="max-w-4xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h2>ลิงค์ Affiliate ของฉัน</h2>
-        <Button onClick={() => router.push('/affiliate')} variant="outline">สร้างลิงก์ Affiliate</Button>
+        <Button onClick={() => router.push('/affiliate')} variant="outline" className="cursor-pointer">
+          <PlusIcon className="w-4 h-4" />
+          {isMobile ? '' : 'สร้างลิงก์ Affiliate'}
+        </Button>
       </div>
 
       {/* Links List */}
-      <div className="bg-white rounded-xl shadow-sm border border-border p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-border p-4 md:p-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
           <div className="flex items-center gap-2">
             <Link2 className="w-5 h-5 text-primary" />
@@ -211,7 +222,7 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <MousePointerClick className="w-4 h-4 shrink-0 text-primary" />
               <span>
-                คลิกรวม (ลิงก์ Shlink ที่ยืนยันแล้ว):{' '}
+                คลิกรวม :{' '}
                 {shlinkStatsLoading ? (
                   <Loader2 className="inline w-3.5 h-3.5 animate-spin align-middle" aria-hidden />
                 ) : (
@@ -381,19 +392,36 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
           }
         }}
       >
-        <DrawerContent>
-          <DrawerHeader className="p-7">
+        <DrawerContent
+          className="flex h-full min-h-0 max-h-[100dvh] flex-col overflow-x-hidden p-0"
+          style={{ touchAction: 'pan-y' }}
+        >
+          <DrawerHeader className="shrink-0 p-7">
             <DrawerTitle>รายละเอียดลิงค์ Affiliate</DrawerTitle>
-            <DrawerDescription>แก้ไขข้อมูลลิงค์ของคุณ แล้วบันทึกการเปลี่ยนแปลง</DrawerDescription>
           </DrawerHeader>
 
           {selectedLink && (
-            <div className="px-7 pb-7 space-y-4">
-              <div>
-                <h4 className="text-xl font-semibold text-neutral-700 flex items-center gap-2">
-                  <HomeIcon className="w-4 h-4" />
+            <div
+              className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain px-7 pb-7 flex flex-col gap-5"
+              style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' }}
+            >
+              <div className="flex flex-col gap-3">
+                <h4 className="text-2xl font-medium text-primary flex items-center gap-2">
+                  {projectCache[draftProjectId]?.type === 'condo' ? <Building2 className="w-5 h-5" /> : <HomeIcon className="w-5 h-5" />}
                   <span>{draftProjectId ? projectCache[draftProjectId]?.name : ''}</span>
                 </h4>
+                <div className="text-sm text-muted-foreground flex items-center gap-2">
+                  สร้างเมื่อ : {''}
+                  <span className="font-medium text-foreground">
+                    {new Date(selectedLink.createdAt).toLocaleDateString('th-TH', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                </div>
               </div>
 
               <Input
@@ -412,38 +440,17 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
                 required
               />
 
-              <div className="rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-sm space-y-1">
+              <div className="space-y-1">
                 <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                  <span className="text-muted-foreground shrink-0">คลิกสะสม (Shlink)</span>
-                  {shlinkStatsLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" aria-hidden />
-                  ) : shlinkStats[selectedLink.id] != null ? (
-                    <span className="font-semibold tabular-nums text-foreground">
-                      {shlinkStats[selectedLink.id]!.total.toLocaleString('th-TH')}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
-                  )}
+                  <h4 className="text-lg font-medium text-foreground mb-4">สถิติ Affiliate Link</h4>
+                  {/* Affiliate Graph */}
+                  <div className='flex w-full'>
+                    <AffiliateClickTrendChart linkId={selectedLink.id} />
+                  </div>
                 </div>
-                {draftUrl.trim() !== selectedLink.url.trim() && (
-                  <p className="text-xs text-amber-700">
-                    สถิตินี้อิง URL ที่บันทึกแล้ว — บันทึกเพื่ออัปเดตหลัง Shlink รู้จักลิงก์ใหม่
-                  </p>
-                )}
               </div>
 
-              <div className="text-sm text-muted-foreground flex items-center gap-2">
-                <CalendarIcon className="w-4 h-4" />
-                {new Date(selectedLink.createdAt).toLocaleDateString('th-TH', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </div>
-
-              <div className="h-10"></div>
+              <div className="h-7"></div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
@@ -481,9 +488,9 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
           )}
 
           <DrawerFooter>
-            <div className="w-full flex flex-col md:flex-row gap-2 justify-center">
+            <div className="w-full flex gap-2 justify-center">
               <Button onClick={handleSaveLink} disabled={saving} className="cursor-pointer">
-                {saving ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข'}
+                {saving ? 'กำลังบันทึก...' : 'บันทึก'}
               </Button>
               <DrawerClose asChild>
                 <Button variant="errorTransparent" className="cursor-pointer border-destructive text-destructive">

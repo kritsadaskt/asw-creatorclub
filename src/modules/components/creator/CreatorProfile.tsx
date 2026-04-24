@@ -1,27 +1,30 @@
 import { useState, useEffect, useRef, type ChangeEvent } from 'react';
-import { Camera, Loader2 } from 'lucide-react';
+import { Camera, Link2, Loader2, MousePointerClick } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
 import { CreatorProfile as CreatorProfileType } from '../../types';
 import {
   CREATOR_PROFILE_UPDATED_EVENT,
+  getAffiliateLinksByCreator,
   getCreatorById,
   saveCreator,
   uploadCreatorProfileImage,
 } from '../../utils/storage';
+import { BASE_PATH } from '@/lib/publicPath';
 import { getProfileImageUrl } from '../../utils/profileImage';
 import { AffiliateGenerator } from './AffiliateGenerator';
-import { GetLinkCard } from './GetLinkCard';
 import { supabase } from '../../utils/supabase';
 import { hashPassword, validatePassword, validatePasswordConfirm } from '../../utils/password';
 import Select from 'react-select';
 import SocialAccounts from '../layout/SocialAccounts';
-import { FaEdit, FaSave, FaUndo } from 'react-icons/fa';
+import { FaArrowLeft, FaCopy, FaEdit, FaSave, FaUndo } from 'react-icons/fa';
 
 interface CreatorProfileProps {
   creatorId: string;
 }
+
+type ShlinkStatEntry = { total: number; nonBots?: number } | null;
 
 export function CreatorProfile({ creatorId }: CreatorProfileProps) {
   const [profile, setProfile] = useState<CreatorProfileType | null>(null);
@@ -31,12 +34,15 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
   const [showSocialSubmitErrors, setShowSocialSubmitErrors] = useState(false);
   const socialFormValidRef = useRef(true);
   const [profileImageError, setProfileImageError] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'affiliate'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'affiliate'>('affiliate');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
   const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
+  const [affiliateStatsLoading, setAffiliateStatsLoading] = useState(false);
+  const [affiliateLinkCount, setAffiliateLinkCount] = useState(0);
+  const [affiliateTotalClicks, setAffiliateTotalClicks] = useState(0);
   const profileImageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -67,6 +73,57 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
 
     void loadCategoryOptions();
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== 'affiliate') return;
+
+    let cancelled = false;
+
+    const loadAffiliateStats = async () => {
+      try {
+        setAffiliateStatsLoading(true);
+        const links = await getAffiliateLinksByCreator(creatorId);
+        if (cancelled) return;
+
+        setAffiliateLinkCount(links.length);
+
+        const res = await fetch(`${BASE_PATH}/api/affiliate/shlink-stats`, {
+          credentials: 'include',
+        });
+
+        if (!res.ok) {
+          if (!cancelled) setAffiliateTotalClicks(0);
+          return;
+        }
+
+        const data = (await res.json()) as {
+          stats?: Record<string, ShlinkStatEntry>;
+        };
+
+        const statsByLinkId = data.stats ?? {};
+        const totalClicks = links.reduce((sum, link) => {
+          const total = statsByLinkId[link.id]?.total ?? 0;
+          return sum + (Number.isFinite(total) ? total : 0);
+        }, 0);
+
+        if (!cancelled) setAffiliateTotalClicks(totalClicks);
+      } catch (error) {
+        console.error('Error loading affiliate stats:', error);
+        if (!cancelled) {
+          setAffiliateLinkCount(0);
+          setAffiliateTotalClicks(0);
+        }
+      } finally {
+        if (!cancelled) setAffiliateStatsLoading(false);
+      }
+    };
+
+    void loadAffiliateStats();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, creatorId]);
 
   const loadProfile = async () => {
     try {
@@ -187,12 +244,15 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-6 py-7 md:py-12">
       <div className="mb-6">
-        <h2 className='text-neutral-800 text-3xl font-medium'>CREATOR PROFILE</h2>
+        <h2 className='text-neutral-800 md:text-3xl text-2xl font-medium mb-1'>
+          {profile.name} {profile.lastName}
+        </h2>
+        <small className="text-muted-foreground text-sm flex items-center gap-2">Creator ID : <span className="font-normal text-primary">{creatorId.slice(0, 8)}...{creatorId.slice(-4)}</span> <FaCopy className="w-3 h-3 cursor-pointer" onClick={() => navigator.clipboard.writeText(creatorId)} /></small>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border border-border px-4 py-6 md:px-10 md:py-12 flex flex-col md:flex-row gap-8">
         {/* Sidebar */}
-        <aside className="w-full md:w-64 md:border-r border-border md:pr-6 flex md:flex-col items-center gap-6">
+        <aside className="w-full md:w-64 md:border-r border-border md:pr-6 flex flex-col items-center gap-6">
           <div className="relative group w-48 h-48 shrink-0 rounded-full border-4 border-primary/20 overflow-hidden">
             {getProfileImageUrl(profile) && !profileImageError ? (
               <img
@@ -275,34 +335,38 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
             >
               Affiliate
             </button>
+            <a href='/creatorclub/profile' className='w-full text-left px-4 py-2.5 rounded-lg font-medium cursor-pointer flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors'>
+              <FaArrowLeft className="w-4 h-4" />
+              กลับไปหน้าหลัก
+            </a>
           </nav>
           <small className="text-muted-foreground text-sm">version : {process.env.NEXT_PUBLIC_APP_VERSION}</small>
         </aside>
 
         {/* Main content */}
         <div className="flex-1 space-y-6">
-          <div className="flex justify-end gap-3">
-            {isEditing ? (
-              <>
-                <button className='flex cursor-pointer items-center gap-2 bg-transparent border-2 border-red-500 hover:bg-red-500 hover:text-white text-red-500 px-4 py-2 rounded-lg' onClick={() => setIsEditing(false)}>
-                  <FaUndo className="w-4 h-4" />
-                  ยกเลิก
-                </button>
-                <button className='flex cursor-pointer items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg' onClick={handleSave} disabled={saving}>
-                  <FaSave className="w-4 h-4" />
-                  {saving ? 'กำลังบันทึก...' : 'บันทึก'}
-                </button>
-              </>
-            ) : (
-              <button className='flex cursor-pointer items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg' onClick={() => setIsEditing(true)}>
-                <FaEdit className="w-4 h-4" />
-                แก้ไข
-              </button>
-            )}
-          </div>
           {activeTab === 'profile' ? (
             <>
               {/* Basic Info */}
+              <div className="flex justify-end gap-3">
+                {isEditing ? (
+                  <>
+                    <button className='flex cursor-pointer items-center gap-2 bg-transparent border-2 border-red-500 hover:bg-red-500 hover:text-white text-red-500 px-4 py-2 rounded-lg' onClick={() => setIsEditing(false)}>
+                      <FaUndo className="w-4 h-4" />
+                      ยกเลิก
+                    </button>
+                    <button className='flex cursor-pointer items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg' onClick={handleSave} disabled={saving}>
+                      <FaSave className="w-4 h-4" />
+                      {saving ? 'กำลังบันทึก...' : 'บันทึก'}
+                    </button>
+                  </>
+                ) : (
+                  <button className='flex cursor-pointer items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg' onClick={() => setIsEditing(true)}>
+                    <FaEdit className="w-4 h-4" />
+                    แก้ไข
+                  </button>
+                )}
+              </div>
               <div className="space-y-4">
                 <h3 className="text-primary font-bold">ข้อมูลพื้นฐาน</h3>
 
@@ -451,6 +515,26 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
             </>
           ) : (
             <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white rounded-xl border border-border p-5 shadow-sm">
+                  <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                    <Link2 className="w-4 h-4 text-primary" />
+                    <span className="text-sm">Link ทั้งหมด</span>
+                  </div>
+                  <p className="text-2xl font-semibold text-foreground tabular-nums">
+                    {affiliateStatsLoading ? '...' : affiliateLinkCount.toLocaleString('th-TH')}
+                  </p>
+                </div>
+                <div className="bg-white rounded-xl border border-border p-5 shadow-sm">
+                  <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                    <MousePointerClick className="w-4 h-4 text-primary" />
+                    <span className="text-sm">คลิกทั้งหมด</span>
+                  </div>
+                  <p className="text-2xl font-semibold text-foreground tabular-nums">
+                    {affiliateStatsLoading ? '...' : affiliateTotalClicks.toLocaleString('th-TH')}
+                  </p>
+                </div>
+              </div>
               <AffiliateGenerator creatorId={creatorId} showBackButton={false} />
             </div>
           )}
