@@ -16,6 +16,7 @@ import { formatGenericErrorToast } from '../../utils/toast-error';
 import { Switch } from '../ui/switch';
 import Link from 'next/link';
 import { supabase } from '../../utils/supabase';
+import provinces from '@/lib/provinces.json';
 
 /** Invite `type` query value: show project dropdown and save as resident (no status toggle). */
 const ASW_HOUSEHOLD_INVITE_TYPE = 'asw_household';
@@ -809,34 +810,14 @@ export function RegisterSection({
                 </h3>
                 <Select
                   instanceId="register-base-location"
-                  options={[
-                    {
-                      label: 'กรุงเทพฯ และปริมณฑล',
-                      options: BANGKOK_PROVINCES.map((prov) => ({
-                        value: prov,
-                        label: prov,
-                      })),
-                    },
-                    {
-                      label: '',
-                      options: [
-                        { value: 'ต่างจังหวัด', label: 'ต่างจังหวัด' },
-                      ],
-                    },
-                  ]}
-                  value={
-                    baseLocation
-                      ? BANGKOK_PROVINCES.includes(baseLocation)
-                        ? { value: baseLocation, label: baseLocation }
-                        : { value: 'ต่างจังหวัด', label: 'ต่างจังหวัด' }
-                      : null
-                  }
-                  onChange={option => {
-                    const value = option ? (Array.isArray(option) ? option[0].value : option.value) : '';
+                  options={provinces.map((prov) => ({
+                    value: prov.provinceNameTh,
+                    label: prov.provinceNameTh,
+                  }))}
+                  value={baseLocation ? { value: baseLocation, label: baseLocation } : null}
+                  onChange={(option) => {
+                    const value = option ? option.value : '';
                     setBaseLocation(value);
-                    if (value !== 'ต่างจังหวัด') {
-                      setProvince('');
-                    }
                   }}
                   placeholder="เลือกจังหวัด"
                   classNamePrefix="react-select"
