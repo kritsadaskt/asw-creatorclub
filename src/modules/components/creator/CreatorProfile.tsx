@@ -421,9 +421,6 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
             </>
           ) : (
             <div className="space-y-6">
-              {profile.approvalStatus === 1 && (
-                <GetLinkCard creatorId={profile.id} />
-              )}
               <AffiliateGenerator creatorId={creatorId} showBackButton={false} />
             </div>
           )}

@@ -97,10 +97,6 @@ export function GetLinkCard({ creatorId }: GetLinkCardProps) {
           </button>
         </div>
       )}
-
-      <p className="text-xs text-muted-foreground">
-        แชร์ลิงก์นี้เพื่อแนะนำเพื่อนของคุณ — คุณจะได้รับเครดิตทุกครั้งที่มีคนลงทะเบียนผ่านลิงก์นี้
-      </p>
     </div>
   );
 }
