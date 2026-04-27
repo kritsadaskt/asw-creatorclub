@@ -51,7 +51,7 @@ export interface CreatorProfile {
     twitter?: number;
     lemon8?: number;
   };
-  /** Average budget per post (stored in Supabase `profiles.budgets`). */
+  /** Average budget per post (stored in Supabase `profiles.budget_per_post`). */
   budget?: number;
   // Approval status for admin workflow:
   // 0 = rejected, 1 = approved, 2 = inactive, 3 = pending
