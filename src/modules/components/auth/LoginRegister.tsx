@@ -176,7 +176,7 @@ export function LoginRegister({ onLogin }: LoginRegisterProps) {
           createdAt: new Date().toISOString(),
           baseLocation: '',
           followerCounts: {},
-          budgets: {},
+          budget: undefined,
           approvalStatus: 3,
           status: 'general',
           facebookId: pendingFacebookId || undefined,

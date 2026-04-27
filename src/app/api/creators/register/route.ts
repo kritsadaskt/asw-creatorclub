@@ -28,6 +28,15 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const parseBudget = (raw: unknown): number | null => {
+      if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+      if (typeof raw === 'string' && raw.trim()) {
+        const n = Number(raw);
+        if (Number.isFinite(n)) return n;
+      }
+      return null;
+    };
+
     const rawSocialAccounts =
       creator.socialAccounts !== null &&
       typeof creator.socialAccounts === 'object' &&
@@ -35,6 +44,17 @@ export async function POST(request: NextRequest) {
         ? creator.socialAccounts
         : {};
     const socialAccounts = sanitizeSocialAccounts(rawSocialAccounts as SocialAccountsInput);
+    const legacyBudgets =
+      creator.budgets !== null && typeof creator.budgets === 'object' && !Array.isArray(creator.budgets)
+        ? (creator.budgets as Record<string, unknown>)
+        : null;
+    const budget =
+      parseBudget(creator.budget) ??
+      parseBudget(legacyBudgets?.facebook) ??
+      parseBudget(legacyBudgets?.instagram) ??
+      parseBudget(legacyBudgets?.tiktok) ??
+      parseBudget(legacyBudgets?.youtube) ??
+      parseBudget(legacyBudgets?.twitter);
 
     const rawPageantYear = creator.pageantYear;
     let pageant_year: number | null = null;
@@ -64,7 +84,7 @@ export async function POST(request: NextRequest) {
         profile_image: typeof creator.profileImage === 'string' ? creator.profileImage : null,
         social_accounts: socialAccounts,
         follower_counts: typeof creator.followerCounts === 'object' ? creator.followerCounts : {},
-        budgets: typeof creator.budgets === 'object' ? creator.budgets : {},
+        budgets: budget,
         approval_status: 3,
         status: typeof creator.status === 'string' ? creator.status : null,
         project_name: typeof creator.projectName === 'string' ? creator.projectName : null,

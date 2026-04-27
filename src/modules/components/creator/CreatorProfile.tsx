@@ -485,6 +485,29 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                 }}
               />
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-7">
+                <Input
+                  label="Budget เฉลี่ยต่อโพสต์"
+                  type="number"
+                  min={0}
+                  value={profile.budget != null ? String(profile.budget) : ''}
+                  onChange={(value) => {
+                    const next = value.trim();
+                    if (!next) {
+                      setProfile({ ...profile, budget: undefined });
+                      return;
+                    }
+                    const parsed = Number(next);
+                    setProfile({
+                      ...profile,
+                      budget: Number.isFinite(parsed) ? parsed : undefined,
+                    });
+                  }}
+                  disabled={!isEditing}
+                  placeholder="0"
+                />
+              </div>
+
               {/* Password section for Facebook-only accounts */}
               {profile.facebookId && !profile.passwordHash && (
                 <div className="mt-6 space-y-3 border-t border-border pt-6">

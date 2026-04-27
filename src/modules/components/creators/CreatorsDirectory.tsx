@@ -52,6 +52,15 @@ const socialFollowerOptions: Array<{ value: string; label: string }> = [
   { value: '500k+', label: '500,000+' },
 ];
 
+const budgetRangeOptions: Array<{ value: string; label: string }> = [
+  { value: 'all', label: 'ทั้งหมด' },
+  { value: '0-1k', label: '0 - 1,000' },
+  { value: '1k-5k', label: '1,000 - 5,000' },
+  { value: '5k-10k', label: '5,000 - 10,000' },
+  { value: '10k-30k', label: '10,000 - 30,000' },
+  { value: '30k+', label: '30,000+' },
+];
+
 const categoryOptions = CATEGORIES.map((cat) => ({ value: cat, label: cat }));
 const creatorTypeOptions: Array<{
   value: 'all' | 'asw_staff' | 'asw_household' | 'mi' | 'mut';
@@ -71,6 +80,14 @@ const ranges: { [key: string]: { min: number; max?: number } } = {
   '50k-100k': { min: 50000, max: 100000 },
   '100k-500k': { min: 100000, max: 500000 },
   '500k+': { min: 500000 },
+};
+
+const budgetRanges: { [key: string]: { min: number; max?: number } } = {
+  '0-1k': { min: 0, max: 1000 },
+  '1k-5k': { min: 1000, max: 5000 },
+  '5k-10k': { min: 5000, max: 10000 },
+  '10k-30k': { min: 10000, max: 30000 },
+  '30k+': { min: 30000 },
 };
 
 const PAGE_SIZE = 12;
@@ -127,6 +144,7 @@ export function CreatorsDirectory() {
   >('all');
   const [socialPlatformFilter, setSocialPlatformFilter] = useState<'all' | SocialPlatform>('all');
   const [socialFollowerRange, setSocialFollowerRange] = useState('all');
+  const [selectedBudgetRange, setSelectedBudgetRange] = useState('all');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('card');
   const [page, setPage] = useState(1);
   const [selectedCreator, setSelectedCreator] = useState<CreatorProfile | null>(null);
@@ -208,12 +226,26 @@ export function CreatorsDirectory() {
       });
     }
 
+    if (selectedBudgetRange !== 'all') {
+      const budgetRange = budgetRanges[selectedBudgetRange];
+      if (budgetRange) {
+        rows = rows.filter((creator) => {
+          const budget = creator.budget;
+          if (typeof budget !== 'number' || !Number.isFinite(budget)) return false;
+          if (budgetRange.max != null) {
+            return budget >= budgetRange.min && budget < budgetRange.max;
+          }
+          return budget >= budgetRange.min;
+        });
+      }
+    }
+
     return rows;
-  }, [creators, selectedCategory, selectedCreatorType, searchQuery, socialPlatformFilter, socialFollowerRange]);
+  }, [creators, selectedCategory, selectedCreatorType, searchQuery, socialPlatformFilter, socialFollowerRange, selectedBudgetRange]);
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, selectedCategory, selectedCreatorType, socialPlatformFilter, socialFollowerRange]);
+  }, [searchQuery, selectedCategory, selectedCreatorType, socialPlatformFilter, socialFollowerRange, selectedBudgetRange]);
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(filteredCreators.length / PAGE_SIZE)),
@@ -279,6 +311,10 @@ export function CreatorsDirectory() {
     const socialCount = Object.values(creator.socialAccounts).filter(Boolean).length;
     const creatorType = (creator.type ?? '').trim().toLowerCase();
     const isAswStaff = creatorType === 'assetwise_staff' || creatorType === 'asw_staff';
+    const budgetLabel =
+      typeof creator.budget === 'number' && Number.isFinite(creator.budget)
+        ? `${creator.budget.toLocaleString('th-TH')} บาท/โพสต์`
+        : '-';
     return (
       <div
         key={creator.id}
@@ -310,6 +346,10 @@ export function CreatorsDirectory() {
               {[creator.baseLocation, creator.province].filter(Boolean).join(' / ') || '-'}
             </div>
           </div>
+          <div>
+            <div className="text-xs text-muted-foreground">Budget ต่อโพสต์</div>
+            <div className="truncate text-foreground">{budgetLabel}</div>
+          </div>
           <div className="col-span-2">
             <div className="text-xs text-muted-foreground mb-2">หมวดหมู่</div>
             <div className="text-foreground">
@@ -338,7 +378,7 @@ export function CreatorsDirectory() {
       <div className="container mx-auto py-6">
         <div className="mb-6 rounded-xl border border-border bg-white p-6 shadow-sm">
           <h3 className="mb-4 text-lg font-medium text-neutral-700">ค้นหาและกรองข้อมูล</h3>
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-5">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm text-muted-foreground">ค้นหา (ชื่อ / อีเมล / เบอร์ / จังหวัด)</label>
               <input
@@ -371,6 +411,20 @@ export function CreatorsDirectory() {
                 value={creatorTypeOptions.find((o) => o.value === selectedCreatorType)}
                 onChange={(option) => {
                   setSelectedCreatorType((option?.value as typeof selectedCreatorType) ?? 'all');
+                }}
+                isClearable={false}
+                classNamePrefix="react-select"
+                placeholder="ทั้งหมด"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm text-muted-foreground">Budget ต่อโพสต์ (บาท)</label>
+              <Select
+                options={budgetRangeOptions}
+                value={budgetRangeOptions.find((o) => o.value === selectedBudgetRange)}
+                onChange={(option) => {
+                  setSelectedBudgetRange(option?.value ?? 'all');
                 }}
                 isClearable={false}
                 classNamePrefix="react-select"
@@ -735,6 +789,15 @@ export function CreatorsDirectory() {
                   <label className="text-muted-foreground">พื้นที่ / จังหวัด</label>
                   <p className="text-foreground">
                     {[selectedCreator.baseLocation, selectedCreator.province].filter(Boolean).join(' / ') || '-'}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-muted-foreground">Budget ต่อโพสต์</label>
+                  <p className="text-foreground">
+                    {typeof selectedCreator.budget === 'number' && Number.isFinite(selectedCreator.budget)
+                      ? `${selectedCreator.budget.toLocaleString('th-TH')} บาท/โพสต์`
+                      : '-'}
                   </p>
                 </div>
 

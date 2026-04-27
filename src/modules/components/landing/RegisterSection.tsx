@@ -540,9 +540,7 @@ export function RegisterSection({
           twitter: socialData.followerCounts.twitter,
           lemon8: socialData.followerCounts.lemon8,
         },
-        budgets: {
-          facebook: budget ? parseInt(budget) : undefined,
-        },
+        budget: budget.trim() ? parseInt(budget, 10) : undefined,
         // 3 = pending approval by admin
         approvalStatus: 3,
         status: effectiveStatus,
