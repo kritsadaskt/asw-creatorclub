@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.6.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v1.5.0...v1.6.0) (2026-04-27)
+
+
+### Features
+
+* แก้ logic การกรองประเภทของ creator + เพิ่ม field วันเกิด ([e368150](https://github.com/kritsadaskt/asw-creatorclub/commit/e3681504f4dd8510a238053557ab5e87ab89539e))
+
+
+### Bug Fixes
+
+* remove unread var ([b73f515](https://github.com/kritsadaskt/asw-creatorclub/commit/b73f51509b3a42a943f0541ebbb1e42bdd6b518c))
+* แก้ link กลับจาก dashboard ([10a936a](https://github.com/kritsadaskt/asw-creatorclub/commit/10a936acaa0a1b141118c5a605aa628faaef0994))
+* แก้เลือกวันเกิดแล้วอายุไม่เปลี่ยน ([090fb63](https://github.com/kritsadaskt/asw-creatorclub/commit/090fb63223045295ebf59d17654dcf7a69e6e55d))
+
 ## [1.5.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v1.4.0...v1.5.0) (2026-04-24)
 
 
