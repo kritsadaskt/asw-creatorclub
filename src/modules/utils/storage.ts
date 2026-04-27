@@ -140,7 +140,8 @@ export const saveCreator = async (creator: CreatorProfile): Promise<void> => {
       profile_image: creator.profileImage,
       social_accounts: sanitizeSocialAccounts(creator.socialAccounts),
       follower_counts: creator.followerCounts,
-      budgets: creator.budgets,
+      budget_per_post:
+        typeof creator.budget === 'number' && Number.isFinite(creator.budget) ? creator.budget : null,
       approval_status: creator.approvalStatus ?? 3,
       status: creator.status,
       project_name: creator.projectName,
@@ -154,6 +155,15 @@ export const saveCreator = async (creator: CreatorProfile): Promise<void> => {
     console.error('Error saving Creator:', error);
     throw error;
   }
+};
+
+const normalizeCreatorBudget = (raw: unknown): number | undefined => {
+  if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+  if (typeof raw === 'string' && raw.trim() !== '') {
+    const n = Number(raw);
+    if (Number.isFinite(n)) return n;
+  }
+  return undefined;
 };
 
 export const getCreators = async (): Promise<CreatorProfile[]> => {
@@ -297,7 +307,7 @@ const mapDbToCreatorProfile = (row: any): CreatorProfile => {
     profileImage: row.profile_image,
     socialAccounts: sanitizeSocialAccounts(row.social_accounts || {}),
     followerCounts: row.follower_counts || {},
-    budgets: row.budgets || {},
+    budget: normalizeCreatorBudget(row.budget_per_post),
     approvalStatus: typeof row.approval_status === 'number' ? (row.approval_status as 0 | 1 | 2 | 3) : 3,
     status: row.status || 'general',
     projectName: row.project_name,
