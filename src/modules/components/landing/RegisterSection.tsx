@@ -32,15 +32,6 @@ interface RegisterSectionProps {
   inviteType?: string;
 }
 
-const BANGKOK_PROVINCES = [
-  'กรุงเทพมหานคร',
-  'นนทบุรี',
-  'ปทุมธานี',
-  'สมุทรปราการ',
-  'สมุทรสาคร',
-  'นครปฐม'
-];
-
 type ProjectGroup = { label: string; options: SelectOption[] };
 
 const fetchProjectOptions = async (): Promise<ProjectGroup[]> => {
@@ -117,16 +108,6 @@ export function RegisterSection({
 
   const [creatorCategory, setCreatorCategory] = useState<SelectOption[]>([]);
   const [creatorCategoryOptions, setCreatorCategoryOptions] = useState<SelectOption[]>([]);
-
-  const PARTNERS_TYPE = [
-    { value: 'MUT', label: 'MUT' },
-    { value: 'MI_THAILAND', label: 'MI Thailand' },
-    { value: 'MISS_THAILAND', label: 'นางสาวไทย' },
-    { value: 'MISTER_AND_MISS_GLOBAL_THAILAND', label: 'Mister and Miss Global Thailand' },
-    { value: 'MISS_WORLD', label: 'Miss World' },
-    { value: 'ASW', lable: 'พนักงานแอสเซทไวส์ และบริษัทในเครือ'},
-    { value: 'other', label: 'Other' },
-  ];
 
   // Status fields
   const [status, setStatus] = useState<'general' | 'resident' | 'partner'>('general');
