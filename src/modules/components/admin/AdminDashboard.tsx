@@ -53,6 +53,7 @@ import { AdminAffiliateReports } from './AdminAffiliateReports';
 import type { AdminAffiliateReportsResponse } from '@/modules/types/adminAffiliateReports';
 import type { ShlinkVisitStats } from '@/lib/shlink-server';
 import { Lemon8Icon } from '@/modules/utils/svg';
+import { CreatorBadge } from '../ui/creator-badge';
 
 /** react-select only on client — avoids SSR/hydration drift and mount swap vs skeleton. */
 function ReactSelectSkeleton() {
@@ -68,22 +69,6 @@ const Select = dynamic(() => import('react-select').then((mod) => mod.default), 
   ssr: false,
   loading: () => <ReactSelectSkeleton />,
 }) as typeof import('react-select').default;
-
-function AssetwiseStaffBadge() {
-  return (
-    <span className="inline-flex items-center shrink-0 px-1.5 py-0.5 rounded-md font-normal text-xs leading-none bg-blue-50 text-blue-700 border border-blue-200/80">
-      ASSETWISE
-    </span>
-  );
-}
-
-function AssetwiseHouseholdBadge() {
-  return (
-    <span className="inline-flex items-center shrink-0 px-1.5 py-0.5 rounded-md font-normal text-xs leading-none bg-violet-50 text-violet-700 border border-violet-200/80">
-      ลูกบ้าน
-    </span>
-  );
-}
 
 type SocialPlatform = keyof CreatorProfile['socialAccounts'];
 
@@ -263,7 +248,9 @@ export function AdminDashboard() {
   const [filteredCreators, setFilteredCreators] = useState<CreatorProfile[]>([]);
   const [approvalFilter, setApprovalFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'inactive'>('pending');
   const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
-  const [selectedCreatorType, setSelectedCreatorType] = useState<'all' | 'assetwise_staff' | 'asw_household'>('all');
+  const [selectedCreatorType, setSelectedCreatorType] = useState<
+    'all' | 'assetwise_staff' | 'asw_household' | 'mi' | 'mut'
+  >('all');
   const [categoryLabels, setCategoryLabels] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCreator, setSelectedCreator] = useState<CreatorProfile | null>(null);
@@ -349,10 +336,12 @@ export function AdminDashboard() {
     { value: '500k+', label: '500,000+' },
     { value: 'custom', label: 'กำหนดเอง' },
   ];
-  const creatorTypeOptions: Array<{ value: 'all' | 'assetwise_staff' | 'asw_household'; label: string }> = [
+  const creatorTypeOptions: Array<{ value: 'all' | 'assetwise_staff' | 'asw_household' | 'mi' | 'mut'; label: string }> = [
     { value: 'all', label: 'ทั้งหมด' },
     { value: 'assetwise_staff', label: 'พนักงาน' },
     { value: 'asw_household', label: 'ลูกบ้าน' },
+    { value: 'mi', label: 'MI'},
+    { value: 'mut', label: 'MUT'},
   ];
 
   useEffect(() => {
@@ -463,10 +452,18 @@ export function AdminDashboard() {
     if (selectedCreatorType !== 'all') {
       filtered = filtered.filter((creator) => {
         const rawType = (creator.type ?? '').trim().toLowerCase();
-        if (selectedCreatorType === 'assetwise_staff') {
-          return rawType === 'assetwise_staff';
+        switch (selectedCreatorType) {
+          case 'assetwise_staff':
+            return rawType === 'assetwise_staff';
+          case 'asw_household':
+            return rawType === 'asw_household' || rawType === 'asw_houshold';
+          case 'mi':
+            return rawType === 'mi';
+          case 'mut':
+            return rawType === 'mut';
+          default:
+            return true;
         }
-        return rawType === 'asw_household' || rawType === 'asw_houshold';
       });
     }
 
@@ -893,7 +890,7 @@ export function AdminDashboard() {
           <span>
             {creator.name} {creator.lastName}
           </span>
-          {creator.type === 'assetwise_staff' && <AssetwiseStaffBadge />}
+          {creator.type === 'assetwise_staff' && <CreatorBadge type="assetwise_staff" />}
         </p>
       </div>
 
@@ -1121,12 +1118,12 @@ export function AdminDashboard() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label>ประเภทผู้ใช้</label>
+              <label>ประเภท</label>
               <Select
                 options={creatorTypeOptions}
                 value={creatorTypeOptions.find((o) => o.value === selectedCreatorType)}
                 onChange={(option) => {
-                  setSelectedCreatorType(option?.value ?? 'all');
+                  setSelectedCreatorType((option?.value as typeof selectedCreatorType) ?? 'all');
                 }}
                 isClearable={false}
                 classNamePrefix="react-select"
@@ -1230,7 +1227,7 @@ export function AdminDashboard() {
                         key={creator.id}
                         className="border-b border-border hover:bg-input-background/30 transition-colors"
                       >
-                        <td className="py-3 px-4 text-sm text-foreground xxx">{creator.name} {creator.lastName} {creator.type === 'assetwise_staff' && <AssetwiseStaffBadge />} {creator.type === 'asw_household' && <AssetwiseHouseholdBadge />}</td>
+                        <td className="py-3 px-4 text-sm text-foreground">{creator.name} {creator.lastName} <CreatorBadge type={creator.type ?? ''} /> {creator.type}</td>
                         <td className="py-3 px-4 text-sm text-foreground">{creator.email}</td>
                         <td className="py-3 px-4 text-sm text-foreground">{creator.phone || '-'}</td>
                         <td className="py-3 px-4 text-sm text-foreground">{getSocialLinks(creator).length} ช่องทาง</td>
@@ -1362,7 +1359,7 @@ export function AdminDashboard() {
                     <span className="inline-flex flex-wrap items-center gap-1.5">
                       <span className="inline-flex items-center flex-wrap gap-1.5">
                         {fgfNestedCreator.name}
-                        {fgfNestedCreator.type === 'assetwise_staff' && <AssetwiseStaffBadge />}
+                        {fgfNestedCreator.type === 'assetwise_staff' && <CreatorBadge type="assetwise_staff" />}
                       </span>
                       <span aria-hidden>·</span>
                       <span>{fgfNestedCreator.email}</span>

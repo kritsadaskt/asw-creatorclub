@@ -408,6 +408,15 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                   placeholder="กรอกเบอร์โทรศัพท์"
                   required
                 />
+
+                <Input
+                  label="วันเกิด"
+                  type="date"
+                  value={profile.dob || ''}
+                  onChange={(value) => setProfile({ ...profile, dob: value || undefined })}
+                  disabled={!isEditing}
+                  placeholder="เลือกวันเกิด"
+                />
                 </div>
 
                 {profile.province && (
