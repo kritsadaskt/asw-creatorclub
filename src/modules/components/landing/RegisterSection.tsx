@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
@@ -21,6 +21,25 @@ import provinces from '@/lib/provinces.json';
 /** Invite `type` query value: show project dropdown and save as resident (no status toggle). */
 const ASW_HOUSEHOLD_INVITE_TYPE = 'asw_household';
 const PAGEANT_INVITE_TYPE = 'pageant';
+
+/** Calendar age from `YYYY-MM-DD` using local date (matches `<input type="date">`). */
+function ageFromBirthYmd(birthYmd: string): number {
+  const m = birthYmd.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return 0;
+  const y = Number(m[1]);
+  const mo = Number(m[2]) - 1;
+  const d = Number(m[3]);
+  const birth = new Date(y, mo, d);
+  if (Number.isNaN(birth.getTime())) return 0;
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age -= 1;
+  }
+  return age;
+}
+
 const PAGEANT_STAGE_OPTIONS: SelectOption[] = [
   { value: 'miss_world_th', label: 'Miss World Thailand' },
   { value: 'mister_int', label: 'Mister International' },
@@ -133,18 +152,26 @@ export function RegisterSection({
 
   const needsHouseholdProject = inviteType === ASW_HOUSEHOLD_INVITE_TYPE;
   const isPageantInvite =
-    inviteType === PAGEANT_INVITE_TYPE || inviteType === 'mi' || inviteType === 'mu' || inviteType === 'mut';
+    inviteType === PAGEANT_INVITE_TYPE || inviteType === 'mister_int' || inviteType === 'miss_world' || inviteType === 'mr_mrs_global' || inviteType === 'miss_th';
   const [pageantYear, setPageantYear] = useState<string>('');
   const [birthdate, setBirthdate] = useState<string>(new Date('2008-01-01').toISOString().split('T')[0]);
-  const [age, setAge] = useState<number>(2026 - 2008);
+  const age = useMemo(() => ageFromBirthYmd(birthdate), [birthdate]);
 
   useEffect(() => {
-    if (inviteType === 'mi') {
-      setPageantStage('mi');
+    if (inviteType === 'mister_int') {
+      setPageantStage('mister_int');
       return;
     }
-    if (inviteType === 'mu' || inviteType === 'mut') {
-      setPageantStage('mu');
+    if (inviteType === 'miss_world') {
+      setPageantStage('miss_world');
+      return;
+    }
+    if (inviteType === 'mr_mrs_global') {
+      setPageantStage('mr_mrs_global');
+      return;
+    }
+    if (inviteType === 'miss_th') {
+      setPageantStage('miss_th');
       return;
     }
     setPageantStage('');
@@ -773,10 +800,8 @@ export function RegisterSection({
                     type="number"
                     min={18}
                     max={100}
-                    value={age.toString()}
-                    onChange={(value) => {
-                      setAge(Number(value));
-                    }}
+                    value={String(age)}
+                    onChange={() => {}}
                     placeholder="กรอกอายุ"
                     disabled
                     className='text-neutral-500 cursor-not-allowed'
@@ -981,43 +1006,42 @@ export function RegisterSection({
                 </div>
                 <div className="flex flex-col gap-2">
                   <h3 className="font-semibold text-primary">ปีที่ประกวด</h3>
-                <Select
-                  instanceId="register-pageant-year"
-                  options={Array.from({ length: new Date().getFullYear() - 2020 + 1 }, (_, i) => {
-                    const year = (2020 + i).toString();
-                    return { value: year, label: year };
-                  })}
-                  value={
-                    pageantYear
-                      ? { value: pageantYear, label: pageantYear }
-                      : null
-                  }
-                  onChange={(option) => {
-                    const value = option ? option.value : '';
-                    setPageantYear(value);
-                    if (touchedFields.pageantYear) {
+                  <Select
+                    instanceId="register-pageant-year"
+                    options={Array.from({ length: new Date().getFullYear() - 2020 + 1 }, (_, i) => {
+                      const year = (2020 + i).toString();
+                      return { value: year, label: year };
+                    })}
+                    value={
+                      pageantYear
+                        ? { value: pageantYear, label: pageantYear }
+                        : null
+                    }
+                    onChange={(option) => {
+                      const value = option ? option.value : '';
+                      setPageantYear(value);
+                      if (touchedFields.pageantYear) {
+                        setFieldErrors((prev) => ({
+                          ...prev,
+                          pageantYear: validateField('pageantYear', value),
+                        }));
+                      }
+                    }}
+                    onBlur={() => {
+                      setTouchedFields((prev) => ({ ...prev, pageantYear: true }));
                       setFieldErrors((prev) => ({
                         ...prev,
-                        pageantYear: validateField('pageantYear', value),
+                        pageantYear: validateField('pageantYear', pageantYear),
                       }));
-                    }
-                  }}
-                  onBlur={() => {
-                    setTouchedFields((prev) => ({ ...prev, pageantYear: true }));
-                    setFieldErrors((prev) => ({
-                      ...prev,
-                      pageantYear: validateField('pageantYear', pageantYear),
-                    }));
-                  }}
-                  placeholder="เลือกปี"
-                  classNamePrefix="react-select"
-                />
-                {touchedFields.pageantYear && fieldErrors.pageantYear && (
-                  <p className="mt-2 text-xs text-destructive">
-                    {fieldErrors.pageantYear}
-                  </p>
-                )}
-          
+                    }}
+                    placeholder="เลือกปี"
+                    classNamePrefix="react-select"
+                  />
+                  {touchedFields.pageantYear && fieldErrors.pageantYear && (
+                    <p className="mt-2 text-xs text-destructive">
+                      {fieldErrors.pageantYear}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
