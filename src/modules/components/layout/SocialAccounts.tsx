@@ -53,6 +53,7 @@ export default function SocialAccounts({
   description = "ระบุอย่างน้อย 1 แพลตฟอร์ม และระบุจำนวน Follower กรุณาตรวจสอบ format ของ URL หรือ Username ให้ถูกต้อง",
   onChange,
 }: SocialAccountsProps) {
+  const platforms: SocialPlatform[] = ["facebook", "instagram", "tiktok", "youtube", "twitter", "lemon8"];
   const [socialAccounts, setSocialAccounts] = useState<SocialAccountsMap>(
     () => initialSocialAccounts || {}
   );
@@ -62,19 +63,22 @@ export default function SocialAccounts({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [socialError, setSocialError] = useState("");
 
-  const validate = (accounts: SocialAccountsMap) => {
+  const validate = (accounts: SocialAccountsMap, counts: FollowerCountsMap) => {
     const allErrors: Record<string, string> = {};
 
-    const hasAnySocial =
-      !!accounts.facebook ||
-      !!accounts.instagram ||
-      !!accounts.tiktok ||
-      !!accounts.youtube ||
-      !!accounts.twitter ||
-      !!accounts.lemon8;
+    const hasAnySocial = platforms.some((platform) => Boolean(accounts[platform]));
+    const hasAnySocialWithFollower = platforms.some((platform) => {
+      const hasSocial = Boolean(accounts[platform]);
+      const followers = counts[platform];
+      const hasFollower = typeof followers === "number" && Number.isFinite(followers);
+      return hasSocial && hasFollower;
+    });
 
     if (requireAtLeastOne && !hasAnySocial) {
       allErrors.social = "กรุณากรอกข้อมูล Social Media อย่างน้อย 1 แพลตฟอร์ม";
+    }
+    if (requireAtLeastOne && hasAnySocial && !hasAnySocialWithFollower) {
+      allErrors.social = "กรุณาระบุจำนวนผู้ติดตามอย่างน้อย 1 ช่องทางที่มี Social";
     }
 
     const validateSocialUrl = (key: SocialPlatform, label: string) => {
@@ -92,6 +96,15 @@ export default function SocialAccounts({
     validateSocialUrl("youtube", "YouTube URL");
     validateSocialUrl("twitter", "X (Twitter) URL");
     validateSocialUrl("lemon8", "Lemon8 URL");
+
+    platforms.forEach((key) => {
+      const hasSocial = Boolean(accounts[key]);
+      const followers = counts[key];
+      const hasFollower = typeof followers === "number" && Number.isFinite(followers);
+      if (hasSocial && !hasFollower) {
+        allErrors[`${key}Follower`] = "กรุณากรอกจำนวนผู้ติดตาม";
+      }
+    });
 
     const isValid = Object.keys(allErrors).length === 0;
 
@@ -112,6 +125,12 @@ export default function SocialAccounts({
         }
         return;
       }
+      if (key.endsWith("Follower")) {
+        if (showErrors) {
+          visibleErrors[key] = value;
+        }
+        return;
+      }
 
       visibleErrors[key] = value;
     });
@@ -121,7 +140,7 @@ export default function SocialAccounts({
 
     onChange?.({
       socialAccounts: accounts,
-      followerCounts,
+      followerCounts: counts,
       isValid,
       errors: allErrors,
       socialError: allErrors.social || "",
@@ -129,27 +148,21 @@ export default function SocialAccounts({
   };
 
   useEffect(() => {
-    validate(socialAccounts);
+    validate(socialAccounts, followerCounts);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requireAtLeastOne, showErrors]);
 
   const handleUrlChange = (key: keyof SocialAccountsMap, value: string) => {
     const next = { ...socialAccounts, [key]: value };
     setSocialAccounts(next);
-    validate(next);
+    validate(next, followerCounts);
   };
 
   const handleFollowersChange = (key: keyof FollowerCountsMap, value: string) => {
     const numeric = value ? parseInt(value, 10) : undefined;
     const next = { ...followerCounts, [key]: isNaN(Number(numeric)) ? undefined : numeric };
     setFollowerCounts(next);
-    onChange?.({
-      socialAccounts,
-      followerCounts: next,
-      isValid: Object.keys(errors).length === 0,
-      errors,
-      socialError,
-    });
+    validate(socialAccounts, next);
   };
 
   return (
@@ -189,6 +202,7 @@ export default function SocialAccounts({
             disabled={disabled}
             placeholder="0"
             min={0}
+            error={errors.facebookFollower}
           />
         </div>
       </div>
@@ -216,6 +230,7 @@ export default function SocialAccounts({
             disabled={disabled}
             placeholder="0"
             min={0}
+            error={errors.instagramFollower}
           />
         </div>
       </div>
@@ -242,6 +257,7 @@ export default function SocialAccounts({
             onChange={(value) => handleFollowersChange("tiktok", value)}
             disabled={disabled}
             placeholder="0"
+            error={errors.tiktokFollower}
           />
         </div>
       </div>
@@ -268,6 +284,7 @@ export default function SocialAccounts({
             onChange={(value) => handleFollowersChange("youtube", value)}
             disabled={disabled}
             placeholder="0"
+            error={errors.youtubeFollower}
           />
         </div>
       </div>
@@ -294,6 +311,7 @@ export default function SocialAccounts({
             onChange={(value) => handleFollowersChange("twitter", value)}
             disabled={disabled}
             placeholder="0"
+            error={errors.twitterFollower}
           />
         </div>
       </div>
@@ -320,6 +338,7 @@ export default function SocialAccounts({
             onChange={(value) => handleFollowersChange("lemon8", value)}
             disabled={disabled}
             placeholder="0"
+            error={errors.lemon8Follower}
           />
         </div>
       </div>

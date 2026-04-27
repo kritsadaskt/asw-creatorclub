@@ -44,6 +44,35 @@ export async function POST(request: NextRequest) {
         ? creator.socialAccounts
         : {};
     const socialAccounts = sanitizeSocialAccounts(rawSocialAccounts as SocialAccountsInput);
+    const rawFollowerCounts =
+      creator.followerCounts !== null &&
+      typeof creator.followerCounts === 'object' &&
+      !Array.isArray(creator.followerCounts)
+        ? (creator.followerCounts as Record<string, unknown>)
+        : {};
+    const socialPlatforms = ['facebook', 'instagram', 'tiktok', 'youtube', 'twitter', 'lemon8'] as const;
+    const followerCounts = Object.fromEntries(
+      socialPlatforms.map((platform) => {
+        const raw = rawFollowerCounts[platform];
+        if (typeof raw === 'number' && Number.isFinite(raw)) return [platform, raw];
+        if (typeof raw === 'string' && raw.trim()) {
+          const n = Number(raw);
+          if (Number.isFinite(n)) return [platform, n];
+        }
+        return [platform, undefined];
+      }),
+    ) as Record<(typeof socialPlatforms)[number], number | undefined>;
+    const hasSocialWithFollower = socialPlatforms.some((platform) => {
+      const hasSocial = Boolean(socialAccounts[platform]);
+      const followers = followerCounts[platform];
+      return hasSocial && typeof followers === 'number' && Number.isFinite(followers);
+    });
+    if (!hasSocialWithFollower) {
+      return NextResponse.json(
+        { error: 'กรุณากรอก Social และจำนวนผู้ติดตามอย่างน้อย 1 ช่องทาง' },
+        { status: 400 },
+      );
+    }
     const budget = parseBudget(creator.budget);
 
     const rawPageantYear = creator.pageantYear;
@@ -73,7 +102,7 @@ export async function POST(request: NextRequest) {
         followers: typeof creator.followers === 'number' ? creator.followers : 0,
         profile_image: typeof creator.profileImage === 'string' ? creator.profileImage : null,
         social_accounts: socialAccounts,
-        follower_counts: typeof creator.followerCounts === 'object' ? creator.followerCounts : {},
+        follower_counts: followerCounts,
         budget_per_post: budget,
         approval_status: 3,
         status: typeof creator.status === 'string' ? creator.status : null,
