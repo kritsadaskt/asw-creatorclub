@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.6.1](https://github.com/kritsadaskt/asw-creatorclub/compare/v1.6.0...v1.6.1) (2026-04-27)
+
+
+### Bug Fixes
+
+* ปรับ flow ของ budget ([d2ac23f](https://github.com/kritsadaskt/asw-creatorclub/commit/d2ac23f91dac72a80f2a82ce471473500126c027))
+* ปรับเพิ่มให้ budget อ่านและบันทึกข้อมูลจาก budget_per_post ([ed1c45b](https://github.com/kritsadaskt/asw-creatorclub/commit/ed1c45b96e933455d7f29cd8046a2dda99e82563))
+
 ## [1.6.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v1.5.0...v1.6.0) (2026-04-27)
 
 
