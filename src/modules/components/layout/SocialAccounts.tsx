@@ -50,7 +50,7 @@ export default function SocialAccounts({
   showErrors = false,
   disabled = false,
   label = "ลิงก์ URL โซเชียลมีเดีย",
-  description = "กรอกลิงก์เต็มหรือ username อย่างเดียวก็ได้ ระบบจะจัดรูปแบบให้ตอนบันทึก อย่างน้อย 1 แพลตฟอร์ม และระบุจำนวน Follower",
+  description = "ระบุอย่างน้อย 1 แพลตฟอร์ม และระบุจำนวน Follower กรุณาตรวจสอบ format ของ URL หรือ Username ให้ถูกต้อง",
   onChange,
 }: SocialAccountsProps) {
   const [socialAccounts, setSocialAccounts] = useState<SocialAccountsMap>(

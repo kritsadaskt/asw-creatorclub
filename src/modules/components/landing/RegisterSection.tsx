@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
@@ -16,9 +16,36 @@ import { formatGenericErrorToast } from '../../utils/toast-error';
 import { Switch } from '../ui/switch';
 import Link from 'next/link';
 import { supabase } from '../../utils/supabase';
+import provinces from '@/lib/provinces.json';
 
 /** Invite `type` query value: show project dropdown and save as resident (no status toggle). */
 const ASW_HOUSEHOLD_INVITE_TYPE = 'asw_household';
+const PAGEANT_INVITE_TYPE = 'pageant';
+
+/** Calendar age from `YYYY-MM-DD` using local date (matches `<input type="date">`). */
+function ageFromBirthYmd(birthYmd: string): number {
+  const m = birthYmd.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return 0;
+  const y = Number(m[1]);
+  const mo = Number(m[2]) - 1;
+  const d = Number(m[3]);
+  const birth = new Date(y, mo, d);
+  if (Number.isNaN(birth.getTime())) return 0;
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age -= 1;
+  }
+  return age;
+}
+
+const PAGEANT_STAGE_OPTIONS: SelectOption[] = [
+  { value: 'miss_world_th', label: 'Miss World Thailand' },
+  { value: 'mister_int', label: 'Mister International' },
+  { value: 'miss_th', label: 'นางสาวไทย' },
+  { value: 'mr_mrs_global', label: 'Mr. & Mrs. Global Thailand' },
+];
 
 type SelectOption = { value: string; label: string };
 
@@ -27,18 +54,9 @@ interface RegisterSectionProps {
   /** When set, the category field is hidden and these labels are saved (invite link flow). */
   fixedCategoryLabels?: string[];
   variant?: 'landing' | 'standalone';
-  /** Raw invite type from register URL (e.g. MUT, MI_THAILAND). */
+  /** Raw invite type from register URL (e.g. asw_household, pageant). */
   inviteType?: string;
 }
-
-const BANGKOK_PROVINCES = [
-  'กรุงเทพมหานคร',
-  'นนทบุรี',
-  'ปทุมธานี',
-  'สมุทรปราการ',
-  'สมุทรสาคร',
-  'นครปฐม'
-];
 
 type ProjectGroup = { label: string; options: SelectOption[] };
 
@@ -117,20 +135,10 @@ export function RegisterSection({
   const [creatorCategory, setCreatorCategory] = useState<SelectOption[]>([]);
   const [creatorCategoryOptions, setCreatorCategoryOptions] = useState<SelectOption[]>([]);
 
-  const PARTNERS_TYPE = [
-    { value: 'MUT', label: 'MUT' },
-    { value: 'MI_THAILAND', label: 'MI Thailand' },
-    { value: 'MISS_THAILAND', label: 'นางสาวไทย' },
-    { value: 'MISTER_AND_MISS_GLOBAL_THAILAND', label: 'Mister and Miss Global Thailand' },
-    { value: 'MISS_WORLD', label: 'Miss World' },
-    { value: 'ASW', lable: 'พนักงานแอสเซทไวส์ และบริษัทในเครือ'},
-    { value: 'other', label: 'Other' },
-  ];
-
   // Status fields
   const [status, setStatus] = useState<'general' | 'resident' | 'partner'>('general');
   const [projectName, setProjectName] = useState('');
-  const [partnerType, setPartnerType] = useState<string>('MUT');
+  const [pageantStage, setPageantStage] = useState<string>('');
 
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -143,6 +151,31 @@ export function RegisterSection({
   const [hideStatusField, setHideStatusField] = useState(false);
 
   const needsHouseholdProject = inviteType === ASW_HOUSEHOLD_INVITE_TYPE;
+  const isPageantInvite =
+    inviteType === PAGEANT_INVITE_TYPE || inviteType === 'mister_int' || inviteType === 'miss_world' || inviteType === 'mr_mrs_global' || inviteType === 'miss_th';
+  const [pageantYear, setPageantYear] = useState<string>('');
+  const [birthdate, setBirthdate] = useState<string>(new Date('2008-01-01').toISOString().split('T')[0]);
+  const age = useMemo(() => ageFromBirthYmd(birthdate), [birthdate]);
+
+  useEffect(() => {
+    if (inviteType === 'mister_int') {
+      setPageantStage('mister_int');
+      return;
+    }
+    if (inviteType === 'miss_world') {
+      setPageantStage('miss_world');
+      return;
+    }
+    if (inviteType === 'mr_mrs_global') {
+      setPageantStage('mr_mrs_global');
+      return;
+    }
+    if (inviteType === 'miss_th') {
+      setPageantStage('miss_th');
+      return;
+    }
+    setPageantStage('');
+  }, [inviteType]);
 
   const sendRegistrationPendingEmail = async (
     creator: Pick<CreatorProfile, 'name' | 'email' | 'lastName'>,
@@ -244,6 +277,9 @@ export function RegisterSection({
           return 'กรุณากรอกอีเมลที่ถูกต้อง';
         }
         return '';
+      case 'birthdate':
+        if (!value.trim()) return 'กรุณาเลือกวันเกิด';
+        return '';
       case 'password':
         if (!value.trim()) return 'กรุณากรอกรหัสผ่าน';
         if (value.length < 8 || !/[0-9]/.test(value)) {
@@ -263,6 +299,16 @@ export function RegisterSection({
       case 'projectName':
         if (!value.trim()) return 'กรุณาเลือกโครงการ';
         return '';
+      case 'pageantStage':
+        if (!value.trim()) return 'กรุณาเลือกเวที';
+        return '';
+      case 'pageantYear':
+        if (!value.trim()) return 'กรุณาเลือกปีที่ประกวด';
+        {
+          const y = parseInt(value.trim(), 10);
+          if (!Number.isFinite(y) || y < 1900 || y > 2100) return 'ปีไม่ถูกต้อง';
+        }
+        return '';
       default:
         return '';
     }
@@ -281,6 +327,7 @@ export function RegisterSection({
     addError('lastName', validateField('lastName', lastName));
     addError('phone', validateField('phone', phone));
     addError('email', validateField('email', email));
+    addError('birthdate', validateField('birthdate', birthdate));
 
     const hasPendingFacebook =
       typeof window !== 'undefined' && sessionStorage.getItem('pendingFacebookId');
@@ -296,6 +343,10 @@ export function RegisterSection({
 
     if (needsHouseholdProject || status === 'resident') {
       addError('projectName', validateField('projectName', projectName));
+    }
+    if (isPageantInvite) {
+      addError('pageantStage', validateField('pageantStage', pageantStage));
+      addError('pageantYear', validateField('pageantYear', pageantYear));
     }
 
     if (!acceptedTerms) {
@@ -459,12 +510,14 @@ export function RegisterSection({
       }
 
       const effectiveStatus = needsHouseholdProject ? 'resident' : status;
+      const inviteCreatorType = isPageantInvite ? pageantStage : inviteType;
 
       const newCreator: CreatorProfile = {
         id: generateUUID(),
         email,
         name: name.trim(),
         lastName: lastName.trim() || undefined,
+        dob: birthdate || undefined,
         phone,
         baseLocation,
         province: baseLocation === 'ต่างจังหวัด' ? province : undefined,
@@ -494,7 +547,12 @@ export function RegisterSection({
         approvalStatus: 3,
         status: effectiveStatus,
         projectName: effectiveStatus === 'resident' ? projectName : undefined,
-        type: inviteType,
+        type: inviteCreatorType || undefined,
+        pageantYear: (() => {
+          if (!isPageantInvite || !pageantYear.trim()) return undefined;
+          const y = parseInt(pageantYear.trim(), 10);
+          return Number.isFinite(y) ? y : undefined;
+        })(),
         createdAt: new Date().toISOString(),
         facebookId: pendingFacebookId || undefined,
         passwordHash,
@@ -709,6 +767,48 @@ export function RegisterSection({
                 </div>
               </div>
 
+              <div className="flex flex-col md:flex-row gap-5">
+              <div className="w-full md:w-1/2">
+                  <Input
+                    label="วันเกิด"
+                    type="date"
+                    value={birthdate}
+                    onChange={(value) => {
+                      setBirthdate(value);
+                      if (touchedFields.birthdate) {
+                        setFieldErrors((prev) => ({
+                          ...prev,
+                          birthdate: validateField('birthdate', value),
+                        }));
+                      }
+                    }}
+                    placeholder="เลือกวันเกิด"
+                    required
+                    onBlur={() => {
+                      setTouchedFields((prev) => ({ ...prev, birthdate: true }));
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        birthdate: validateField('birthdate', birthdate),
+                      }));
+                    }}
+                    error={touchedFields.birthdate ? fieldErrors.birthdate : ''}
+                  />
+                </div>
+                <div className="w-full md:w-1/2">
+                  <Input
+                    label="อายุ"
+                    type="number"
+                    min={18}
+                    max={100}
+                    value={String(age)}
+                    onChange={() => {}}
+                    placeholder="กรอกอายุ"
+                    disabled
+                    className='text-neutral-500 cursor-not-allowed'
+                  />
+                </div>
+              </div>
+
               {/* Password fields - only show if not using Facebook */}
               {!hasPendingFacebook && (
                 <>
@@ -809,34 +909,14 @@ export function RegisterSection({
                 </h3>
                 <Select
                   instanceId="register-base-location"
-                  options={[
-                    {
-                      label: 'กรุงเทพฯ และปริมณฑล',
-                      options: BANGKOK_PROVINCES.map((prov) => ({
-                        value: prov,
-                        label: prov,
-                      })),
-                    },
-                    {
-                      label: '',
-                      options: [
-                        { value: 'ต่างจังหวัด', label: 'ต่างจังหวัด' },
-                      ],
-                    },
-                  ]}
-                  value={
-                    baseLocation
-                      ? BANGKOK_PROVINCES.includes(baseLocation)
-                        ? { value: baseLocation, label: baseLocation }
-                        : { value: 'ต่างจังหวัด', label: 'ต่างจังหวัด' }
-                      : null
-                  }
-                  onChange={option => {
-                    const value = option ? (Array.isArray(option) ? option[0].value : option.value) : '';
+                  options={provinces.map((prov) => ({
+                    value: prov.provinceNameTh,
+                    label: prov.provinceNameTh,
+                  }))}
+                  value={baseLocation ? { value: baseLocation, label: baseLocation } : null}
+                  onChange={(option) => {
+                    const value = option ? option.value : '';
                     setBaseLocation(value);
-                    if (value !== 'ต่างจังหวัด') {
-                      setProvince('');
-                    }
                   }}
                   placeholder="เลือกจังหวัด"
                   classNamePrefix="react-select"
@@ -889,6 +969,82 @@ export function RegisterSection({
                 }
               />
             </div>
+
+            {isPageantInvite && (
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2">
+                  <h3 className="font-semibold text-primary">โปรดเลือกเวทีที่คุณสังกัด</h3>
+                  <Select
+                    instanceId="register-pageant-stage"
+                    options={PAGEANT_STAGE_OPTIONS}
+                    value={PAGEANT_STAGE_OPTIONS.find((option) => option.value === pageantStage) ?? null}
+                    onChange={(option) => {
+                      const value = option ? option.value : '';
+                      setPageantStage(value);
+                      if (touchedFields.pageantStage) {
+                        setFieldErrors((prev) => ({
+                          ...prev,
+                          pageantStage: validateField('pageantStage', value),
+                        }));
+                      }
+                    }}
+                    onBlur={() => {
+                      setTouchedFields((prev) => ({ ...prev, pageantStage: true }));
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        pageantStage: validateField('pageantStage', pageantStage),
+                      }));
+                    }}
+                    placeholder="เลือกเวที"
+                    classNamePrefix="react-select"
+                  />
+                  {touchedFields.pageantStage && fieldErrors.pageantStage && (
+                    <p className="mt-2 text-xs text-destructive">
+                      {fieldErrors.pageantStage}
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-col gap-2">
+                  <h3 className="font-semibold text-primary">ปีที่ประกวด</h3>
+                  <Select
+                    instanceId="register-pageant-year"
+                    options={Array.from({ length: new Date().getFullYear() - 2020 + 1 }, (_, i) => {
+                      const year = (2020 + i).toString();
+                      return { value: year, label: year };
+                    })}
+                    value={
+                      pageantYear
+                        ? { value: pageantYear, label: pageantYear }
+                        : null
+                    }
+                    onChange={(option) => {
+                      const value = option ? option.value : '';
+                      setPageantYear(value);
+                      if (touchedFields.pageantYear) {
+                        setFieldErrors((prev) => ({
+                          ...prev,
+                          pageantYear: validateField('pageantYear', value),
+                        }));
+                      }
+                    }}
+                    onBlur={() => {
+                      setTouchedFields((prev) => ({ ...prev, pageantYear: true }));
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        pageantYear: validateField('pageantYear', pageantYear),
+                      }));
+                    }}
+                    placeholder="เลือกปี"
+                    classNamePrefix="react-select"
+                  />
+                  {touchedFields.pageantYear && fieldErrors.pageantYear && (
+                    <p className="mt-2 text-xs text-destructive">
+                      {fieldErrors.pageantYear}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
 
             <SocialAccounts
               initialSocialAccounts={socialData.socialAccounts}

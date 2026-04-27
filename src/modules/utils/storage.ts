@@ -126,10 +126,12 @@ export const saveCreator = async (creator: CreatorProfile): Promise<void> => {
       email: creator.email,
       name: creator.name,
       lastname: creator.lastName,
+      dob: creator.dob,
       phone: creator.phone,
       base_location: creator.baseLocation,
       province: creator.province,
       type: creator.type,
+      pageant_year: creator.pageantYear ?? null,
       // Keep legacy `category` (single string) for backward compatibility,
       // but store the real source of truth in `categories` (text[]) as multiple values.
       category: creator.categories && creator.categories.length > 0 ? creator.categories[0] : null,
@@ -281,6 +283,7 @@ const mapDbToCreatorProfile = (row: any): CreatorProfile => {
     email: row.email || '',
     name: row.name || '',
     lastName: row.lastname || undefined,
+    dob: row.dob || undefined,
     phone: row.phone || '',
     baseLocation: row.base_location || '',
     province: row.province,
@@ -299,6 +302,10 @@ const mapDbToCreatorProfile = (row: any): CreatorProfile => {
     status: row.status || 'general',
     projectName: row.project_name,
     type: row.type || undefined,
+    pageantYear:
+      row.pageant_year != null && row.pageant_year !== '' && Number.isFinite(Number(row.pageant_year))
+        ? Number(row.pageant_year)
+        : undefined,
     createdAt: row.created_at || new Date().toISOString(),
     facebookId: row.facebook_id,
     passwordHash: row.password_hash,

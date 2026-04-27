@@ -23,6 +23,8 @@ import { ImageWithFallback } from '@/modules/components/figma/ImageWithFallback'
 import { getProfileImageUrl } from '@/modules/utils/profileImage';
 import { CREATOR_CATEGORIES } from '@/modules/components/landing/registerInviteCategories';
 import { Lemon8Icon } from '@/modules/utils/svg';
+import { CreatorBadge } from '../ui/creator-badge';
+import { getProjectNameById } from '@/modules/utils/projectNameById';
 
 const Select = dynamic(() => import('react-select').then((mod) => mod.default), {
   ssr: false,
@@ -51,6 +53,16 @@ const socialFollowerOptions: Array<{ value: string; label: string }> = [
 ];
 
 const categoryOptions = CATEGORIES.map((cat) => ({ value: cat, label: cat }));
+const creatorTypeOptions: Array<{
+  value: 'all' | 'asw_staff' | 'asw_household' | 'mi' | 'mut';
+  label: string;
+}> = [
+  { value: 'all', label: 'ทั้งหมด' },
+  { value: 'asw_staff', label: 'พนักงาน' },
+  { value: 'asw_household', label: 'ลูกบ้าน' },
+  { value: 'mi', label: 'Mister International' },
+  { value: 'mut', label: 'Miss Universe Thailand' },
+];
 
 const ranges: { [key: string]: { min: number; max?: number } } = {
   '0-1k': { min: 0, max: 1000 },
@@ -110,6 +122,9 @@ export function CreatorsDirectory() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
+  const [selectedCreatorType, setSelectedCreatorType] = useState<
+    'all' | 'asw_staff' | 'asw_household' | 'mi' | 'mut'
+  >('all');
   const [socialPlatformFilter, setSocialPlatformFilter] = useState<'all' | SocialPlatform>('all');
   const [socialFollowerRange, setSocialFollowerRange] = useState('all');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('card');
@@ -143,6 +158,19 @@ export function CreatorsDirectory() {
       rows = rows.filter(
         (creator) => creator.categories && creator.categories.includes(selectedCategory),
       );
+    }
+
+    if (selectedCreatorType !== 'all') {
+      rows = rows.filter((creator) => {
+        const rawType = (creator.type ?? '').trim().toLowerCase();
+        if (selectedCreatorType === 'asw_staff') {
+          return rawType === 'assetwise_staff' || rawType === 'asw_staff';
+        }
+        if (selectedCreatorType === 'asw_household') {
+          return rawType === 'asw_household' || rawType === 'asw_houshold';
+        }
+        return rawType === selectedCreatorType;
+      });
     }
 
     if (searchQuery.trim()) {
@@ -181,11 +209,11 @@ export function CreatorsDirectory() {
     }
 
     return rows;
-  }, [creators, selectedCategory, searchQuery, socialPlatformFilter, socialFollowerRange]);
+  }, [creators, selectedCategory, selectedCreatorType, searchQuery, socialPlatformFilter, socialFollowerRange]);
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, selectedCategory, socialPlatformFilter, socialFollowerRange]);
+  }, [searchQuery, selectedCategory, selectedCreatorType, socialPlatformFilter, socialFollowerRange]);
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(filteredCreators.length / PAGE_SIZE)),
@@ -216,6 +244,36 @@ export function CreatorsDirectory() {
     )
   }
 
+  const CreatorTypeBadge = ({ type }: { type: CreatorProfile['type'] }) => {
+    switch (type?.toLowerCase()) {
+      case 'assetwise_staff':
+        return <CreatorBadge type="assetwise_staff" />;
+      case 'asw_household':
+        return <CreatorBadge type="assetwise_household" />;
+      case 'mister_int':
+        return <CreatorBadge type="mister_int" />;
+      case 'miss_world':
+        return <CreatorBadge type="miss_world" />;
+      default:
+        return null;
+    }
+  }
+
+  const CreatorTypeLabel = ({ type }: { type: CreatorProfile['type'] }) => {
+    switch (type?.toLowerCase()) {
+      case 'assetwise_staff':
+        return 'พนักงานแอสเซทไวส์';
+      case 'asw_household':
+        return 'ลูกบ้านแอสเซทไวส์';
+      case 'mi':
+        return 'Mister International';
+      case 'mut':
+        return 'Miss Universe Thailand';
+      default:
+        return 'บุคคลทั่วไป';
+    }
+  }
+
   const CreatorCard = ({ creator }: { creator: CreatorProfile }) => {
     const fullName = [creator.name, creator.lastName].filter(Boolean).join(' ');
     const socialCount = Object.values(creator.socialAccounts).filter(Boolean).length;
@@ -232,11 +290,7 @@ export function CreatorsDirectory() {
             <div className="truncate text-base font-medium text-foreground">{fullName}</div>
             <div className="truncate text-sm text-muted-foreground">{creator.email}</div>
           </div>
-          {isAswStaff && (
-            <div className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-              ASW Staff
-            </div>
-          )}
+          <CreatorTypeBadge type={creator.type} />
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
@@ -284,7 +338,7 @@ export function CreatorsDirectory() {
       <div className="container mx-auto py-6">
         <div className="mb-6 rounded-xl border border-border bg-white p-6 shadow-sm">
           <h3 className="mb-4 text-lg font-medium text-neutral-700">ค้นหาและกรองข้อมูล</h3>
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-5">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm text-muted-foreground">ค้นหา (ชื่อ / อีเมล / เบอร์ / จังหวัด)</label>
               <input
@@ -303,6 +357,20 @@ export function CreatorsDirectory() {
                 value={categoryOptions.find((o) => o.value === selectedCategory)}
                 onChange={(option) => {
                   setSelectedCategory(option?.value ?? 'ทั้งหมด');
+                }}
+                isClearable={false}
+                classNamePrefix="react-select"
+                placeholder="ทั้งหมด"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm text-muted-foreground">ประเภท</label>
+              <Select
+                options={creatorTypeOptions}
+                value={creatorTypeOptions.find((o) => o.value === selectedCreatorType)}
+                onChange={(option) => {
+                  setSelectedCreatorType((option?.value as typeof selectedCreatorType) ?? 'all');
                 }}
                 isClearable={false}
                 classNamePrefix="react-select"
@@ -648,6 +716,22 @@ export function CreatorsDirectory() {
                 </div>
 
                 <div>
+                  <label className="text-muted-foreground">ประเภท</label>
+                  <p className="text-foreground">
+                    {CreatorTypeLabel({ type: selectedCreator.type })}
+                  </p>
+                </div>
+
+                {selectedCreator.type === 'asw_household' && (
+                  <div>
+                    <label className="text-muted-foreground">โครงการ</label>
+                    <p className="text-foreground">
+                      {selectedCreator.projectName ? getProjectNameById(selectedCreator.projectName) || selectedCreator.projectName : '-'}
+                    </p>
+                  </div>
+                )}
+
+                <div>
                   <label className="text-muted-foreground">พื้นที่ / จังหวัด</label>
                   <p className="text-foreground">
                     {[selectedCreator.baseLocation, selectedCreator.province].filter(Boolean).join(' / ') || '-'}
@@ -661,7 +745,7 @@ export function CreatorsDirectory() {
                       selectedCreator.categories.map((category) => (
                         <div
                           key={category}
-                          className="flex items-center gap-2 px-2 py-1 rounded-md bg-primary/10 text-primary"
+                          className="flex items-center gap-2 px-2 py-1 rounded-md bg-primary/10 text-primary text-sm"
                         >
                           {category}
                         </div>

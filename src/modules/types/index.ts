@@ -23,6 +23,7 @@ export interface CreatorProfile {
   email: string;
   name: string;
   lastName?: string;
+  dob?: string;
   phone: string;
   baseLocation: string;
   province?: string; // For when baseLocation is 'ต่างจังหวัด'
@@ -64,6 +65,8 @@ export interface CreatorProfile {
   projectName?: string; // For when status is 'resident'
   /** Raw invite type from register URL (stored in Supabase `profiles.type`). */
   type?: string;
+  /** Contest year for pageant creators (stored in Supabase `profiles.pageant_year`). */
+  pageantYear?: number;
   createdAt: string;
   // Authentication fields
   facebookId?: string; // Facebook user ID (for Facebook login)

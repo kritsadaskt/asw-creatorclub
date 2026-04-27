@@ -36,16 +36,27 @@ export async function POST(request: NextRequest) {
         : {};
     const socialAccounts = sanitizeSocialAccounts(rawSocialAccounts as SocialAccountsInput);
 
+    const rawPageantYear = creator.pageantYear;
+    let pageant_year: number | null = null;
+    if (typeof rawPageantYear === 'number' && Number.isFinite(rawPageantYear)) {
+      pageant_year = Math.trunc(rawPageantYear);
+    } else if (typeof rawPageantYear === 'string' && rawPageantYear.trim()) {
+      const n = parseInt(rawPageantYear.trim(), 10);
+      pageant_year = Number.isFinite(n) ? n : null;
+    }
+
     const { error } = await supabaseAdmin.from('profiles').upsert(
       {
         id,
         email,
         name,
         lastname: typeof creator.lastName === 'string' ? creator.lastName : null,
+        dob: typeof creator.dob === 'string' ? creator.dob : null,
         phone: phone || null,
         base_location: typeof creator.baseLocation === 'string' ? creator.baseLocation : null,
         province: typeof creator.province === 'string' ? creator.province : null,
         type: typeof creator.type === 'string' ? creator.type : null,
+        pageant_year,
         category:
           Array.isArray(creator.categories) && creator.categories.length > 0 ? creator.categories[0] : null,
         categories: Array.isArray(creator.categories) ? creator.categories : [],

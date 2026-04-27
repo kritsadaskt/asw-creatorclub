@@ -335,7 +335,7 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
             >
               Affiliate
             </button>
-            <a href='/creatorclub/profile' className='w-full text-left px-4 py-2.5 rounded-lg font-medium cursor-pointer flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors'>
+            <a href='/creatorclub/' className='w-full text-left px-4 py-2.5 rounded-lg font-medium cursor-pointer flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors'>
               <FaArrowLeft className="w-4 h-4" />
               กลับไปหน้าหลัก
             </a>
@@ -407,6 +407,15 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                   disabled={!isEditing}
                   placeholder="กรอกเบอร์โทรศัพท์"
                   required
+                />
+
+                <Input
+                  label="วันเกิด"
+                  type="date"
+                  value={profile.dob || ''}
+                  onChange={(value) => setProfile({ ...profile, dob: value || undefined })}
+                  disabled={!isEditing}
+                  placeholder="เลือกวันเกิด"
                 />
                 </div>
 

@@ -11,6 +11,10 @@
 
   Copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_*` variables (Supabase, Facebook, optional SMTP for password recovery emails).
 
+  ## Documentation
+
+  - [Register Field Visibility by Invite Type](docs/register-field-visibility-by-invite-type.md)
+
   ## Supabase Storage (Facebook profile images)
 
   When users register with Facebook, their profile picture is uploaded to Supabase Storage so it can be displayed reliably (Facebook’s image URLs often return 404 in the browser). Create a bucket named **`profile-images`** and make it **public**:
