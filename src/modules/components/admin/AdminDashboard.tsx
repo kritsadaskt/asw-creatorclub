@@ -251,7 +251,7 @@ export function AdminDashboard() {
   const [selectedCreatorType, setSelectedCreatorType] = useState<
     'all' | 'assetwise_staff' | 'asw_household' | 'mi' | 'mut'
   >('all');
-  const [categoryLabels, setCategoryLabels] = useState<string[]>([]);
+  const [categoryFilterOptions, setCategoryFilterOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCreator, setSelectedCreator] = useState<CreatorProfile | null>(null);
   const CREATORS_PAGE_SIZE = 15;
@@ -287,8 +287,8 @@ export function AdminDashboard() {
   const [projectNameById, setProjectNameById] = useState<Record<string, string>>({});
 
   const categoryOptions = useMemo(
-    () => ['ทั้งหมด', ...categoryLabels].map((cat) => ({ value: cat, label: cat })),
-    [categoryLabels],
+    () => [{ value: 'ทั้งหมด', label: 'ทั้งหมด' }, ...categoryFilterOptions],
+    [categoryFilterOptions],
   );
 
   const fgfCisOptions: Array<{ value: typeof fgfCisFilter; label: string }> = [
@@ -353,18 +353,21 @@ export function AdminDashboard() {
       try {
         const { data, error } = await supabase
           .from('creator_categories')
-          .select('th_label,en_label')
+          .select('id,th_label,en_label')
           .eq('is_active', true)
           .order('id', { ascending: true });
         if (error) throw error;
 
-        const labels = (data || [])
-          .map((row) => (row.th_label || row.en_label || '').trim())
-          .filter(Boolean);
-        setCategoryLabels(labels);
+        const opts = (data || [])
+          .map((row) => {
+            const label = (row.th_label || row.en_label || '').trim();
+            return label ? { value: String(row.id), label } : null;
+          })
+          .filter((o): o is { value: string; label: string } => o !== null);
+        setCategoryFilterOptions(opts);
       } catch (error) {
         console.error('Error loading admin category options:', error);
-        setCategoryLabels([]);
+        setCategoryFilterOptions([]);
       }
     };
 
@@ -446,7 +449,9 @@ export function AdminDashboard() {
     filtered = filtered.filter((creator) => !creator.email.toLowerCase().includes('@creatorclub.com'));
 
     if (selectedCategory !== 'ทั้งหมด') {
-      filtered = filtered.filter((creator) => creator.categories && creator.categories.includes(selectedCategory));
+      filtered = filtered.filter(
+        (creator) => creator.categoryIds && creator.categoryIds.includes(selectedCategory),
+      );
     }
 
     if (selectedCreatorType !== 'all') {

@@ -21,7 +21,7 @@ import {
 import { Drawer, DrawerClose, DrawerContent, DrawerHeader, DrawerTitle } from '@/modules/components/ui/drawer';
 import { ImageWithFallback } from '@/modules/components/figma/ImageWithFallback';
 import { getProfileImageUrl } from '@/modules/utils/profileImage';
-import { CREATOR_CATEGORIES } from '@/modules/components/landing/registerInviteCategories';
+import { supabase } from '@/modules/utils/supabase';
 import { Lemon8Icon } from '@/modules/utils/svg';
 import { CreatorBadge } from '../ui/creator-badge';
 import { getProjectNameById } from '@/modules/utils/projectNameById';
@@ -29,8 +29,6 @@ import { getProjectNameById } from '@/modules/utils/projectNameById';
 const Select = dynamic(() => import('react-select').then((mod) => mod.default), {
   ssr: false,
 }) as typeof import('react-select').default;
-
-const CATEGORIES = ['ทั้งหมด', ...CREATOR_CATEGORIES.map((category) => category.label)];
 
 const socialPlatformOptions: Array<{ value: 'all' | SocialPlatform; label: string }> = [
   { value: 'all', label: 'ทั้งหมด' },
@@ -61,7 +59,6 @@ const budgetRangeOptions: Array<{ value: string; label: string }> = [
   { value: '30k+', label: '30,000+' },
 ];
 
-const categoryOptions = CATEGORIES.map((cat) => ({ value: cat, label: cat }));
 const creatorTypeOptions: Array<{
   value: 'all' | 'asw_staff' | 'asw_household' | 'mi' | 'mut';
   label: string;
@@ -139,6 +136,7 @@ export function CreatorsDirectory() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
+  const [categoryFilterOptions, setCategoryFilterOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [selectedCreatorType, setSelectedCreatorType] = useState<
     'all' | 'asw_staff' | 'asw_household' | 'mi' | 'mut'
   >('all');
@@ -169,12 +167,41 @@ export function CreatorsDirectory() {
     void load();
   }, []);
 
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('creator_categories')
+          .select('id,th_label,en_label')
+          .eq('is_active', true)
+          .order('id', { ascending: true });
+        if (error) throw error;
+        const opts = (data || [])
+          .map((row) => {
+            const label = (row.th_label || row.en_label || '').trim();
+            return label ? { value: String(row.id), label } : null;
+          })
+          .filter((o): o is { value: string; label: string } => o !== null);
+        setCategoryFilterOptions(opts);
+      } catch (e) {
+        console.error('CreatorsDirectory category options:', e);
+        setCategoryFilterOptions([]);
+      }
+    };
+    void loadCategories();
+  }, []);
+
+  const categoryOptions = useMemo(
+    () => [{ value: 'ทั้งหมด', label: 'ทั้งหมด' }, ...categoryFilterOptions],
+    [categoryFilterOptions],
+  );
+
   const filteredCreators = useMemo(() => {
     let rows = creators;
 
     if (selectedCategory !== 'ทั้งหมด') {
       rows = rows.filter(
-        (creator) => creator.categories && creator.categories.includes(selectedCategory),
+        (creator) => creator.categoryIds && creator.categoryIds.includes(selectedCategory),
       );
     }
 

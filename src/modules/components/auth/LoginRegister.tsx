@@ -170,6 +170,7 @@ export function LoginRegister({ onLogin }: LoginRegisterProps) {
           email,
           name,
           phone,
+          categoryIds: [],
           categories: [],
           followers: 0,
           socialAccounts: {},

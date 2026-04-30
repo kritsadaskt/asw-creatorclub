@@ -12,6 +12,13 @@ import { supabase } from './supabase';
 import { verifyPassword } from './password';
 import { getSession, setSession, clearSession } from './auth';
 import { sanitizeSocialAccounts } from './social-url';
+import {
+  buildCreatorCategoryMaps,
+  resolveIdsFromLabels,
+  resolveThLabelsFromIds,
+  type CreatorCategoryMaps,
+  type CreatorCategoryRow,
+} from './creatorCategoryLookup';
 
 // Helper function to generate UUID
 export const generateUUID = (): string => {
@@ -118,9 +125,75 @@ export const uploadCreatorProfileImage = async (
 
 // ===== Creator Profile Operations =====
 
+function shouldUseUatProfilesTable(): boolean {
+  if (process.env.NODE_ENV !== 'development') return false;
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname.toLowerCase();
+  return host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
+}
+
+const CREATOR_PROFILES_TABLE = shouldUseUatProfilesTable() ? 'profiles_uat' : 'profiles';
+
+let creatorCategoryMapsCache: CreatorCategoryMaps | null = null;
+let creatorCategoryMapsPromise: Promise<CreatorCategoryMaps> | null = null;
+
+/** Clears cached `creator_categories` maps (e.g. after admin edits categories in DB). */
+export function invalidateCreatorCategoryLookupCache(): void {
+  creatorCategoryMapsCache = null;
+  creatorCategoryMapsPromise = null;
+}
+
+async function getCreatorCategoryMaps(): Promise<CreatorCategoryMaps> {
+  if (creatorCategoryMapsCache) return creatorCategoryMapsCache;
+  if (!creatorCategoryMapsPromise) {
+    creatorCategoryMapsPromise = (async () => {
+      const { data, error } = await supabase
+        .from('creator_categories')
+        .select('id,th_label,en_label')
+        .eq('is_active', true)
+        .order('id', { ascending: true });
+      if (error) throw error;
+      creatorCategoryMapsCache = buildCreatorCategoryMaps((data ?? []) as CreatorCategoryRow[]);
+      return creatorCategoryMapsCache;
+    })();
+  }
+  return creatorCategoryMapsPromise;
+}
+
+function enrichCreatorWithCategoryMaps(profile: CreatorProfile, maps: CreatorCategoryMaps): CreatorProfile {
+  let categoryIds = [...profile.categoryIds];
+  let categories = [...profile.categories];
+
+  if (categoryIds.length === 0 && categories.length > 0) {
+    categoryIds = resolveIdsFromLabels(categories, maps);
+  }
+  if (categoryIds.length > 0) {
+    categories = resolveThLabelsFromIds(categoryIds, maps);
+  }
+
+  return { ...profile, categoryIds, categories };
+}
+
+export async function enrichCreatorProfile(profile: CreatorProfile): Promise<CreatorProfile> {
+  const maps = await getCreatorCategoryMaps();
+  return enrichCreatorWithCategoryMaps(profile, maps);
+}
+
+export async function enrichCreatorProfiles(profiles: CreatorProfile[]): Promise<CreatorProfile[]> {
+  if (profiles.length === 0) return [];
+  const maps = await getCreatorCategoryMaps();
+  return profiles.map((p) => enrichCreatorWithCategoryMaps(p, maps));
+}
+
 export const saveCreator = async (creator: CreatorProfile): Promise<void> => {
+  const maps = await getCreatorCategoryMaps();
+  let categoryIds =
+    creator.categoryIds.length > 0 ? creator.categoryIds : resolveIdsFromLabels(creator.categories ?? [], maps);
+  let thLabels =
+    categoryIds.length > 0 ? resolveThLabelsFromIds(categoryIds, maps) : (creator.categories ?? []).map((s) => s.trim()).filter(Boolean);
+
   const { error } = await supabase
-    .from('profiles')
+    .from(CREATOR_PROFILES_TABLE)
     .upsert({
       id: creator.id,
       email: creator.email,
@@ -132,10 +205,9 @@ export const saveCreator = async (creator: CreatorProfile): Promise<void> => {
       province: creator.province,
       type: creator.type,
       pageant_year: creator.pageantYear ?? null,
-      // Keep legacy `category` (single string) for backward compatibility,
-      // but store the real source of truth in `categories` (text[]) as multiple values.
-      category: creator.categories && creator.categories.length > 0 ? creator.categories[0] : null,
-      categories: creator.categories ?? [],
+      category: thLabels.length > 0 ? thLabels[0] : null,
+      categories: thLabels,
+      category_ids: categoryIds,
       followers: creator.followers,
       profile_image: creator.profileImage,
       social_accounts: sanitizeSocialAccounts(creator.socialAccounts),
@@ -168,7 +240,7 @@ const normalizeCreatorBudget = (raw: unknown): number | undefined => {
 
 export const getCreators = async (): Promise<CreatorProfile[]> => {
   const { data, error } = await supabase
-    .from('profiles')
+    .from(CREATOR_PROFILES_TABLE)
     .select('*')
     .order('created_at', { ascending: false });
 
@@ -177,12 +249,12 @@ export const getCreators = async (): Promise<CreatorProfile[]> => {
     throw error;
   }
 
-  return (data || []).map(mapDbToCreatorProfile);
+  return enrichCreatorProfiles((data || []).map(mapDbToCreatorProfile));
 };
 
 export const getCreatorById = async (id: string): Promise<CreatorProfile | null> => {
   const { data, error } = await supabase
-    .from('profiles')
+    .from(CREATOR_PROFILES_TABLE)
     .select('*')
     .eq('id', id)
     .single();
@@ -193,12 +265,12 @@ export const getCreatorById = async (id: string): Promise<CreatorProfile | null>
     throw error;
   }
 
-  return data ? mapDbToCreatorProfile(data) : null;
+  return data ? enrichCreatorProfile(mapDbToCreatorProfile(data)) : null;
 };
 
 export const getCreatorByEmail = async (email: string): Promise<CreatorProfile | null> => {
   const { data, error } = await supabase
-    .from('profiles')
+    .from(CREATOR_PROFILES_TABLE)
     .select('*')
     .eq('email', email)
     .single();
@@ -209,7 +281,7 @@ export const getCreatorByEmail = async (email: string): Promise<CreatorProfile |
     throw error;
   }
 
-  return data ? mapDbToCreatorProfile(data) : null;
+  return data ? enrichCreatorProfile(mapDbToCreatorProfile(data)) : null;
 };
 
 function normalizeProfileAnalystAi(obj: Record<string, unknown>): ProfileAnalystAiResult | undefined {
@@ -297,12 +369,14 @@ const mapDbToCreatorProfile = (row: any): CreatorProfile => {
     phone: row.phone || '',
     baseLocation: row.base_location || '',
     province: row.province,
-    // Prefer new multi-value `categories` column; fall back to legacy single `category`
-    categories: Array.isArray(row.categories)
-      ? row.categories
-      : row.category
-      ? [row.category]
+    categoryIds: Array.isArray(row.category_ids)
+      ? row.category_ids.filter((x: unknown): x is string => typeof x === 'string')
       : [],
+    categories: Array.isArray(row.categories)
+      ? row.categories.filter((x: unknown): x is string => typeof x === 'string')
+      : row.category
+        ? [String(row.category)]
+        : [],
     followers: row.followers || 0,
     profileImage: row.profile_image,
     socialAccounts: sanitizeSocialAccounts(row.social_accounts || {}),
@@ -329,7 +403,7 @@ const mapDbToCreatorProfile = (row: any): CreatorProfile => {
 
 export const getCreatorByFacebookId = async (facebookId: string): Promise<CreatorProfile | null> => {
   const { data, error } = await supabase
-    .from('profiles')
+    .from(CREATOR_PROFILES_TABLE)
     .select('*')
     .eq('facebook_id', facebookId)
     .single();
@@ -340,7 +414,7 @@ export const getCreatorByFacebookId = async (facebookId: string): Promise<Creato
     throw error;
   }
 
-  return data ? mapDbToCreatorProfile(data) : null;
+  return data ? enrichCreatorProfile(mapDbToCreatorProfile(data)) : null;
 };
 
 export const authenticateCreator = async (

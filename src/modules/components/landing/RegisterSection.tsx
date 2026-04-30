@@ -222,7 +222,7 @@ export function RegisterSection({
       try {
         const { data, error } = await supabase
           .from('creator_categories')
-          .select('th_label,en_label')
+          .select('id,th_label,en_label')
           .eq('is_active', true)
           .order('id', { ascending: true });
 
@@ -231,7 +231,7 @@ export function RegisterSection({
         const options = (data || [])
           .map((row) => {
             const label = (row.th_label || row.en_label || '').trim();
-            return label ? { value: label, label } : null;
+            return label ? { value: String(row.id), label } : null;
           })
           .filter((opt): opt is SelectOption => opt !== null);
 
@@ -521,6 +521,7 @@ export function RegisterSection({
         phone,
         baseLocation,
         province: baseLocation === 'ต่างจังหวัด' ? province : undefined,
+        categoryIds: creatorCategory.map((c) => c.value),
         categories: creatorCategory.map((c) => c.label),
         followers: 0,
         profileImage: pendingFacebookPicture || undefined,

@@ -26,6 +26,8 @@ interface CreatorProfileProps {
 
 type ShlinkStatEntry = { total: number; nonBots?: number } | null;
 
+type CategorySelectOption = { value: string; label: string };
+
 export function CreatorProfile({ creatorId }: CreatorProfileProps) {
   const [profile, setProfile] = useState<CreatorProfileType | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -39,7 +41,7 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
-  const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<CategorySelectOption[]>([]);
   const [affiliateStatsLoading, setAffiliateStatsLoading] = useState(false);
   const [affiliateLinkCount, setAffiliateLinkCount] = useState(0);
   const [affiliateTotalClicks, setAffiliateTotalClicks] = useState(0);
@@ -54,7 +56,7 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
       try {
         const { data, error } = await supabase
           .from('creator_categories')
-          .select('th_label,en_label')
+          .select('id,th_label,en_label')
           .eq('is_active', true)
           .order('id', { ascending: true });
 
@@ -63,8 +65,11 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
         }
 
         const nextOptions = (data || [])
-          .map((row) => (row.th_label || row.en_label || '').trim())
-          .filter(Boolean);
+          .map((row) => {
+            const label = (row.th_label || row.en_label || '').trim();
+            return label ? { value: String(row.id), label } : null;
+          })
+          .filter((opt): opt is CategorySelectOption => opt !== null);
         setCategoryOptions(nextOptions);
       } catch (error) {
         console.error('Error loading category options:', error);
@@ -436,19 +441,15 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                       คุณเป็นครีเอเตอร์สายไหน ? <span className="text-destructive">*</span>
                     </h3>
                     <Select
-                      options={categoryOptions.map((cat) => ({
-                        value: cat,
-                        label: cat,
-                      }))}
+                      options={categoryOptions}
                     isMulti
-                    value={(profile.categories || []).map((cat) => ({
-                      value: cat,
-                      label: cat,
-                    }))}
+                    value={categoryOptions.filter((opt) =>
+                      (profile.categoryIds || []).includes(opt.value),
+                    )}
                     onChange={(selected) =>
                       setProfile({
                         ...profile,
-                        categories: (selected || []).map(
+                        categoryIds: (selected || []).map(
                           (opt: unknown) => (opt as { value: string }).value,
                         ),
                       })
