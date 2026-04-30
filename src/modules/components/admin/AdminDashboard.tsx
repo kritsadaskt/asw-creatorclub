@@ -7,17 +7,20 @@ import { Button } from '../shared/Button';
 import {
   AffiliateLink,
   CreatorProfile,
+  type CreatorTypeRow,
   type FgfLeadWithProjects,
 } from '../../types';
 import {
   getAffiliateLinksByCreator,
   getCreatorById,
   getCreators,
+  getCreatorTypes,
   getCurrentUser,
   getFgfLeadsWithProjects,
   getProjects,
   updateFgfLeadStatusAndChoice,
 } from '../../utils/storage';
+import { profileTypeMatchesCreatorTypeFilter } from '../../utils/creatorTypeLookup';
 import { supabase } from '../../utils/supabase';
 import { getProfileImageUrl } from '../../utils/profileImage';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
@@ -248,9 +251,8 @@ export function AdminDashboard() {
   const [filteredCreators, setFilteredCreators] = useState<CreatorProfile[]>([]);
   const [approvalFilter, setApprovalFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'inactive'>('pending');
   const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
-  const [selectedCreatorType, setSelectedCreatorType] = useState<
-    'all' | 'assetwise_staff' | 'asw_household' | 'mi' | 'mut'
-  >('all');
+  const [selectedCreatorType, setSelectedCreatorType] = useState<string>('all');
+  const [creatorTypeRows, setCreatorTypeRows] = useState<CreatorTypeRow[]>([]);
   const [categoryFilterOptions, setCategoryFilterOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCreator, setSelectedCreator] = useState<CreatorProfile | null>(null);
@@ -336,16 +338,34 @@ export function AdminDashboard() {
     { value: '500k+', label: '500,000+' },
     { value: 'custom', label: 'กำหนดเอง' },
   ];
-  const creatorTypeOptions: Array<{ value: 'all' | 'assetwise_staff' | 'asw_household' | 'mi' | 'mut'; label: string }> = [
-    { value: 'all', label: 'ทั้งหมด' },
-    { value: 'assetwise_staff', label: 'พนักงาน' },
-    { value: 'asw_household', label: 'ลูกบ้าน' },
-    { value: 'mi', label: 'MI'},
-    { value: 'mut', label: 'MUT'},
-  ];
+  const creatorTypeOptions = useMemo(
+    () => [
+      { value: 'all', label: 'ทั้งหมด' },
+      ...creatorTypeRows
+        .filter((r) => r.key.length > 0)
+        .map((r) => ({
+          value: r.key,
+          label: r.nameTh || r.nameEn || r.key,
+        })),
+    ],
+    [creatorTypeRows],
+  );
 
   useEffect(() => {
     loadCreators();
+  }, []);
+
+  useEffect(() => {
+    const loadCreatorTypes = async () => {
+      try {
+        const rows = await getCreatorTypes();
+        setCreatorTypeRows(rows);
+      } catch (error) {
+        console.error('Error loading creator_type options:', error);
+        setCreatorTypeRows([]);
+      }
+    };
+    void loadCreatorTypes();
   }, []);
 
   useEffect(() => {
@@ -458,21 +478,9 @@ export function AdminDashboard() {
     }
 
     if (selectedCreatorType !== 'all') {
-      filtered = filtered.filter((creator) => {
-        const rawType = (creator.type ?? '').trim().toLowerCase();
-        switch (selectedCreatorType) {
-          case 'assetwise_staff':
-            return rawType === 'assetwise_staff';
-          case 'asw_household':
-            return rawType === 'asw_household' || rawType === 'asw_houshold';
-          case 'mi':
-            return rawType === 'mi';
-          case 'mut':
-            return rawType === 'mut';
-          default:
-            return true;
-        }
-      });
+      filtered = filtered.filter((creator) =>
+        profileTypeMatchesCreatorTypeFilter(creator.type, selectedCreatorType),
+      );
     }
 
     const q = searchQuery.trim().toLowerCase();
@@ -1131,7 +1139,7 @@ export function AdminDashboard() {
                 options={creatorTypeOptions}
                 value={creatorTypeOptions.find((o) => o.value === selectedCreatorType)}
                 onChange={(option) => {
-                  setSelectedCreatorType((option?.value as typeof selectedCreatorType) ?? 'all');
+                  setSelectedCreatorType((option?.value as string) ?? 'all');
                 }}
                 isClearable={false}
                 classNamePrefix="react-select"

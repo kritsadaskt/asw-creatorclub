@@ -78,6 +78,14 @@ export interface CreatorProfile {
   profileAnalystLegacyText?: string;
 }
 
+/** Row from `creator_type` (canonical keys for `profiles.type`). */
+export interface CreatorTypeRow {
+  id: number;
+  key: string;
+  nameTh: string;
+  nameEn: string;
+}
+
 export interface Project {
   id: string;
   name: string;

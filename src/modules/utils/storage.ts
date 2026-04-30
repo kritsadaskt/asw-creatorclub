@@ -1,5 +1,6 @@
 import {
   CreatorProfile,
+  CreatorTypeRow,
   ProfileAnalystAiResult,
   AffiliateLink,
   Project,
@@ -184,6 +185,26 @@ export async function enrichCreatorProfiles(profiles: CreatorProfile[]): Promise
   const maps = await getCreatorCategoryMaps();
   return profiles.map((p) => enrichCreatorWithCategoryMaps(p, maps));
 }
+
+/** Active creator invite / segment types (`creator_type` table). */
+export const getCreatorTypes = async (): Promise<CreatorTypeRow[]> => {
+  const { data, error } = await supabase
+    .from('creator_type')
+    .select('id,key,name_th,name_en')
+    .order('id', { ascending: true });
+
+  if (error) {
+    console.error('getCreatorTypes:', error);
+    throw error;
+  }
+
+  return (data ?? []).map((row: { id: number; key: string; name_th?: string | null; name_en?: string | null }) => ({
+    id: row.id,
+    key: (row.key ?? '').trim(),
+    nameTh: (row.name_th ?? '').trim(),
+    nameEn: (row.name_en ?? '').trim(),
+  }));
+};
 
 export const saveCreator = async (creator: CreatorProfile): Promise<void> => {
   const maps = await getCreatorCategoryMaps();
