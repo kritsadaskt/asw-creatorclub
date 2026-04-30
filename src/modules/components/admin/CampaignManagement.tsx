@@ -1,16 +1,24 @@
+'use client';
+
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Plus, Megaphone, Pencil, Trash2, Building2, Home } from 'lucide-react';
+import { Plus, Megaphone, Pencil, CalendarRange, Building2, Home } from 'lucide-react';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
 import { Campaign, Project } from '../../types';
-import { saveCampaign, getCampaigns, deleteCampaign, getProjects, generateUUID } from '../../utils/storage';
+import {
+  saveCampaign,
+  getCampaigns,
+  getProjects,
+  generateUUID,
+} from '../../utils/storage';
 
 export function CampaignManagement() {
+  const router = useRouter();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
@@ -18,6 +26,11 @@ export function CampaignManagement() {
   const [name, setName] = useState('');
   const [detail, setDetail] = useState('');
   const [promotionImg, setPromotionImg] = useState('');
+  const [bannerDesktopUrl, setBannerDesktopUrl] = useState('');
+  const [bannerMobileUrl, setBannerMobileUrl] = useState('');
+  const [campaignKey, setCampaignKey] = useState('');
+  const [startAt, setStartAt] = useState('');
+  const [endAt, setEndAt] = useState('');
   const [leadTarget, setLeadTarget] = useState('');
   const [budget, setBudget] = useState('');
   const [utmSource, setUtmSource] = useState('');
@@ -52,6 +65,11 @@ export function CampaignManagement() {
     setName('');
     setDetail('');
     setPromotionImg('');
+    setBannerDesktopUrl('');
+    setBannerMobileUrl('');
+    setCampaignKey('');
+    setStartAt('');
+    setEndAt('');
     setLeadTarget('');
     setBudget('');
     setUtmSource('');
@@ -60,37 +78,15 @@ export function CampaignManagement() {
     setUtmCampaign('');
     setLandingUrl('');
     setSelectedProjectIds([]);
-    setEditingCampaign(null);
     setIsFormOpen(false);
   };
 
   const handleEdit = (campaign: Campaign) => {
-    setEditingCampaign(campaign);
-    setName(campaign.name);
-    setDetail(campaign.detail);
-    setPromotionImg(campaign.promotionImg || '');
-    setLeadTarget(campaign.leadTarget);
-    setBudget(campaign.budget.toString());
-    setUtmSource(campaign.utmSource);
-    setUtmMedium(campaign.utmMedium);
-    setUtmId(campaign.utmId);
-    setUtmCampaign(campaign.utmCampaign);
-    setLandingUrl(campaign.landingUrl);
-    setSelectedProjectIds(campaign.projectIds);
-    setIsFormOpen(true);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (confirm('คุณต้องการลบแคมเปญนี้หรือไม่?')) {
-      try {
-        await deleteCampaign(id);
-        await loadData();
-        toast.success('ลบแคมเปญสำเร็จ');
-      } catch (error) {
-        console.error('Error deleting campaign:', error);
-        toast.error('ไม่สามารถลบแคมเปญได้');
-      }
+    if (!campaign.campaignKey) {
+      toast.error('แคมเปญนี้ยังไม่มี Campaign Key');
+      return;
     }
+    router.push(`/admin/campaigns/${campaign.campaignKey}`);
   };
 
   const handleProjectToggle = (projectId: string) => {
@@ -101,19 +97,29 @@ export function CampaignManagement() {
     );
   };
 
+  const normalizeCampaignKey = (value: string): string =>
+    value.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+
   const handleSubmit = async () => {
-    if (!name || !detail || !landingUrl || !utmSource || !utmMedium || !utmCampaign) {
+    if (!name || !detail || !landingUrl || !utmSource || !utmMedium || !utmCampaign || !campaignKey) {
       toast.error('กรุณากรอกข้อมูลให้ครบถ้วน');
+      return;
+    }
+    if (startAt && endAt && startAt > endAt) {
+      toast.error('วันเริ่มต้นต้องน้อยกว่าหรือเท่ากับวันสิ้นสุด');
       return;
     }
 
     try {
       setSaving(true);
       const campaign: Campaign = {
-        id: editingCampaign?.id || generateUUID(),
+        id: generateUUID(),
         name,
         detail,
         promotionImg: promotionImg || undefined,
+        bannerDesktopUrl: bannerDesktopUrl || undefined,
+        bannerMobileUrl: bannerMobileUrl || undefined,
+        campaignKey: normalizeCampaignKey(campaignKey),
         leadTarget,
         budget: parseFloat(budget) || 0,
         utmSource,
@@ -122,12 +128,15 @@ export function CampaignManagement() {
         utmCampaign,
         landingUrl,
         projectIds: selectedProjectIds,
-        createdAt: editingCampaign?.createdAt || new Date().toISOString()
+        startAt: startAt ? new Date(startAt).toISOString() : undefined,
+        endAt: endAt ? new Date(`${endAt}T23:59:59.999Z`).toISOString() : undefined,
+        isActive: true,
+        createdAt: new Date().toISOString()
       };
 
       await saveCampaign(campaign);
       await loadData();
-      toast.success(editingCampaign ? 'แก้ไขแคมเปญสำเร็จ' : 'เพิ่มแคมเปญสำเร็จ');
+      toast.success('เพิ่มแคมเปญสำเร็จ');
       resetForm();
     } catch (error) {
       console.error('Error saving campaign:', error);
@@ -135,14 +144,6 @@ export function CampaignManagement() {
     } finally {
       setSaving(false);
     }
-  };
-
-  // Get project names for display
-  const getProjectNames = (projectIds: string[]) => {
-    return projectIds
-      .map(id => projects.find(p => p.id === id)?.name)
-      .filter(Boolean)
-      .join(', ');
   };
 
   return (
@@ -168,7 +169,7 @@ export function CampaignManagement() {
       {isFormOpen && (
         <div className="bg-white rounded-xl shadow-sm border border-border p-6 mb-6">
           <h3 className="text-primary mb-4">
-            {editingCampaign ? 'แก้ไขแคมเปญ' : 'เพิ่มแคมเปญใหม่'}
+            เพิ่มแคมเปญใหม่
           </h3>
           
           <div className="space-y-4">
@@ -178,6 +179,13 @@ export function CampaignManagement() {
                 value={name}
                 onChange={setName}
                 placeholder="เช่น โปรโมชั่นต้นปี 2024"
+                required
+              />
+              <Input
+                label="Campaign Key"
+                value={campaignKey}
+                onChange={setCampaignKey}
+                placeholder="เช่น condo-midyear-2026"
                 required
               />
 
@@ -212,10 +220,36 @@ export function CampaignManagement() {
               />
 
               <Input
+                label="Banner Desktop (URL)"
+                value={bannerDesktopUrl}
+                onChange={setBannerDesktopUrl}
+                placeholder="https://example.com/banner-desktop.jpg"
+              />
+              <Input
+                label="Banner Mobile (URL)"
+                value={bannerMobileUrl}
+                onChange={setBannerMobileUrl}
+                placeholder="https://example.com/banner-mobile.jpg"
+              />
+              <Input
                 label="กลุ่มเป้าหมาย"
                 value={leadTarget}
                 onChange={setLeadTarget}
                 placeholder="เช่น คนทำงานออฟฟิศ อายุ 25-35 ปี"
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="วันเริ่มต้น"
+                type="date"
+                value={startAt}
+                onChange={setStartAt}
+              />
+              <Input
+                label="วันสิ้นสุด"
+                type="date"
+                value={endAt}
+                onChange={setEndAt}
               />
             </div>
 
@@ -302,7 +336,7 @@ export function CampaignManagement() {
 
             <div className="flex gap-3 pt-4">
               <Button onClick={handleSubmit} fullWidth disabled={saving}>
-                {saving ? 'กำลังบันทึก...' : (editingCampaign ? 'บันทึก' : 'เพิ่มแคมเปญ')}
+                {saving ? 'กำลังบันทึก...' : 'เพิ่มแคมเปญ'}
               </Button>
               <Button onClick={resetForm} variant="outline" fullWidth disabled={saving}>
                 ยกเลิก
@@ -347,6 +381,9 @@ export function CampaignManagement() {
                   <th className="px-6 py-3 text-left text-sm font-medium text-foreground">
                     โครงการ
                   </th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-foreground">
+                    สถานะ
+                  </th>
                   <th className="px-6 py-3 text-right text-sm font-medium text-foreground">
                     จัดการ
                   </th>
@@ -372,6 +409,15 @@ export function CampaignManagement() {
                           <div className="font-medium text-foreground">
                             {campaign.name}
                           </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            key: {campaign.campaignKey || '-'}
+                          </div>
+                          {(campaign.startAt || campaign.endAt) && (
+                            <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                              <CalendarRange className="w-3 h-3" />
+                              {(campaign.startAt ? campaign.startAt.slice(0, 10) : 'ไม่ระบุ')} - {(campaign.endAt ? campaign.endAt.slice(0, 10) : 'ไม่ระบุ')}
+                            </div>
+                          )}
                           <div className="text-sm text-muted-foreground mt-1 line-clamp-2">
                             {campaign.detail}
                           </div>
@@ -388,7 +434,7 @@ export function CampaignManagement() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-muted-foreground max-w-xs">
-                        {campaign.projectIds.length > 0 ? (
+                        {(campaign.projectIds?.length ?? 0) > 0 ? (
                           <span className="text-primary">
                             {campaign.projectIds.length} โครงการ
                           </span>
@@ -398,6 +444,13 @@ export function CampaignManagement() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
+                      <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                        campaign.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {campaign.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
                       <div className="flex gap-2 justify-end">
                         <button
                           onClick={() => handleEdit(campaign)}
@@ -405,13 +458,6 @@ export function CampaignManagement() {
                           title="แก้ไข"
                         >
                           <Pencil className="w-4 h-4 text-primary" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(campaign.id)}
-                          className="p-2 hover:bg-muted/50 rounded-lg transition-colors"
-                          title="ลบ"
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
                         </button>
                       </div>
                     </td>

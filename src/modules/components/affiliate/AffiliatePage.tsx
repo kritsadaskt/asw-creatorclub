@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { CampaignLayout } from '../layout/CampaignLayout';
 import { fetchAffiliateProjects, type AffiliateProject } from '../../utils/affiliate';
 import {
@@ -36,8 +37,13 @@ import { HeroBanner } from '../landing/HeroBanner';
 import { StatusBadge } from '../ui/status-badge';
 import { LoginModal } from '../landing/LoginModal';
 import { useSession } from '@/modules/context/SessionContext';
-import { getAffiliateMaterialsByProject, saveAffiliateLinkIfUrlNewForCreator } from '@/modules/utils/storage';
-import type { AffiliateMaterial } from '@/modules/types';
+import {
+  getActiveCampaigns,
+  getAffiliateMaterialsByProject,
+  getCampaignByKey,
+  saveAffiliateLinkIfUrlNewForCreator,
+} from '@/modules/utils/storage';
+import type { AffiliateMaterial, Campaign } from '@/modules/types';
 import { toast } from 'sonner';
 import { StatusLabel } from '../ui/status-label';
 
@@ -55,10 +61,25 @@ export function AffiliatePage() {
   );
 }
 
-function AffiliateProjectList() {
+type AffiliatePageProps = {
+  campaignKey?: string;
+};
+
+export function CampaignAffiliatePage({ campaignKey }: AffiliatePageProps) {
+  return (
+    <CampaignLayout>
+      <AffiliateProjectList campaignKey={campaignKey} />
+    </CampaignLayout>
+  );
+}
+
+function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
   const { currentUserId, handleLogin: sessionLogin } = useSession();
   const isLoggedIn = !!currentUserId;
+  const isCampaignMode = !!campaignKey;
   const [projects, setProjects] = useState<AffiliateProject[]>([]);
+  const [activeCampaigns, setActiveCampaigns] = useState<Campaign[]>([]);
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<AffiliateProject | null>(null);
@@ -128,8 +149,21 @@ function AffiliateProjectList() {
       try {
         setIsLoading(true);
         setError(null);
-        const data = await fetchAffiliateProjects();
-        setProjects(data);
+        const allProjects = await fetchAffiliateProjects();
+        if (isCampaignMode && campaignKey) {
+          const campaign = await getCampaignByKey(campaignKey);
+          if (!campaign || !campaign.isActive) {
+            setError('ไม่พบแคมเปญ หรือแคมเปญนี้ไม่พร้อมใช้งาน');
+            setProjects([]);
+            return;
+          }
+          setSelectedCampaign(campaign);
+          setProjects(allProjects.filter((project) => campaign.projectIds.includes(project.id)));
+          return;
+        }
+        const campaigns = await getActiveCampaigns();
+        setActiveCampaigns(campaigns);
+        setProjects(allProjects);
       } catch (err) {
         console.error('Failed to load affiliate projects', err);
         setError('ไม่สามารถโหลดข้อมูลโครงการได้');
@@ -139,13 +173,31 @@ function AffiliateProjectList() {
     };
 
     loadProjects();
-  }, []);
+  }, [campaignKey, isCampaignMode]);
 
   // Generate referral short link when drawer opens (pass project — state from setSelectedProject is not updated until after this handler runs)
   const generateReferralLink = async (project: AffiliateProject) => {
     if (!currentUserId) return;
     setIsShorteningLink(true);
     setShortUrl(null);
+    const effectiveUtmSource = selectedCampaign?.utmSource || 'creator_club_affiliate';
+    const effectiveUtmMedium = selectedCampaign?.utmMedium || 'affiliate';
+    const effectiveUtmCampaign = selectedCampaign?.utmCampaign || 'creator_club_affiliate';
+    const effectiveUtmId = selectedCampaign?.utmId || currentUserId;
+
+    const buildFallbackLongUrl = () => {
+      try {
+        const u = new URL(project.materialsUrl);
+        u.searchParams.set('utm_source', effectiveUtmSource);
+        u.searchParams.set('utm_medium', effectiveUtmMedium);
+        u.searchParams.set('utm_campaign', effectiveUtmCampaign);
+        u.searchParams.set('utm_id', effectiveUtmId);
+        u.searchParams.set('ref', currentUserId);
+        return u.toString();
+      } catch {
+        return `${project.materialsUrl}?utm_source=${effectiveUtmSource}&utm_medium=${effectiveUtmMedium}&utm_campaign=${effectiveUtmCampaign}&utm_id=${effectiveUtmId}&ref=${currentUserId}`;
+      }
+    };
 
     try {
       const res = await fetch(`${BASE_PATH}/api/affiliate/shorten`, {
@@ -154,21 +206,31 @@ function AffiliateProjectList() {
         body: JSON.stringify({ 
           creatorId: currentUserId,
           projectUrl: project.materialsUrl,
+          projectId: project.id,
+          campaignId: selectedCampaign?.id,
+          campaignKey: selectedCampaign?.campaignKey || campaignKey,
           utmSource: 'creator_club_affiliate',
           utmMedium: 'affiliate',
           utmCampaign: 'creator_club_affiliate',
           utmId: currentUserId,
+          utmOverride: selectedCampaign
+            ? {
+                utmSource: selectedCampaign.utmSource,
+                utmMedium: selectedCampaign.utmMedium,
+                utmCampaign: selectedCampaign.utmCampaign,
+                utmId: selectedCampaign.utmId,
+              }
+            : null,
         }),
       });
       if (res.ok) {
         const data = await res.json();
         setShortUrl(data.shortUrl);
       } else {
-        // Fallback to long URL
-        setShortUrl(`${project.materialsUrl}?utm_source=creator_club_affiliate&utm_medium=affiliate&utm_campaign=creator_club_affiliate&utm_id=${currentUserId}`);
+        setShortUrl(buildFallbackLongUrl());
       }
     } catch {
-      setShortUrl(`${project.materialsUrl}?utm_source=creator_club_affiliate&utm_medium=affiliate&utm_campaign=creator_club_affiliate&utm_id=${currentUserId}`);
+      setShortUrl(buildFallbackLongUrl());
     } finally {
       setIsShorteningLink(false);
     }
@@ -202,7 +264,8 @@ function AffiliateProjectList() {
             creatorId: currentUserId,
             url: shortUrl,
             projectId: selectedProject.id,
-            campaignName: selectedProject.name,
+            campaignName: selectedCampaign?.name || selectedProject.name,
+            campaignId: selectedCampaign?.id,
           });
         } catch (err) {
           console.error('Failed to persist copied affiliate link:', err);
@@ -261,11 +324,50 @@ function AffiliateProjectList() {
     <div id="affiliate_page">
       <div id="aff_intro_box" className='py-7 md:py-10'>
         <h2 className="text-center text-2xl font-bold text-primary mb-7">
-          <span className='text-4xl lg:text-5xl'>เลือกโครงการที่ใช่</span><br/>
-          <span className='text-3xl lg:text-3xl font-bold'>แล้วรับค่าคอมมิชชันสูงสุด <span className='text-4xl'>500,000</span> บาท*</span>
+          {isCampaignMode && selectedCampaign ? (
+            <>
+              <span className="text-4xl lg:text-5xl">{selectedCampaign.name}</span><br />
+              <span className="text-xl lg:text-2xl font-medium">{selectedCampaign.detail}</span>
+            </>
+          ) : (
+            <>
+              <span className='text-4xl lg:text-5xl'>เลือกโครงการที่ใช่</span><br/>
+              <span className='text-3xl lg:text-3xl font-bold'>แล้วรับค่าคอมมิชชันสูงสุด <span className='text-4xl'>500,000</span> บาท*</span>
+            </>
+          )}
         </h2>
         <a href={`${BASE_PATH}/affiliate/terms-and-conditions`} title='ข้อกำหนดและเงื่อนไข' className='text-white bg-gradient-to-br from-orange-400 to-orange-600 px-7 py-4 rounded-full block w-fit mx-auto leading-none'>ข้อกำหนดและเงื่อนไข</a>
       </div>
+      {!isCampaignMode && activeCampaigns.length > 0 && (
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          {activeCampaigns.map((campaign) => (
+            <div key={campaign.id} className="bg-white rounded-2xl border border-border p-4 flex flex-col gap-3">
+              {(campaign.bannerDesktopUrl || campaign.promotionImg || campaign.bannerMobileUrl) ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={campaign.bannerDesktopUrl || campaign.promotionImg || campaign.bannerMobileUrl}
+                  alt={campaign.name}
+                  className="w-full h-40 object-cover rounded-xl bg-muted"
+                />
+              ) : (
+                <div className="w-full h-40 rounded-xl bg-muted flex items-center justify-center text-muted-foreground">
+                  ไม่มีรูปแคมเปญ
+                </div>
+              )}
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">{campaign.name}</h3>
+                <p className="text-sm text-muted-foreground line-clamp-2">{campaign.detail}</p>
+              </div>
+              <Link
+                href={`/campaign/${campaign.campaignKey ?? campaign.id}`}
+                className="inline-flex w-fit items-center justify-center rounded-lg border border-primary px-3 py-1.5 font-medium text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+              >
+                ดูเพิ่มเติม
+              </Link>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="bg-white rounded-2xl shadow-xl border border-border p-6 lg:p-8">
 
         {isLoading ? (

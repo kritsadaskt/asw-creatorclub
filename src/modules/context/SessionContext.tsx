@@ -25,19 +25,22 @@ type SessionContextValue = {
 
 const SessionContext = createContext<SessionContextValue | null>(null);
 
+function getInitialSessionFromCookie(): { id: string | null; role: UserRole | null } {
+  if (typeof window === 'undefined') {
+    return { id: null, role: null };
+  }
+  const session = getSession();
+  return {
+    id: session?.id ?? null,
+    role: session?.role ?? null,
+  };
+}
+
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  /** Never read cookies in useState initializers: server has no `document`, client would diverge. */
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
-
-  useEffect(() => {
-    const session = getSession();
-    if (session) {
-      setCurrentUserId(session.id);
-      setUserRole(session.role);
-    }
-  }, []);
+  const [{ id: initialUserId, role: initialRole }] = useState(getInitialSessionFromCookie);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(initialUserId);
+  const [userRole, setUserRole] = useState<UserRole | null>(initialRole);
 
   useEffect(() => {
     installLocalStorageSafeGuard();
