@@ -28,9 +28,12 @@ export interface CreatorProfile {
   baseLocation: string;
   province?: string; // For when baseLocation is 'ต่างจังหวัด'
   /**
-   * Multiple categories per creator.
-   * Stored in Supabase `profiles.categories` (text[]).
-   * Old data may still have single `category` string in the DB; we map it to this array in storage utils.
+   * Canonical category ids from `profiles.category_ids` (text[] of `creator_categories.id` as string).
+   */
+  categoryIds: string[];
+  /**
+   * Thai display labels for UI (derived from ids via `creator_categories.th_label` when ids are present).
+   * Legacy rows may still have only label strings until backfill + save.
    */
   categories: string[];
   followers: number;
@@ -73,6 +76,14 @@ export interface CreatorProfile {
   profileAnalyst?: ProfileAnalystAiResult;
   /** Non-JSON legacy text in `profile_analyst`, shown as a single block in admin. */
   profileAnalystLegacyText?: string;
+}
+
+/** Row from `creator_type` (canonical keys for `profiles.type`). */
+export interface CreatorTypeRow {
+  id: number;
+  key: string;
+  nameTh: string;
+  nameEn: string;
 }
 
 export interface Project {

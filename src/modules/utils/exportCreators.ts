@@ -1,7 +1,11 @@
-import type { CreatorProfile } from '../types';
+import type { CreatorProfile, CreatorTypeRow } from '../types';
+import { resolveCreatorTypeThLabel } from './creatorTypeLookup';
 
 // Lazy-load xlsx only in the browser
-export async function exportCreatorsToXlsx(creators: CreatorProfile[]) {
+export async function exportCreatorsToXlsx(
+  creators: CreatorProfile[],
+  creatorTypes?: Pick<CreatorTypeRow, 'key' | 'nameTh' | 'nameEn'>[],
+) {
   if (creators.length === 0) return;
 
   const { utils, writeFile } = await import('xlsx');
@@ -26,7 +30,14 @@ export async function exportCreatorsToXlsx(creators: CreatorProfile[]) {
     'Twitter Followers': creator.followerCounts.twitter ?? '',
     'Lemon8': creator.socialAccounts.lemon8 ?? '',
     'Lemon8 Followers': creator.followerCounts.lemon8 ?? '',
-    'ประเภท': creator.type === 'asw_household' ? 'ลูกบ้านแอสเซทไวส์' : creator.type === 'assetwise_staff' ? 'พนักงาน Assetwise' : 'บุคคลทั่วไป',
+    'ประเภท':
+      creatorTypes && creatorTypes.length > 0
+        ? resolveCreatorTypeThLabel(creator.type, creatorTypes)
+        : creator.type === 'asw_household' || creator.type === 'asw_houshold'
+          ? 'ลูกบ้านแอสเซทไวส์'
+          : creator.type === 'assetwise_staff' || creator.type === 'asw_staff'
+            ? 'พนักงาน Assetwise'
+            : 'บุคคลทั่วไป',
     'วันที่ลงทะเบียน': creator.createdAt,
   }));
 

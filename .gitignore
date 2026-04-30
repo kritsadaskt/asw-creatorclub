@@ -57,3 +57,4 @@ next-env.d.ts
 # Docs
 RLS_MIGRATION_PHASES.md
 auth-migration.md
+docs/*.csv

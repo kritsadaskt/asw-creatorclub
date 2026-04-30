@@ -2,6 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { logServerError, requestLogContext } from '@/lib/log-server-error';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { sanitizeSocialAccounts, type SocialAccountsInput } from '@/modules/utils/social-url';
+import {
+  buildCreatorCategoryMaps,
+  resolveIdsFromLabels,
+  resolveThLabelsFromIds,
+  type CreatorCategoryRow,
+} from '@/modules/utils/creatorCategoryLookup';
+
+function getProfilesTableForDevHost(request: NextRequest): 'profiles' | 'profiles_uat' {
+  if (process.env.NODE_ENV !== 'development') return 'profiles';
+  const host = request.nextUrl.hostname.toLowerCase();
+  if (host === 'localhost' || host === '127.0.0.1' || host === '[::1]') {
+    return 'profiles_uat';
+  }
+  return 'profiles';
+}
 
 export async function POST(request: NextRequest) {
   let body: unknown;
@@ -75,6 +90,36 @@ export async function POST(request: NextRequest) {
     }
     const budget = parseBudget(creator.budget);
 
+    const parseCategoryIdsFromPayload = (raw: unknown): string[] => {
+      if (!Array.isArray(raw)) return [];
+      const out: string[] = [];
+      for (const x of raw) {
+        if (typeof x === 'number' && Number.isFinite(x)) {
+          out.push(String(Math.trunc(x)));
+        } else if (typeof x === 'string' && /^\d+$/.test(x.trim())) {
+          out.push(x.trim());
+        }
+      }
+      return out;
+    };
+
+    const { data: catRows, error: catErr } = await supabaseAdmin
+      .from('creator_categories')
+      .select('id,th_label,en_label')
+      .eq('is_active', true);
+    if (catErr) throw catErr;
+    const catMaps = buildCreatorCategoryMaps((catRows ?? []) as CreatorCategoryRow[]);
+
+    let categoryIds = parseCategoryIdsFromPayload(creator.categoryIds);
+    const legacyLabels = Array.isArray(creator.categories)
+      ? creator.categories.filter((x): x is string => typeof x === 'string' && x.trim() !== '')
+      : [];
+    if (categoryIds.length === 0 && legacyLabels.length > 0) {
+      categoryIds = resolveIdsFromLabels(legacyLabels, catMaps);
+    }
+    const categoryThLabels =
+      categoryIds.length > 0 ? resolveThLabelsFromIds(categoryIds, catMaps) : legacyLabels;
+
     const rawPageantYear = creator.pageantYear;
     let pageant_year: number | null = null;
     if (typeof rawPageantYear === 'number' && Number.isFinite(rawPageantYear)) {
@@ -84,7 +129,8 @@ export async function POST(request: NextRequest) {
       pageant_year = Number.isFinite(n) ? n : null;
     }
 
-    const { error } = await supabaseAdmin.from('profiles').upsert(
+    const profilesTable = getProfilesTableForDevHost(request);
+    const { error } = await supabaseAdmin.from(profilesTable).upsert(
       {
         id,
         email,
@@ -96,9 +142,9 @@ export async function POST(request: NextRequest) {
         province: typeof creator.province === 'string' ? creator.province : null,
         type: typeof creator.type === 'string' ? creator.type : null,
         pageant_year,
-        category:
-          Array.isArray(creator.categories) && creator.categories.length > 0 ? creator.categories[0] : null,
-        categories: Array.isArray(creator.categories) ? creator.categories : [],
+        category: categoryThLabels.length > 0 ? categoryThLabels[0] : null,
+        categories: categoryThLabels,
+        category_ids: categoryIds,
         followers: typeof creator.followers === 'number' ? creator.followers : 0,
         profile_image: typeof creator.profileImage === 'string' ? creator.profileImage : null,
         social_accounts: socialAccounts,

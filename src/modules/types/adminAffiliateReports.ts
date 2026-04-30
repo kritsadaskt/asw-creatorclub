@@ -1,6 +1,8 @@
 export type AdminAffiliateTopCreatorRow = {
   creatorId: string;
   displayName: string;
+  /** Raw `profiles.type` for `CreatorBadge` (badge hidden for บุคคลทั่วไป). */
+  inviteType: string;
   linkCount: number;
   totalClicks: number | null;
 };

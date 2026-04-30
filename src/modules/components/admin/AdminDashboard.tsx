@@ -7,17 +7,20 @@ import { Button } from '../shared/Button';
 import {
   AffiliateLink,
   CreatorProfile,
+  type CreatorTypeRow,
   type FgfLeadWithProjects,
 } from '../../types';
 import {
   getAffiliateLinksByCreator,
   getCreatorById,
   getCreators,
+  getCreatorTypes,
   getCurrentUser,
   getFgfLeadsWithProjects,
   getProjects,
   updateFgfLeadStatusAndChoice,
 } from '../../utils/storage';
+import { profileTypeMatchesCreatorTypeFilter } from '../../utils/creatorTypeLookup';
 import { supabase } from '../../utils/supabase';
 import { getProfileImageUrl } from '../../utils/profileImage';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
@@ -248,10 +251,9 @@ export function AdminDashboard() {
   const [filteredCreators, setFilteredCreators] = useState<CreatorProfile[]>([]);
   const [approvalFilter, setApprovalFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'inactive'>('pending');
   const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
-  const [selectedCreatorType, setSelectedCreatorType] = useState<
-    'all' | 'assetwise_staff' | 'asw_household' | 'mi' | 'mut'
-  >('all');
-  const [categoryLabels, setCategoryLabels] = useState<string[]>([]);
+  const [selectedCreatorType, setSelectedCreatorType] = useState<string>('all');
+  const [creatorTypeRows, setCreatorTypeRows] = useState<CreatorTypeRow[]>([]);
+  const [categoryFilterOptions, setCategoryFilterOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCreator, setSelectedCreator] = useState<CreatorProfile | null>(null);
   const CREATORS_PAGE_SIZE = 15;
@@ -287,8 +289,8 @@ export function AdminDashboard() {
   const [projectNameById, setProjectNameById] = useState<Record<string, string>>({});
 
   const categoryOptions = useMemo(
-    () => ['ทั้งหมด', ...categoryLabels].map((cat) => ({ value: cat, label: cat })),
-    [categoryLabels],
+    () => [{ value: 'ทั้งหมด', label: 'ทั้งหมด' }, ...categoryFilterOptions],
+    [categoryFilterOptions],
   );
 
   const fgfCisOptions: Array<{ value: typeof fgfCisFilter; label: string }> = [
@@ -336,16 +338,34 @@ export function AdminDashboard() {
     { value: '500k+', label: '500,000+' },
     { value: 'custom', label: 'กำหนดเอง' },
   ];
-  const creatorTypeOptions: Array<{ value: 'all' | 'assetwise_staff' | 'asw_household' | 'mi' | 'mut'; label: string }> = [
-    { value: 'all', label: 'ทั้งหมด' },
-    { value: 'assetwise_staff', label: 'พนักงาน' },
-    { value: 'asw_household', label: 'ลูกบ้าน' },
-    { value: 'mi', label: 'MI'},
-    { value: 'mut', label: 'MUT'},
-  ];
+  const creatorTypeOptions = useMemo(
+    () => [
+      { value: 'all', label: 'ทั้งหมด' },
+      ...creatorTypeRows
+        .filter((r) => r.key.length > 0)
+        .map((r) => ({
+          value: r.key,
+          label: r.nameTh || r.nameEn || r.key,
+        })),
+    ],
+    [creatorTypeRows],
+  );
 
   useEffect(() => {
     loadCreators();
+  }, []);
+
+  useEffect(() => {
+    const loadCreatorTypes = async () => {
+      try {
+        const rows = await getCreatorTypes();
+        setCreatorTypeRows(rows);
+      } catch (error) {
+        console.error('Error loading creator_type options:', error);
+        setCreatorTypeRows([]);
+      }
+    };
+    void loadCreatorTypes();
   }, []);
 
   useEffect(() => {
@@ -353,18 +373,21 @@ export function AdminDashboard() {
       try {
         const { data, error } = await supabase
           .from('creator_categories')
-          .select('th_label,en_label')
+          .select('id,th_label,en_label')
           .eq('is_active', true)
           .order('id', { ascending: true });
         if (error) throw error;
 
-        const labels = (data || [])
-          .map((row) => (row.th_label || row.en_label || '').trim())
-          .filter(Boolean);
-        setCategoryLabels(labels);
+        const opts = (data || [])
+          .map((row) => {
+            const label = (row.th_label || row.en_label || '').trim();
+            return label ? { value: String(row.id), label } : null;
+          })
+          .filter((o): o is { value: string; label: string } => o !== null);
+        setCategoryFilterOptions(opts);
       } catch (error) {
         console.error('Error loading admin category options:', error);
-        setCategoryLabels([]);
+        setCategoryFilterOptions([]);
       }
     };
 
@@ -393,7 +416,10 @@ export function AdminDashboard() {
           return;
         }
         setAffiliateReport({
-          topCreators: json.topCreators ?? [],
+          topCreators: (json.topCreators ?? []).map((row) => ({
+            ...row,
+            inviteType: typeof row.inviteType === 'string' ? row.inviteType : '',
+          })),
           topProjects: json.topProjects ?? [],
           shlinkConfigured: Boolean(json.shlinkConfigured),
           totalLinks: typeof json.totalLinks === 'number' ? json.totalLinks : 0,
@@ -446,25 +472,15 @@ export function AdminDashboard() {
     filtered = filtered.filter((creator) => !creator.email.toLowerCase().includes('@creatorclub.com'));
 
     if (selectedCategory !== 'ทั้งหมด') {
-      filtered = filtered.filter((creator) => creator.categories && creator.categories.includes(selectedCategory));
+      filtered = filtered.filter(
+        (creator) => creator.categoryIds && creator.categoryIds.includes(selectedCategory),
+      );
     }
 
     if (selectedCreatorType !== 'all') {
-      filtered = filtered.filter((creator) => {
-        const rawType = (creator.type ?? '').trim().toLowerCase();
-        switch (selectedCreatorType) {
-          case 'assetwise_staff':
-            return rawType === 'assetwise_staff';
-          case 'asw_household':
-            return rawType === 'asw_household' || rawType === 'asw_houshold';
-          case 'mi':
-            return rawType === 'mi';
-          case 'mut':
-            return rawType === 'mut';
-          default:
-            return true;
-        }
-      });
+      filtered = filtered.filter((creator) =>
+        profileTypeMatchesCreatorTypeFilter(creator.type, selectedCreatorType),
+      );
     }
 
     const q = searchQuery.trim().toLowerCase();
@@ -1123,7 +1139,7 @@ export function AdminDashboard() {
                 options={creatorTypeOptions}
                 value={creatorTypeOptions.find((o) => o.value === selectedCreatorType)}
                 onChange={(option) => {
-                  setSelectedCreatorType((option?.value as typeof selectedCreatorType) ?? 'all');
+                  setSelectedCreatorType((option?.value as string) ?? 'all');
                 }}
                 isClearable={false}
                 classNamePrefix="react-select"
@@ -1227,7 +1243,14 @@ export function AdminDashboard() {
                         key={creator.id}
                         className="border-b border-border hover:bg-input-background/30 transition-colors"
                       >
-                        <td className="py-3 px-4 text-sm text-foreground">{creator.name} {creator.lastName} <CreatorBadge type={creator.type ?? ''} /> {creator.type}</td>
+                        <td className="py-3 px-4 text-sm text-foreground">
+                          <span className="inline-flex flex-wrap items-center gap-1.5">
+                            <span>
+                              {creator.name} {creator.lastName}
+                            </span>
+                            <CreatorBadge type={creator.type ?? ''} />
+                          </span>
+                        </td>
                         <td className="py-3 px-4 text-sm text-foreground">{creator.email}</td>
                         <td className="py-3 px-4 text-sm text-foreground">{creator.phone || '-'}</td>
                         <td className="py-3 px-4 text-sm text-foreground">{getSocialLinks(creator).length} ช่องทาง</td>
