@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.7.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v1.6.2...v1.7.0) (2026-04-30)
+
+
+### Features
+
+* ปรับตัวเลือก Creator Type ให้ดึงข้อมูลจาก DB แทน Hard code ([ca1a27c](https://github.com/kritsadaskt/asw-creatorclub/commit/ca1a27c5f27fb209a243b40a8337b5c97b76ff47))
+
+
+### Bug Fixes
+
+* เพิ่ม badge หลังชื่อ creator ในตาราง 10 อันดับ ([dc96942](https://github.com/kritsadaskt/asw-creatorclub/commit/dc96942f04b8e43e6941b858103a60f67d4f549f))
+
 ### [1.6.2](https://github.com/kritsadaskt/asw-creatorclub/compare/v1.6.1...v1.6.2) (2026-04-28)
 
 
