@@ -128,18 +128,20 @@ export async function GET(request: NextRequest) {
     const topCreatorIds = topCreatorEntries.map(([id]) => id);
 
     const nameByCreatorId = new Map<string, string>();
+    const inviteTypeByCreatorId = new Map<string, string>();
     if (topCreatorIds.length > 0) {
       const { data: profiles, error: profError } = await supabaseAdmin
         .from('profiles')
-        .select('id, name, lastname')
+        .select('id, name, lastname, type')
         .in('id', topCreatorIds);
 
       if (profError) {
         console.error('affiliate-reports profiles:', profError);
       } else {
         for (const p of profiles ?? []) {
-          const r = p as { id: string; name?: string | null; lastname?: string | null };
+          const r = p as { id: string; name?: string | null; lastname?: string | null; type?: string | null };
           nameByCreatorId.set(r.id, displayNameFromProfile(r.name, r.lastname));
+          inviteTypeByCreatorId.set(r.id, (r.type ?? '').trim());
         }
       }
     }
@@ -159,12 +161,13 @@ export async function GET(request: NextRequest) {
     const topCreators: AdminAffiliateTopCreatorRow[] = [];
     for (const [creatorId, linkCount] of topCreatorEntries) {
       const displayName = nameByCreatorId.get(creatorId) ?? creatorId.slice(0, 8);
+      const inviteType = inviteTypeByCreatorId.get(creatorId) ?? '';
       let totalClicks: number | null = null;
       if (apiKey) {
         const links = creatorLinksMap.get(creatorId) ?? [];
         totalClicks = await sumClicksForCreatorLinks(apiKey, creatorId, links);
       }
-      topCreators.push({ creatorId, displayName, linkCount, totalClicks });
+      topCreators.push({ creatorId, displayName, inviteType, linkCount, totalClicks });
     }
 
     const projectRanked = [...projectAgg.entries()]

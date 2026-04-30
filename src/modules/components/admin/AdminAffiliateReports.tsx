@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { AdminAffiliateReportsResponse } from '@/modules/types/adminAffiliateReports';
+import { CreatorBadge } from '../ui/creator-badge';
 import { cn } from '../ui/utils';
 
 type Props = {
@@ -104,18 +105,21 @@ export function AdminAffiliateReports({ data, loading, error, onSelectCreator }:
                     <tr key={row.creatorId} className="border-b border-border/80">
                       <td className="py-2.5 pr-3 text-muted-foreground">{idx + 1}</td>
                       <td className="py-2.5 pr-3 text-foreground align-top">
-                        {onSelectCreator ? (
-                          <button
-                            type="button"
-                            className="text-left text-primary hover:underline underline-offset-2 cursor-pointer max-w-full break-words"
-                            onClick={() => void onSelectCreator(row.creatorId)}
-                            aria-label={`ดูรายละเอียด ${row.displayName}`}
-                          >
-                            {row.displayName}
-                          </button>
-                        ) : (
-                          row.displayName
-                        )}
+                        <div className="inline-flex flex-wrap items-center gap-1.5">
+                          {onSelectCreator ? (
+                            <button
+                              type="button"
+                              className="text-left text-primary hover:underline underline-offset-2 cursor-pointer max-w-full break-words"
+                              onClick={() => void onSelectCreator(row.creatorId)}
+                              aria-label={`ดูรายละเอียด ${row.displayName}`}
+                            >
+                              {row.displayName}
+                            </button>
+                          ) : (
+                            <span className="break-words">{row.displayName}</span>
+                          )}
+                          <CreatorBadge type={row.inviteType} />
+                        </div>
                       </td>
                       <td className="py-2.5 pr-3 text-right font-mono tabular-nums">
                         {row.linkCount.toLocaleString()}

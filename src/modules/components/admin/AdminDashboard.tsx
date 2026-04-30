@@ -396,7 +396,10 @@ export function AdminDashboard() {
           return;
         }
         setAffiliateReport({
-          topCreators: json.topCreators ?? [],
+          topCreators: (json.topCreators ?? []).map((row) => ({
+            ...row,
+            inviteType: typeof row.inviteType === 'string' ? row.inviteType : '',
+          })),
           topProjects: json.topProjects ?? [],
           shlinkConfigured: Boolean(json.shlinkConfigured),
           totalLinks: typeof json.totalLinks === 'number' ? json.totalLinks : 0,
@@ -1232,7 +1235,14 @@ export function AdminDashboard() {
                         key={creator.id}
                         className="border-b border-border hover:bg-input-background/30 transition-colors"
                       >
-                        <td className="py-3 px-4 text-sm text-foreground">{creator.name} {creator.lastName} <CreatorBadge type={creator.type ?? ''} /> {creator.type}</td>
+                        <td className="py-3 px-4 text-sm text-foreground">
+                          <span className="inline-flex flex-wrap items-center gap-1.5">
+                            <span>
+                              {creator.name} {creator.lastName}
+                            </span>
+                            <CreatorBadge type={creator.type ?? ''} />
+                          </span>
+                        </td>
                         <td className="py-3 px-4 text-sm text-foreground">{creator.email}</td>
                         <td className="py-3 px-4 text-sm text-foreground">{creator.phone || '-'}</td>
                         <td className="py-3 px-4 text-sm text-foreground">{getSocialLinks(creator).length} ช่องทาง</td>

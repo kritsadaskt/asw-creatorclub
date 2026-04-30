@@ -308,11 +308,15 @@ export function CreatorsDirectory() {
       case 'assetwise_staff':
         return <CreatorBadge type="assetwise_staff" />;
       case 'asw_household':
-        return <CreatorBadge type="assetwise_household" />;
+        return <CreatorBadge type="asw_household" />;
       case 'mister_int':
         return <CreatorBadge type="mister_int" />;
       case 'miss_world':
         return <CreatorBadge type="miss_world" />;
+      case 'mi':
+        return <CreatorBadge type="mi" />;
+      case 'mut':
+        return <CreatorBadge type="mut" />;
       default:
         return null;
     }
