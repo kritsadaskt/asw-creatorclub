@@ -125,6 +125,9 @@ export interface Campaign {
   name: string;
   detail: string;
   promotionImg?: string;
+  bannerDesktopUrl?: string;
+  bannerMobileUrl?: string;
+  campaignKey?: string;
   leadTarget: string;
   budget: number;
   utmSource: string;
@@ -133,6 +136,9 @@ export interface Campaign {
   utmCampaign: string;
   landingUrl: string;
   projectIds: string[];
+  startAt?: string;
+  endAt?: string;
+  isActive?: boolean;
   createdAt: string;
 }
 

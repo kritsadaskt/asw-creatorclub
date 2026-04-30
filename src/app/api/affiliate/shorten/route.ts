@@ -10,21 +10,27 @@ export async function POST(request: NextRequest) {
 
   let creatorId: string;
   let projectUrl: string;
+  let projectId: string | undefined;
+  let campaignId: string | undefined;
+  let campaignKey: string | undefined;
   let utmSource: string;
   let utmMedium: string;
   let utmCampaign: string;
   let utmId: string;
+  let utmOverride: { utmSource?: string; utmMedium?: string; utmCampaign?: string; utmId?: string } | null = null;
 
   try {
     const body = await request.json();
     creatorId = body.creatorId;
     projectUrl = body.projectUrl;
+    projectId = typeof body.projectId === 'string' ? body.projectId : undefined;
+    campaignId = typeof body.campaignId === 'string' ? body.campaignId : undefined;
+    campaignKey = typeof body.campaignKey === 'string' ? body.campaignKey : undefined;
     utmSource = body.utmSource;
     utmMedium = body.utmMedium;
     utmCampaign = body.utmCampaign;
     utmId = body.utmId;
-
-    console.log('projectUrl', projectUrl);
+    utmOverride = body.utmOverride && typeof body.utmOverride === 'object' ? body.utmOverride : null;
 
     if (!creatorId || typeof creatorId !== 'string') {
       return NextResponse.json({ error: 'creatorId is required' }, { status: 400 });
@@ -33,7 +39,33 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const longUrl = `${projectUrl}?utm_source=${utmSource}&utm_medium=${utmMedium}&utm_campaign=${utmCampaign}&utm_id=${utmId}&ref=${creatorId}`;
+  let longUrlObj: URL;
+  try {
+    longUrlObj = new URL(projectUrl);
+  } catch {
+    return NextResponse.json({ error: 'projectUrl is invalid' }, { status: 400 });
+  }
+  const finalUtmSource = utmOverride?.utmSource || utmSource;
+  const finalUtmMedium = utmOverride?.utmMedium || utmMedium;
+  const finalUtmCampaign = utmOverride?.utmCampaign || utmCampaign;
+  const finalUtmId = utmOverride?.utmId || utmId;
+  longUrlObj.searchParams.set('utm_source', finalUtmSource);
+  longUrlObj.searchParams.set('utm_medium', finalUtmMedium);
+  longUrlObj.searchParams.set('utm_campaign', finalUtmCampaign);
+  longUrlObj.searchParams.set('utm_id', finalUtmId);
+  longUrlObj.searchParams.set('ref', creatorId);
+  const longUrl = longUrlObj.toString();
+  const shlinkTags = [campaignKey, campaignId, creatorId, projectId]
+    .filter((value): value is string => typeof value === 'string' && value.length > 0)
+    .map((value, index) =>
+      index === 0
+        ? `campaign:${value}`
+        : index === 1
+          ? `campaign_id:${value}`
+          : index === 2
+            ? `creator:${value}`
+            : `project:${value}`,
+    );
   //const customSlug = `ref-${creatorId.slice(0, 8)}`;
 
   let shlinkRes: Response;
@@ -45,7 +77,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
         'X-Api-Key': apiKey,
       },
-      body: JSON.stringify({ longUrl, findIfExists: true }),
+      body: JSON.stringify({ longUrl, findIfExists: true, tags: shlinkTags }),
     });
   } catch (err) {
     console.error('Shlink fetch error:', err);
@@ -77,6 +109,10 @@ export async function POST(request: NextRequest) {
       { error: 'Shlink returned an error', detail },
       { status: 502 },
     );
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[affiliate/shorten] longUrl:', longUrl);
   }
 
   const data = await shlinkRes.json();

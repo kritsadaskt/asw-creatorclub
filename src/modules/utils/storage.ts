@@ -483,6 +483,7 @@ export const saveAffiliateLinkIfUrlNewForCreator = async (params: {
   url: string;
   projectId: string;
   campaignName: string;
+  campaignId?: string;
 }): Promise<void> => {
   const normalizedUrl = params.url.trim();
   if (!normalizedUrl) return;
@@ -505,6 +506,7 @@ export const saveAffiliateLinkIfUrlNewForCreator = async (params: {
     creatorId: params.creatorId,
     campaignName: params.campaignName,
     projectId: params.projectId,
+    campaignId: params.campaignId,
     url: normalizedUrl,
     postLinks: [],
     createdAt: new Date().toISOString(),
@@ -725,6 +727,9 @@ export const saveCampaign = async (campaign: Campaign): Promise<void> => {
       name: campaign.name,
       detail: campaign.detail,
       promotion_img: campaign.promotionImg,
+      banner_desktop_url: campaign.bannerDesktopUrl,
+      banner_mobile_url: campaign.bannerMobileUrl,
+      campaign_key: campaign.campaignKey,
       lead_target: campaign.leadTarget,
       budget: campaign.budget,
       utm_source: campaign.utmSource,
@@ -733,6 +738,9 @@ export const saveCampaign = async (campaign: Campaign): Promise<void> => {
       utm_campaign: campaign.utmCampaign,
       landing_url: campaign.landingUrl,
       project_ids: campaign.projectIds,
+      start_at: campaign.startAt ?? null,
+      end_at: campaign.endAt ?? null,
+      is_active: campaign.isActive ?? true,
       created_at: campaign.createdAt
     }, { onConflict: 'id' });
 
@@ -772,6 +780,45 @@ export const getCampaignById = async (id: string): Promise<Campaign | null> => {
   return data ? mapDbToCampaign(data) : null;
 };
 
+export const getCampaignByKey = async (campaignKey: string): Promise<Campaign | null> => {
+  const normalizedKey = campaignKey.trim().toLowerCase();
+  if (!normalizedKey) return null;
+  const { data, error } = await supabase
+    .from('campaigns')
+    .select('*')
+    .eq('campaign_key', normalizedKey)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error getting campaign by key:', error);
+    throw error;
+  }
+
+  return data ? mapDbToCampaign(data) : null;
+};
+
+export const getActiveCampaigns = async (atIso?: string): Promise<Campaign[]> => {
+  const nowIso = atIso ?? new Date().toISOString();
+  const { data, error } = await supabase
+    .from('campaigns')
+    .select('*')
+    .eq('is_active', true)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error getting active campaigns:', error);
+    throw error;
+  }
+
+  return (data || [])
+    .map(mapDbToCampaign)
+    .filter((campaign) => {
+      const startsOk = !campaign.startAt || campaign.startAt <= nowIso;
+      const endsOk = !campaign.endAt || campaign.endAt >= nowIso;
+      return startsOk && endsOk;
+    });
+};
+
 export const getCampaignsByProjectId = async (projectId: string): Promise<Campaign[]> => {
   const { data, error } = await supabase
     .from('campaigns')
@@ -797,6 +844,71 @@ export const deleteCampaign = async (id: string): Promise<void> => {
     console.error('Error deleting campaign:', error);
     throw error;
   }
+};
+
+export const deactivateCampaign = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('campaigns')
+    .update({ is_active: false })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deactivating campaign:', error);
+    throw error;
+  }
+};
+
+export type CampaignReportBasic = {
+  campaignId: string;
+  linkCount: number;
+  creatorCount: number;
+  projectCount: number;
+};
+
+export const getCampaignReportsBasic = async (campaignIds: string[]): Promise<Map<string, CampaignReportBasic>> => {
+  const reportMap = new Map<string, CampaignReportBasic>();
+  if (campaignIds.length === 0) return reportMap;
+  const uniqueIds = Array.from(new Set(campaignIds));
+  const { data, error } = await supabase
+    .from('affiliate_links')
+    .select('campaign_id, creator_id, project_id')
+    .in('campaign_id', uniqueIds);
+
+  if (error) {
+    console.error('Error getting campaign basic reports:', error);
+    throw error;
+  }
+
+  const creatorSets = new Map<string, Set<string>>();
+  const projectSets = new Map<string, Set<string>>();
+  const linkCounts = new Map<string, number>();
+
+  for (const row of data || []) {
+    const campaignId = typeof row.campaign_id === 'string' ? row.campaign_id : '';
+    if (!campaignId) continue;
+    linkCounts.set(campaignId, (linkCounts.get(campaignId) ?? 0) + 1);
+    if (typeof row.creator_id === 'string' && row.creator_id) {
+      const set = creatorSets.get(campaignId) ?? new Set<string>();
+      set.add(row.creator_id);
+      creatorSets.set(campaignId, set);
+    }
+    if (typeof row.project_id === 'string' && row.project_id) {
+      const set = projectSets.get(campaignId) ?? new Set<string>();
+      set.add(row.project_id);
+      projectSets.set(campaignId, set);
+    }
+  }
+
+  for (const campaignId of uniqueIds) {
+    reportMap.set(campaignId, {
+      campaignId,
+      linkCount: linkCounts.get(campaignId) ?? 0,
+      creatorCount: creatorSets.get(campaignId)?.size ?? 0,
+      projectCount: projectSets.get(campaignId)?.size ?? 0,
+    });
+  }
+
+  return reportMap;
 };
 
 // ===== Friend Get Friends Lead Operations =====
@@ -1005,6 +1117,9 @@ const mapDbToCampaign = (row: any): Campaign => ({
   name: row.name || '',
   detail: row.detail || '',
   promotionImg: row.promotion_img,
+  bannerDesktopUrl: row.banner_desktop_url || undefined,
+  bannerMobileUrl: row.banner_mobile_url || undefined,
+  campaignKey: row.campaign_key || undefined,
   leadTarget: row.lead_target || '',
   budget: row.budget || 0,
   utmSource: row.utm_source || '',
@@ -1013,6 +1128,9 @@ const mapDbToCampaign = (row: any): Campaign => ({
   utmCampaign: row.utm_campaign || '',
   landingUrl: row.landing_url || '',
   projectIds: row.project_ids || [],
+  startAt: row.start_at || undefined,
+  endAt: row.end_at || undefined,
+  isActive: row.is_active ?? true,
   createdAt: row.created_at || new Date().toISOString()
 });
 

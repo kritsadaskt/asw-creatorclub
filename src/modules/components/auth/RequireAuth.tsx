@@ -23,17 +23,18 @@ export function RequireAuth({ requiredRole, children }: RequireAuthProps) {
 
   useEffect(() => {
     const session = getSession();
+    let nextPhase: GatePhase = 'allowed';
     if (!session) {
-      setPhase('denied');
+      nextPhase = 'denied';
       router.replace('/');
-      return;
-    }
-    if (requiredRole && session.role !== requiredRole) {
-      setPhase('denied');
+    } else if (requiredRole && session.role !== requiredRole) {
+      nextPhase = 'denied';
       router.replace('/');
-      return;
     }
-    setPhase('allowed');
+    const timer = window.setTimeout(() => {
+      setPhase(nextPhase);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [requiredRole, router]);
 
   if (phase === 'checking' || phase === 'denied') {

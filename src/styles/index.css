@@ -35,3 +35,7 @@
 .fgf-recommend-drawer-content[data-vaul-drawer] {
   touch-action: pan-y;
 }
+
+button, a {
+  @apply cursor-pointer;
+}
