@@ -142,6 +142,26 @@ export interface Campaign {
   createdAt: string;
 }
 
+export interface Event {
+  id: string;
+  createdAt: string;
+  name: string;
+  date: string;
+  desc?: string;
+  dBanner?: string;
+  mBanner?: string;
+  location?: string;
+}
+
+export interface EventParticipant {
+  id: string;
+  eventId: string;
+  creatorId: string;
+  isShowup: boolean;
+  isDenied: boolean;
+  submitAt: string;
+}
+
 export type FgfLeadStatus = 'new' | 'contacting' | 'verified' | 'uploaded';
 
 export interface FgfLead {
