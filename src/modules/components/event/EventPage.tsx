@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { CalendarDays, Loader2, MapPin, PartyPopper } from 'lucide-react';
 import { toast } from 'sonner';
 import { Header } from '../landing/Header';
+import { LoginModal } from '../landing/LoginModal';
 import Footer from '../landing/Footer';
 import { Button } from '../shared/Button';
 import { useSession } from '../../context/SessionContext';
@@ -21,6 +22,7 @@ export function EventPage() {
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [joined, setJoined] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   useEffect(() => {
     const loadEvent = async () => {
@@ -56,7 +58,11 @@ export function EventPage() {
 
   const handleJoin = async () => {
     if (!event) return;
-    if (!currentUserId || userRole !== 'creator') {
+    if (!currentUserId) {
+      setShowLoginModal(true);
+      return;
+    }
+    if (userRole !== 'creator') {
       toast.error('กรุณาเข้าสู่ระบบด้วยบัญชี Creator ก่อนเข้าร่วมอีเวนต์');
       return;
     }
@@ -109,21 +115,28 @@ export function EventPage() {
 
           <section className="container mx-auto px-6 py-10">
             <div className="mx-auto max-w-4xl rounded-2xl border border-border bg-white p-6 shadow-sm md:p-8">
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">
-                <PartyPopper className="h-4 w-4" />
-                EVENT REGISTRATION
-              </div>
 
-              <h1 className="mb-4 text-3xl font-medium text-foreground">{event.name}</h1>
+              <h1 className="mb-4 text-3xl text-center font-medium text-foreground">{event.name}</h1>
 
-              <div className="mb-6 grid grid-cols-1 gap-3 text-sm text-foreground md:grid-cols-2">
-                <div className="inline-flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2">
-                  <CalendarDays className="h-4 w-4 text-primary" />
-                  <span>วันที่จัดงาน: {event.date}</span>
+              <div className="detail-box flex flex-col gap-2 items-center text-xl">
+                <div className="date flex items-center gap-2">
+                  <CalendarDays className="h-5 w-5 text-primary" />
+                  <span>{new Date(event.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                 </div>
-                <div className="inline-flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2">
-                  <MapPin className="h-4 w-4 text-primary" />
-                  <span>สถานที่: {event.location || 'จะแจ้งให้ทราบอีกครั้ง'}</span>
+                <div className="location flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-primary" />
+                  {event.locationMapUrl ? (
+                    <a
+                      href={event.locationMapUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="decoration-primary/40 underline-offset-2 hover:text-primary"
+                    >
+                      {event.location || 'จะแจ้งให้ทราบอีกครั้ง'} <small className="text-muted-foreground">(คลิกเพื่อดูแผนที่)</small>
+                    </a>
+                  ) : (
+                    <span>{event.location || 'จะแจ้งให้ทราบอีกครั้ง'}</span>
+                  )}
                 </div>
               </div>
 
@@ -133,11 +146,13 @@ export function EventPage() {
                 </div>
               ) : null}
 
-              <div className="rounded-lg border border-border bg-muted/20 p-4">
+              <div className="h-7"></div>
+
+              <div className="rounded-lg border border-border bg-muted/20 p-4 flex flex-col gap-2 items-center">
                 {joined ? (
-                  <p className="text-sm text-emerald-700">คุณลงทะเบียนเข้าร่วมอีเวนต์นี้แล้ว</p>
+                  <p className="text-center text-emerald-700">คุณลงทะเบียนเข้าร่วมอีเวนต์นี้แล้ว</p>
                 ) : (
-                  <p className="mb-3 text-sm text-muted-foreground">
+                  <p className="mb-3 text-center text-sm text-muted-foreground">
                     สำหรับ Creator ที่สนใจเข้าร่วม กรุณาเข้าสู่ระบบก่อนแล้วกดปุ่มลงทะเบียน
                   </p>
                 )}
@@ -157,6 +172,16 @@ export function EventPage() {
       )}
 
       <Footer />
+
+      {showLoginModal && (
+        <LoginModal
+          onClose={() => setShowLoginModal(false)}
+          onLogin={(id, role) => {
+            setShowLoginModal(false);
+            handleLogin(id, role);
+          }}
+        />
+      )}
     </div>
   );
 }

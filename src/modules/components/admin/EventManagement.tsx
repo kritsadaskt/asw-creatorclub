@@ -5,6 +5,14 @@ import { toast } from 'sonner';
 import { Loader2, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '../ui/drawer';
 import type { Event } from '../../types';
 import {
   deleteEvent,
@@ -23,6 +31,7 @@ type EventFormState = {
   dBanner: string;
   mBanner: string;
   location: string;
+  locationMapUrl: string;
 };
 
 const DEFAULT_FORM: EventFormState = {
@@ -32,6 +41,7 @@ const DEFAULT_FORM: EventFormState = {
   dBanner: '',
   mBanner: '',
   location: '',
+  locationMapUrl: '',
 };
 
 export function EventManagement() {
@@ -42,6 +52,7 @@ export function EventManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [form, setForm] = useState<EventFormState>(DEFAULT_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isFormDrawerOpen, setIsFormDrawerOpen] = useState(false);
 
   const loadData = async () => {
     try {
@@ -96,11 +107,13 @@ export function EventManagement() {
         dBanner: form.dBanner.trim() || undefined,
         mBanner: form.mBanner.trim() || undefined,
         location: form.location.trim() || undefined,
+        locationMapUrl: form.locationMapUrl.trim() || undefined,
       };
       await saveEvent(payload);
       toast.success(editingId ? 'บันทึกการแก้ไขสำเร็จ' : 'เพิ่มอีเวนต์สำเร็จ');
       setForm(DEFAULT_FORM);
       setEditingId(null);
+      setIsFormDrawerOpen(false);
       await loadData();
     } catch (error) {
       console.error('Error saving event:', error);
@@ -120,7 +133,9 @@ export function EventManagement() {
       dBanner: event.dBanner ?? '',
       mBanner: event.mBanner ?? '',
       location: event.location ?? '',
+      locationMapUrl: event.locationMapUrl ?? '',
     });
+    setIsFormDrawerOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -143,48 +158,23 @@ export function EventManagement() {
     <div className="container mx-auto p-6">
       <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <h2>จัดการ Events ({filteredEvents.length})</h2>
-        <Button variant="outline" className="gap-2" center onClick={() => void loadData()} disabled={loading}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          รีเฟรชข้อมูล
-        </Button>
-      </div>
-
-      <div className="mb-6 rounded-xl border border-border bg-white p-6 shadow-sm">
-        <h3 className="mb-3 text-lg font-medium text-foreground">
-          {editingId ? 'แก้ไข Event' : 'สร้าง Event ใหม่'}
-        </h3>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Input label="ชื่อ Event" value={form.name} onChange={(value) => setForm((prev) => ({ ...prev, name: value }))} />
-          <Input label="วันที่จัดงาน" type="date" value={form.date} onChange={(value) => setForm((prev) => ({ ...prev, date: value }))} />
-          <Input label="สถานที่" value={form.location} onChange={(value) => setForm((prev) => ({ ...prev, location: value }))} />
-          <Input label="Desktop Banner URL" value={form.dBanner} onChange={(value) => setForm((prev) => ({ ...prev, dBanner: value }))} />
-          <Input label="Mobile Banner URL" value={form.mBanner} onChange={(value) => setForm((prev) => ({ ...prev, mBanner: value }))} />
-          <div className="md:col-span-2">
-            <label className="mb-1 block text-sm text-muted-foreground">รายละเอียด</label>
-            <textarea
-              className="min-h-24 w-full rounded-md border border-border bg-input-background px-3 py-2 text-sm"
-              value={form.desc}
-              onChange={(e) => setForm((prev) => ({ ...prev, desc: e.target.value }))}
-              placeholder="รายละเอียดกิจกรรม"
-            />
-          </div>
-        </div>
-        <div className="mt-4 flex items-center gap-2">
-          <Button center className="gap-2" onClick={() => void handleSubmit()} disabled={saving}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            {submitLabel}
+        <div className="flex items-center gap-2">
+          <Button
+            className="gap-2"
+            center
+            onClick={() => {
+              setEditingId(null);
+              setForm(DEFAULT_FORM);
+              setIsFormDrawerOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            สร้าง Event
           </Button>
-          {editingId ? (
-            <Button
-              variant="outline"
-              onClick={() => {
-                setEditingId(null);
-                setForm(DEFAULT_FORM);
-              }}
-            >
-              ยกเลิกการแก้ไข
-            </Button>
-          ) : null}
+          <Button variant="outline" className="gap-2" center onClick={() => void loadData()} disabled={loading}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            รีเฟรชข้อมูล
+          </Button>
         </div>
       </div>
 
@@ -218,7 +208,6 @@ export function EventManagement() {
                   <th className="px-4 py-3 text-left text-sm font-medium">ชื่อ Event</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">วันที่</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">สถานที่</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Banner</th>
                   <th className="px-4 py-3 text-right text-sm font-medium">จัดการ</th>
                 </tr>
               </thead>
@@ -238,12 +227,6 @@ export function EventManagement() {
                         </td>
                         <td className="px-4 py-3 text-sm">{event.date}</td>
                         <td className="px-4 py-3 text-sm text-muted-foreground">{event.location || '-'}</td>
-                        <td className="px-4 py-3 text-xs text-muted-foreground">
-                          <div className="max-w-[300px] space-y-1">
-                            <div className="truncate">D: {event.dBanner || '-'}</div>
-                            <div className="truncate">M: {event.mBanner || '-'}</div>
-                          </div>
-                        </td>
                         <td className="px-4 py-3 text-right">
                           <div className="inline-flex items-center gap-1">
                             <Button variant="ghost" className="p-2" onClick={() => handleEdit(event)} aria-label="แก้ไข">
@@ -296,6 +279,54 @@ export function EventManagement() {
           </div>
         )}
       </div>
+
+      <Drawer
+        direction="right"
+        open={isFormDrawerOpen}
+        onOpenChange={(open) => {
+          setIsFormDrawerOpen(open);
+          if (!open) {
+            setEditingId(null);
+            setForm(DEFAULT_FORM);
+          }
+        }}
+      >
+        <DrawerContent className="overflow-y-auto">
+          <DrawerHeader className="p-7">
+            <DrawerTitle>{editingId ? 'แก้ไข Event' : 'สร้าง Event ใหม่'}</DrawerTitle>
+          </DrawerHeader>
+          <div className="space-y-4 px-7 pb-7">
+            <Input label="ชื่อ Event" value={form.name} onChange={(value) => setForm((prev) => ({ ...prev, name: value }))} />
+            <Input label="วันที่จัดงาน" type="date" value={form.date} onChange={(value) => setForm((prev) => ({ ...prev, date: value }))} />
+            <Input label="สถานที่" value={form.location} onChange={(value) => setForm((prev) => ({ ...prev, location: value }))} />
+            <Input
+              label="Google maps URL"
+              value={form.locationMapUrl}
+              onChange={(value) => setForm((prev) => ({ ...prev, locationMapUrl: value }))}
+            />
+            <Input label="Desktop Banner URL" value={form.dBanner} onChange={(value) => setForm((prev) => ({ ...prev, dBanner: value }))} />
+            <Input label="Mobile Banner URL" value={form.mBanner} onChange={(value) => setForm((prev) => ({ ...prev, mBanner: value }))} />
+            <div>
+              <label className="mb-1 block text-sm text-muted-foreground">รายละเอียด</label>
+              <textarea
+                className="min-h-28 w-full rounded-md border border-border bg-input-background px-3 py-2 text-sm"
+                value={form.desc}
+                onChange={(e) => setForm((prev) => ({ ...prev, desc: e.target.value }))}
+                placeholder="รายละเอียดกิจกรรม"
+              />
+            </div>
+          </div>
+          <DrawerFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button center className="gap-2" onClick={() => void handleSubmit()} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              {submitLabel}
+            </Button>
+            <DrawerClose asChild>
+              <Button variant="outline">ปิด</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }

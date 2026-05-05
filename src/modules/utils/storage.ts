@@ -924,6 +924,7 @@ const mapDbToEvent = (row: any): Event => ({
   dBanner: row.d_banner || undefined,
   mBanner: row.m_banner || undefined,
   location: row.location || undefined,
+  locationMapUrl: row.location_map_url || undefined,
 });
 
 export const getEvents = async (): Promise<Event[]> => {
@@ -992,6 +993,7 @@ export const saveEvent = async (event: Event): Promise<void> => {
         d_banner: event.dBanner ?? null,
         m_banner: event.mBanner ?? null,
         location: event.location ?? null,
+        location_map_url: event.locationMapUrl ?? null,
       },
       { onConflict: 'id' },
     );

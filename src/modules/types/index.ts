@@ -151,6 +151,7 @@ export interface Event {
   dBanner?: string;
   mBanner?: string;
   location?: string;
+  locationMapUrl?: string;
 }
 
 export interface EventParticipant {
