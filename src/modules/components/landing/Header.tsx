@@ -179,7 +179,7 @@ function HeaderMainMenu({
         ) : (
           <>
             <Link href="/#register-section" className="cursor-pointer hover:text-primary">
-              ลงทะเบียน
+              สมัครเป็นครีเอเตอร์
             </Link>
             <button
               type="button"
@@ -397,7 +397,7 @@ export function Header({
                       className="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 hover:bg-muted/40 transition-colors"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      ลงทะเบียน
+                      สมัครเป็นครีเอเตอร์
                     </Link>
                     <button
                       type="button"

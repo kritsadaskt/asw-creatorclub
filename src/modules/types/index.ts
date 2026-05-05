@@ -159,7 +159,7 @@ export interface EventParticipant {
   eventId: string;
   creatorId: string;
   isShowup: boolean;
-  isDenied: boolean;
+  isConfirm: boolean;
   submitAt: string;
 }
 

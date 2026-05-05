@@ -1023,7 +1023,7 @@ const mapDbToEventParticipant = (row: any): EventParticipant => ({
   eventId: row.event_id,
   creatorId: row.creator_id,
   isShowup: Boolean(row.is_showup),
-  isDenied: Boolean(row.is_denied),
+  isConfirm: Boolean(row.is_confirm),
   submitAt: row.submit_at || new Date().toISOString(),
 });
 
@@ -1050,7 +1050,7 @@ export const saveEventParticipant = async (participant: EventParticipant): Promi
         event_id: participant.eventId,
         creator_id: participant.creatorId,
         is_showup: participant.isShowup,
-        is_denied: participant.isDenied,
+        is_confirm: participant.isConfirm,
         submit_at: participant.submitAt,
       },
       { onConflict: 'id' },
@@ -1064,11 +1064,11 @@ export const saveEventParticipant = async (participant: EventParticipant): Promi
 
 export const updateEventParticipant = async (
   id: string,
-  patch: Partial<Pick<EventParticipant, 'isShowup' | 'isDenied' | 'submitAt'>>,
+  patch: Partial<Pick<EventParticipant, 'isShowup' | 'isConfirm' | 'submitAt'>>,
 ): Promise<void> => {
   const payload: Record<string, unknown> = {};
   if (patch.isShowup !== undefined) payload.is_showup = patch.isShowup;
-  if (patch.isDenied !== undefined) payload.is_denied = patch.isDenied;
+  if (patch.isConfirm !== undefined) payload.is_confirm = patch.isConfirm;
   if (patch.submitAt !== undefined) payload.submit_at = patch.submitAt;
 
   const { error } = await supabase
@@ -1127,7 +1127,7 @@ export const joinCurrentEvent = async (
     eventId,
     creatorId,
     isShowup: false,
-    isDenied: false,
+    isConfirm: false,
     submitAt: new Date().toISOString(),
   };
 

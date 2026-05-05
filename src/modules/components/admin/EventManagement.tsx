@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Loader2, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
+import Select from 'react-select';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
+import { Switch } from '../ui/switch';
 import {
   Drawer,
   DrawerClose,
@@ -17,9 +19,14 @@ import type { Event } from '../../types';
 import {
   deleteEvent,
   generateUUID,
+  getCreators,
+  getEventParticipants,
   getEvents,
   saveEvent,
+  updateEventParticipant,
 } from '../../utils/storage';
+import type { CreatorProfile, EventParticipant } from '../../types';
+import { FaFileExcel } from 'react-icons/fa';
 
 const PAGE_SIZE = 15;
 
@@ -46,9 +53,12 @@ const DEFAULT_FORM: EventFormState = {
 
 export function EventManagement() {
   const [events, setEvents] = useState<Event[]>([]);
+  const [participants, setParticipants] = useState<EventParticipant[]>([]);
+  const [creators, setCreators] = useState<CreatorProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [participantEventFilter, setParticipantEventFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [form, setForm] = useState<EventFormState>(DEFAULT_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -57,8 +67,14 @@ export function EventManagement() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const data = await getEvents();
-      setEvents(data);
+      const [eventsData, participantsData, creatorsData] = await Promise.all([
+        getEvents(),
+        getEventParticipants(),
+        getCreators(),
+      ]);
+      setEvents(eventsData);
+      setParticipants(participantsData);
+      setCreators(creatorsData);
     } catch (error) {
       console.error('Error loading events:', error);
       toast.error('ไม่สามารถโหลดข้อมูลอีเวนต์ได้');
@@ -85,6 +101,101 @@ export function EventManagement() {
   const safePage = Math.min(Math.max(currentPage, 1), totalPages);
   const start = (safePage - 1) * PAGE_SIZE;
   const pagedEvents = filteredEvents.slice(start, start + PAGE_SIZE);
+  const creatorById = useMemo(() => new Map(creators.map((creator) => [creator.id, creator])), [creators]);
+  const eventNameById = useMemo(() => new Map(events.map((event) => [event.id, event.name])), [events]);
+
+  const filteredParticipants = useMemo(() => {
+    if (participantEventFilter === 'all') return participants;
+    return participants.filter((participant) => participant.eventId === participantEventFilter);
+  }, [participants, participantEventFilter]);
+  const participantEventOptions = useMemo(
+    () => [
+      { value: 'all', label: 'ทั้งหมด' },
+      ...events.map((event) => ({ value: event.id, label: event.name })),
+    ],
+    [events],
+  );
+
+  const handleExportParticipants = () => {
+    if (filteredParticipants.length === 0) {
+      toast.info('ไม่มีข้อมูลสำหรับ export');
+      return;
+    }
+
+    const escapeCsv = (value: string): string => {
+      if (value.includes('"') || value.includes(',') || value.includes('\n')) {
+        return `"${value.replace(/"/g, '""')}"`;
+      }
+      return value;
+    };
+
+    const rows = filteredParticipants.map((participant) => {
+      const creator = creatorById.get(participant.creatorId);
+      const statusLabel = participant.isConfirm ? 'ยืนยันแล้ว' : 'รอยืนยัน';
+
+      return {
+        eventName: eventNameById.get(participant.eventId) || participant.eventId,
+        creatorName: creator ? `${creator.name} ${creator.lastName ?? ''}`.trim() : '',
+        creatorEmail: creator?.email ?? '',
+        creatorPhone: creator?.phone ?? '',
+        creatorId: participant.creatorId,
+        submitAt: participant.submitAt,
+        status: statusLabel,
+      };
+    });
+
+    const header = [
+      'Event Name',
+      'Creator Name',
+      'Creator Email',
+      'Creator Phone',
+      'Creator ID',
+      'Submit At',
+      'Status',
+    ];
+    const csvLines = [
+      header.join(','),
+      ...rows.map((row) =>
+        [
+          row.eventName,
+          row.creatorName,
+          row.creatorEmail,
+          row.creatorPhone,
+          row.creatorId,
+          row.submitAt,
+          row.status,
+        ]
+          .map((cell) => escapeCsv(cell))
+          .join(','),
+      ),
+    ];
+
+    const blob = new Blob([`\uFEFF${csvLines.join('\n')}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    const suffix = participantEventFilter === 'all' ? 'all-events' : participantEventFilter;
+    anchor.href = url;
+    anchor.download = `event-participants-${suffix}.csv`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleConfirmParticipation = async (participantId: string, isConfirmed: boolean) => {
+    try {
+      await updateEventParticipant(participantId, { isConfirm: isConfirmed });
+      setParticipants((prev) =>
+        prev.map((participant) =>
+          participant.id === participantId ? { ...participant, isConfirm: isConfirmed } : participant,
+        ),
+      );
+      toast.success(isConfirmed ? 'ยืนยันผู้สนใจเรียบร้อยแล้ว' : 'ยกเลิกการยืนยันเรียบร้อยแล้ว');
+    } catch (error) {
+      console.error('Error updating participation confirmation:', error);
+      toast.error('ไม่สามารถอัปเดตสถานะการยืนยันได้');
+    }
+  };
 
   const submitLabel = editingId ? 'บันทึกการแก้ไข' : 'เพิ่มอีเวนต์';
 
@@ -170,10 +281,6 @@ export function EventManagement() {
           >
             <Plus className="h-4 w-4" />
             สร้าง Event
-          </Button>
-          <Button variant="outline" className="gap-2" center onClick={() => void loadData()} disabled={loading}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            รีเฟรชข้อมูล
           </Button>
         </div>
       </div>
@@ -278,6 +385,93 @@ export function EventManagement() {
             </div>
           </div>
         )}
+      </div>
+
+      <div className="mt-6 rounded-xl border border-border bg-white shadow-sm">
+        <div className="border-b border-border p-6">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <h3 className="text-lg font-medium text-foreground">
+              ผู้สนใจเข้าร่วม Event ({filteredParticipants.length})
+            </h3>
+            <div className="flex w-full flex-col gap-5 md:w-auto md:flex-row md:items-end">
+              <div className="w-full md:w-72">
+                <label className="mb-1 hidden text-sm text-muted-foreground">Filter Event</label>
+                <Select
+                  options={participantEventOptions}
+                  value={participantEventOptions.find((option) => option.value === participantEventFilter)}
+                  onChange={(option) => setParticipantEventFilter(option?.value ?? 'all')}
+                  isClearable={false}
+                  classNamePrefix="react-select"
+                  placeholder="ทั้งหมด"
+                />
+              </div>
+              <Button variant="outline" className="text-[15px] flex items-center gap-2" onClick={handleExportParticipants}>
+                <FaFileExcel className="h-4 w-4" />
+                Export {filteredParticipants.length}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[980px]">
+            <thead className="bg-muted/30">
+              <tr>
+                <th className="px-4 py-3 text-left text-sm font-medium">Event</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">ชื่อ</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">อีเมล</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">โทรศัพท์</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">ลงทะเบียนเมื่อ</th>
+                <th className="px-4 py-3 text-left text-sm font-medium"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {filteredParticipants.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                    ไม่พบข้อมูลผู้สนใจเข้าร่วม
+                  </td>
+                </tr>
+              ) : (
+                filteredParticipants.map((participant) => {
+                  const creator = creatorById.get(participant.creatorId);
+                  const statusLabel = participant.isConfirm ? 'ยืนยันแล้ว' : 'รอยืนยัน';
+                  const statusClass = participant.isConfirm ? 'text-emerald-700' : 'text-amber-600';
+                  return (
+                    <tr key={participant.id} className="hover:bg-muted/20">
+                      <td className="px-4 py-3 text-sm">{eventNameById.get(participant.eventId) || participant.eventId}</td>
+                      <td className="px-4 py-3 text-sm">{creator ? `${creator.name} ${creator.lastName ?? ''}`.trim() : '-'}</td>
+                      <td className="px-4 py-3 text-sm">{creator?.email || '-'}</td>
+                      <td className="px-4 py-3 text-sm">{creator?.phone || '-'}</td>
+                      <td className="px-4 py-3 text-sm">
+                        {new Date(participant.submitAt).toLocaleString('th-TH', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        <div className="inline-flex items-center gap-2">
+                          <Switch
+                            checked={participant.isConfirm}
+                            onCheckedChange={(checked) =>
+                              void handleConfirmParticipation(participant.id, checked)
+                            }
+                          />
+                          <span className="text-xs text-muted-foreground">
+                            {participant.isConfirm ? 'ยืนยันแล้ว' : 'รอยืนยัน'}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <Drawer
