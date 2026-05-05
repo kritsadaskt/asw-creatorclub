@@ -1135,6 +1135,42 @@ export const joinCurrentEvent = async (
   return { created: true, participant: newRow };
 };
 
+export const checkInConfirmedEventParticipant = async (params: {
+  eventId: string;
+  creatorId: string;
+}): Promise<{ ok: boolean; reason?: 'NOT_FOUND_OR_NOT_CONFIRMED' | 'ALREADY_CHECKED_IN' }> => {
+  const { data, error } = await supabase
+    .from('event_participant')
+    .select('id, is_showup')
+    .eq('event_id', params.eventId)
+    .eq('creator_id', params.creatorId)
+    .eq('is_confirm', true)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error checking confirmed participant:', error);
+    throw error;
+  }
+  if (!data) {
+    return { ok: false, reason: 'NOT_FOUND_OR_NOT_CONFIRMED' };
+  }
+  if (Boolean(data.is_showup)) {
+    return { ok: false, reason: 'ALREADY_CHECKED_IN' };
+  }
+
+  const { error: updateError } = await supabase
+    .from('event_participant')
+    .update({ is_showup: true })
+    .eq('id', data.id);
+
+  if (updateError) {
+    console.error('Error updating check-in status:', updateError);
+    throw updateError;
+  }
+
+  return { ok: true };
+};
+
 // ===== Friend Get Friends Lead Operations =====
 
 export type CreateFgfLeadInput = {

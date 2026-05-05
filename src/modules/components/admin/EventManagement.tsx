@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { toast } from 'sonner';
 import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import Select from 'react-select';
@@ -27,6 +28,7 @@ import {
 } from '../../utils/storage';
 import type { CreatorProfile, EventParticipant } from '../../types';
 import { FaFileExcel } from 'react-icons/fa';
+import { FaQrcode } from 'react-icons/fa6';
 
 const PAGE_SIZE = 15;
 
@@ -270,6 +272,12 @@ export function EventManagement() {
       <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <h2>จัดการ Events ({filteredEvents.length})</h2>
         <div className="flex items-center gap-2">
+          <Link href="/event/check-in">
+            <Button variant="outline" className="gap-2" center>
+              <FaQrcode className="h-4 w-4" />
+              Check-in QR
+            </Button>
+          </Link>
           <Button
             className="gap-2"
             center
@@ -487,7 +495,7 @@ export function EventManagement() {
       >
         <DrawerContent className="overflow-y-auto">
           <DrawerHeader className="p-7">
-            <DrawerTitle>{editingId ? 'แก้ไข Event' : 'สร้าง Event ใหม่'}</DrawerTitle>
+            <DrawerTitle>{editingId ? 'แก้ไข' : 'เพิ่ม'}</DrawerTitle>
           </DrawerHeader>
           <div className="space-y-4 px-7 pb-7">
             <Input label="ชื่อ Event" value={form.name} onChange={(value) => setForm((prev) => ({ ...prev, name: value }))} />
