@@ -16,6 +16,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             { label: 'จัดการ Creators', to: '/admin/dashboard', end: true },
             { label: 'จัดการโครงการ', to: '/admin/projects' },
             { label: 'จัดการแคมเปญ', to: '/admin/campaigns' },
+            { label: 'จัดการ Events', to: '/admin/events' },
           ]}
         />
         {children}

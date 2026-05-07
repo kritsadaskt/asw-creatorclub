@@ -5,6 +5,8 @@ import {
   AffiliateLink,
   Project,
   Campaign,
+  Event,
+  EventParticipant,
   FgfLead,
   FgfLeadStatus,
   FgfLeadWithProjects,
@@ -909,6 +911,264 @@ export const getCampaignReportsBasic = async (campaignIds: string[]): Promise<Ma
   }
 
   return reportMap;
+};
+
+// ===== Event Operations =====
+
+const mapDbToEvent = (row: any): Event => ({
+  id: row.id,
+  createdAt: row.created_at || new Date().toISOString(),
+  name: row.name || '',
+  date: row.date || '',
+  desc: row.desc || undefined,
+  dBanner: row.d_banner || undefined,
+  mBanner: row.m_banner || undefined,
+  location: row.location || undefined,
+  locationMapUrl: row.location_map_url || undefined,
+});
+
+export const getEvents = async (): Promise<Event[]> => {
+  const { data, error } = await supabase
+    .from('events')
+    .select('*')
+    .order('date', { ascending: false })
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error getting events:', error);
+    throw error;
+  }
+
+  return (data || []).map(mapDbToEvent);
+};
+
+/**
+ * Returns the current event for registration flow.
+ * Rule: pick nearest event from today onward; fallback to latest historical event.
+ */
+export const getCurrentEvent = async (): Promise<Event | null> => {
+  const today = new Date().toISOString().slice(0, 10);
+
+  const { data: upcoming, error: upcomingError } = await supabase
+    .from('events')
+    .select('*')
+    .gte('date', today)
+    .order('date', { ascending: true })
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (upcomingError) {
+    console.error('Error getting upcoming event:', upcomingError);
+    throw upcomingError;
+  }
+  if (upcoming) return mapDbToEvent(upcoming);
+
+  const { data: latest, error: latestError } = await supabase
+    .from('events')
+    .select('*')
+    .order('date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (latestError) {
+    console.error('Error getting latest event:', latestError);
+    throw latestError;
+  }
+
+  return latest ? mapDbToEvent(latest) : null;
+};
+
+export const saveEvent = async (event: Event): Promise<void> => {
+  const { error } = await supabase
+    .from('events')
+    .upsert(
+      {
+        id: event.id,
+        created_at: event.createdAt,
+        name: event.name,
+        date: event.date,
+        desc: event.desc ?? null,
+        d_banner: event.dBanner ?? null,
+        m_banner: event.mBanner ?? null,
+        location: event.location ?? null,
+        location_map_url: event.locationMapUrl ?? null,
+      },
+      { onConflict: 'id' },
+    );
+
+  if (error) {
+    console.error('Error saving event:', error);
+    throw error;
+  }
+};
+
+export const deleteEvent = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('events')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deleting event:', error);
+    throw error;
+  }
+};
+
+// ===== Event Participant Operations =====
+
+const mapDbToEventParticipant = (row: any): EventParticipant => ({
+  id: row.id,
+  eventId: row.event_id,
+  creatorId: row.creator_id,
+  isShowup: Boolean(row.is_showup),
+  isConfirm: Boolean(row.is_confirm),
+  submitAt: row.submit_at || new Date().toISOString(),
+});
+
+export const getEventParticipants = async (): Promise<EventParticipant[]> => {
+  const { data, error } = await supabase
+    .from('event_participant')
+    .select('*')
+    .order('submit_at', { ascending: false });
+
+  if (error) {
+    console.error('Error getting event participants:', error);
+    throw error;
+  }
+
+  return (data || []).map(mapDbToEventParticipant);
+};
+
+export const saveEventParticipant = async (participant: EventParticipant): Promise<void> => {
+  const { error } = await supabase
+    .from('event_participant')
+    .upsert(
+      {
+        id: participant.id,
+        event_id: participant.eventId,
+        creator_id: participant.creatorId,
+        is_showup: participant.isShowup,
+        is_confirm: participant.isConfirm,
+        submit_at: participant.submitAt,
+      },
+      { onConflict: 'id' },
+    );
+
+  if (error) {
+    console.error('Error saving event participant:', error);
+    throw error;
+  }
+};
+
+export const updateEventParticipant = async (
+  id: string,
+  patch: Partial<Pick<EventParticipant, 'isShowup' | 'isConfirm' | 'submitAt'>>,
+): Promise<void> => {
+  const payload: Record<string, unknown> = {};
+  if (patch.isShowup !== undefined) payload.is_showup = patch.isShowup;
+  if (patch.isConfirm !== undefined) payload.is_confirm = patch.isConfirm;
+  if (patch.submitAt !== undefined) payload.submit_at = patch.submitAt;
+
+  const { error } = await supabase
+    .from('event_participant')
+    .update(payload)
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error updating event participant:', error);
+    throw error;
+  }
+};
+
+export const deleteEventParticipant = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('event_participant')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deleting event participant:', error);
+    throw error;
+  }
+};
+
+export const getCreatorEventParticipation = async (
+  eventId: string,
+  creatorId: string,
+): Promise<EventParticipant | null> => {
+  const { data, error } = await supabase
+    .from('event_participant')
+    .select('*')
+    .eq('event_id', eventId)
+    .eq('creator_id', creatorId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error getting creator event participation:', error);
+    throw error;
+  }
+
+  return data ? mapDbToEventParticipant(data) : null;
+};
+
+export const joinCurrentEvent = async (
+  eventId: string,
+  creatorId: string,
+): Promise<{ created: boolean; participant: EventParticipant }> => {
+  const existing = await getCreatorEventParticipation(eventId, creatorId);
+  if (existing) {
+    return { created: false, participant: existing };
+  }
+
+  const newRow: EventParticipant = {
+    id: generateUUID(),
+    eventId,
+    creatorId,
+    isShowup: false,
+    isConfirm: false,
+    submitAt: new Date().toISOString(),
+  };
+
+  await saveEventParticipant(newRow);
+  return { created: true, participant: newRow };
+};
+
+export const checkInConfirmedEventParticipant = async (params: {
+  eventId: string;
+  creatorId: string;
+}): Promise<{ ok: boolean; reason?: 'NOT_FOUND_OR_NOT_CONFIRMED' | 'ALREADY_CHECKED_IN' }> => {
+  const { data, error } = await supabase
+    .from('event_participant')
+    .select('id, is_showup')
+    .eq('event_id', params.eventId)
+    .eq('creator_id', params.creatorId)
+    .eq('is_confirm', true)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error checking confirmed participant:', error);
+    throw error;
+  }
+  if (!data) {
+    return { ok: false, reason: 'NOT_FOUND_OR_NOT_CONFIRMED' };
+  }
+  if (Boolean(data.is_showup)) {
+    return { ok: false, reason: 'ALREADY_CHECKED_IN' };
+  }
+
+  const { error: updateError } = await supabase
+    .from('event_participant')
+    .update({ is_showup: true })
+    .eq('id', data.id);
+
+  if (updateError) {
+    console.error('Error updating check-in status:', updateError);
+    throw updateError;
+  }
+
+  return { ok: true };
 };
 
 // ===== Friend Get Friends Lead Operations =====
