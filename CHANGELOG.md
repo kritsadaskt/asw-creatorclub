@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.3](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.0.2...v2.0.3) (2026-05-07)
+
+
+### Bug Fixes
+
+* แก้ label Pre sale > Sold out ([c193ad8](https://github.com/kritsadaskt/asw-creatorclub/commit/c193ad8fe3ed508671072ba0129570c4ec0c2c3f))
+* เปลี่ยน utm_id เป็น utm_content ([6880156](https://github.com/kritsadaskt/asw-creatorclub/commit/68801561f3b3b0edc5df45ac83b4b3257ba31965))
+
 ### [2.0.2](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.0.1...v2.0.2) (2026-05-07)
 
 ### [2.0.1](https://github.com/kritsadaskt/asw-creatorclub/compare/v1.7.0...v2.0.1) (2026-04-30)
