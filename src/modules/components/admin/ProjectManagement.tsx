@@ -215,7 +215,7 @@ export function ProjectManagement() {
                             )}
                             {project.projectStatus === 'sold_out' && (
                               <span className="text-xs text-muted-foreground ml-2 bg-muted-foreground/10 px-2 py-1 rounded-md">
-                                Pre-sale
+                                Sold Out
                               </span>
                             )}
                           </div>

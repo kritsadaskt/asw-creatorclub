@@ -183,6 +183,7 @@ export async function POST(request: NextRequest) {
       utm_source:       'creatorclub',
       utm_medium:       'referral',
       utm_campaign:     'friend_get_friend',
+      utm_content:      sessionUserId ?? String(numericRefId),
     };
 
     console.log('[fgf/submit] CIS request', { url: cisUrl, payload: cisPayload });

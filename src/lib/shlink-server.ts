@@ -50,7 +50,8 @@ export function longUrlBelongsToCreator(longUrl: string, creatorId: string): boo
     const u = new URL(longUrl);
     const ref = u.searchParams.get('ref');
     const utmId = u.searchParams.get('utm_id');
-    return ref === creatorId || utmId === creatorId;
+    const utmContent = u.searchParams.get('utm_content');
+    return ref === creatorId || utmId === creatorId || utmContent === creatorId;
   } catch {
     return false;
   }

@@ -16,8 +16,8 @@ export async function POST(request: NextRequest) {
   let utmSource: string;
   let utmMedium: string;
   let utmCampaign: string;
-  let utmId: string;
-  let utmOverride: { utmSource?: string; utmMedium?: string; utmCampaign?: string; utmId?: string } | null = null;
+  let utmContent: string;
+  let utmOverride: { utmSource?: string; utmMedium?: string; utmCampaign?: string; utmId?: string; utmContent?: string } | null = null;
 
   try {
     const body = await request.json();
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     utmSource = body.utmSource;
     utmMedium = body.utmMedium;
     utmCampaign = body.utmCampaign;
-    utmId = body.utmId;
+    utmContent = body.utmContent ?? body.utmId;
     utmOverride = body.utmOverride && typeof body.utmOverride === 'object' ? body.utmOverride : null;
 
     if (!creatorId || typeof creatorId !== 'string') {
@@ -48,11 +48,12 @@ export async function POST(request: NextRequest) {
   const finalUtmSource = utmOverride?.utmSource || utmSource;
   const finalUtmMedium = utmOverride?.utmMedium || utmMedium;
   const finalUtmCampaign = utmOverride?.utmCampaign || utmCampaign;
-  const finalUtmId = utmOverride?.utmId || utmId;
+  const finalUtmContent = utmOverride?.utmContent || utmOverride?.utmId || utmContent;
   longUrlObj.searchParams.set('utm_source', finalUtmSource);
   longUrlObj.searchParams.set('utm_medium', finalUtmMedium);
   longUrlObj.searchParams.set('utm_campaign', finalUtmCampaign);
-  longUrlObj.searchParams.set('utm_id', finalUtmId);
+  longUrlObj.searchParams.set('utm_content', finalUtmContent);
+  longUrlObj.searchParams.delete('utm_id');
   longUrlObj.searchParams.set('ref', creatorId);
   const longUrl = longUrlObj.toString();
   const shlinkTags = [campaignKey, campaignId, creatorId, projectId]
