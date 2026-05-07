@@ -41,10 +41,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       headers.Authorization = `Bearer ${token}`;
     }
 
+    const cisPayload = { ...(payload as Record<string, unknown>) };
+    if (typeof cisPayload.utm_id === 'string' && !cisPayload.utm_content) {
+      cisPayload.utm_content = cisPayload.utm_id;
+    }
+    delete cisPayload.utm_id;
+
     const cisRes = await fetch(cisUrl, {
       method: 'POST',
       headers,
-      body: JSON.stringify(payload),
+      body: JSON.stringify(cisPayload),
     });
 
     const text = await cisRes.text();

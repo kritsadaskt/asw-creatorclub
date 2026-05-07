@@ -183,7 +183,7 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
     const effectiveUtmSource = selectedCampaign?.utmSource || 'creator_club_affiliate';
     const effectiveUtmMedium = selectedCampaign?.utmMedium || 'affiliate';
     const effectiveUtmCampaign = selectedCampaign?.utmCampaign || 'creator_club_affiliate';
-    const effectiveUtmId = selectedCampaign?.utmId || currentUserId;
+    const effectiveUtmContent = selectedCampaign?.utmId || currentUserId;
 
     const buildFallbackLongUrl = () => {
       try {
@@ -191,11 +191,12 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
         u.searchParams.set('utm_source', effectiveUtmSource);
         u.searchParams.set('utm_medium', effectiveUtmMedium);
         u.searchParams.set('utm_campaign', effectiveUtmCampaign);
-        u.searchParams.set('utm_id', effectiveUtmId);
+        u.searchParams.set('utm_content', effectiveUtmContent);
+        u.searchParams.delete('utm_id');
         u.searchParams.set('ref', currentUserId);
         return u.toString();
       } catch {
-        return `${project.materialsUrl}?utm_source=${effectiveUtmSource}&utm_medium=${effectiveUtmMedium}&utm_campaign=${effectiveUtmCampaign}&utm_id=${effectiveUtmId}&ref=${currentUserId}`;
+        return `${project.materialsUrl}?utm_source=${effectiveUtmSource}&utm_medium=${effectiveUtmMedium}&utm_campaign=${effectiveUtmCampaign}&utm_content=${effectiveUtmContent}&ref=${currentUserId}`;
       }
     };
 
@@ -212,13 +213,13 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
           utmSource: 'creator_club_affiliate',
           utmMedium: 'affiliate',
           utmCampaign: 'creator_club_affiliate',
-          utmId: currentUserId,
+          utmContent: currentUserId,
           utmOverride: selectedCampaign
             ? {
                 utmSource: selectedCampaign.utmSource,
                 utmMedium: selectedCampaign.utmMedium,
                 utmCampaign: selectedCampaign.utmCampaign,
-                utmId: selectedCampaign.utmId,
+                utmContent: selectedCampaign.utmId,
               }
             : null,
         }),
