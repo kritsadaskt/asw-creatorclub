@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.4](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.0.3...v2.0.4) (2026-05-08)
+
+
+### Bug Fixes
+
+* ปรับ `ContactTypeID` กลับเป็น 35 ([e1b09b7](https://github.com/kritsadaskt/asw-creatorclub/commit/e1b09b712a24b4f9907cb12c77513650c66609f2))
+
 ### [2.0.3](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.0.2...v2.0.3) (2026-05-07)
 
 
