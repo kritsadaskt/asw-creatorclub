@@ -113,8 +113,8 @@ export function EventPage() {
             </section>
           ) : null}
 
-          <section className="container mx-auto px-6 py-10">
-            <div className="mx-auto max-w-4xl rounded-2xl border border-border bg-white p-6 shadow-sm md:p-8">
+          <section className="container mx-auto px-4 lg:px-6 py-10">
+            <div className="mx-auto max-w-4xl rounded-2xl border border-border bg-white py-6 px-4 lg:p-6 shadow-sm md:p-8">
 
               <h1 className="mb-4 text-3xl text-center font-medium text-foreground">{event.name}</h1>
 
@@ -123,7 +123,7 @@ export function EventPage() {
                   <CalendarDays className="h-5 w-5 text-primary" />
                   <span>{new Date(event.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                 </div>
-                <div className="location flex items-center gap-2">
+                <div className="text-base location flex items-center gap-2">
                   <MapPin className="h-5 w-5 text-primary" />
                   {event.locationMapUrl ? (
                     <a
@@ -164,7 +164,7 @@ export function EventPage() {
               <div className="h-5"></div>
 
               {event.desc ? (
-                <div className="mb-6 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+                <div className="whitespace-pre-wrap text-base leading-relaxed text-muted-foreground">
                   <div dangerouslySetInnerHTML={{ __html: event.desc ?? '' }} />
                 </div>
               ) : null}
