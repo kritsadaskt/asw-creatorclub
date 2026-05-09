@@ -140,12 +140,6 @@ export function EventPage() {
                 </div>
               </div>
 
-              {event.desc ? (
-                <div className="mb-6 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                  {event.desc}
-                </div>
-              ) : null}
-
               <div className="h-7"></div>
 
               <div className="rounded-lg border border-border bg-muted/20 p-4 flex flex-col gap-2 items-center">
@@ -166,6 +160,15 @@ export function EventPage() {
                   {joined ? 'ลงทะเบียนแล้ว' : 'สนใจเข้าร่วมอีเวนต์'}
                 </Button>
               </div>
+
+              <div className="h-5"></div>
+
+              {event.desc ? (
+                <div className="mb-6 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+                  <div dangerouslySetInnerHTML={{ __html: event.desc ?? '' }} />
+                </div>
+              ) : null}
+
             </div>
           </section>
         </>
