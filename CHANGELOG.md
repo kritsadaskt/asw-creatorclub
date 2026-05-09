@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.6](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.0.5...v2.0.6) (2026-05-09)
+
+
+### Bug Fixes
+
+* ad custom style to event title ([ff87875](https://github.com/kritsadaskt/asw-creatorclub/commit/ff87875773f02eae70c7922235f6a49c5808a50d))
+
 ### [2.0.5](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.0.4...v2.0.5) (2026-05-09)
 
 
