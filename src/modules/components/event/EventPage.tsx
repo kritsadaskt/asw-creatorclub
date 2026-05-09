@@ -116,7 +116,9 @@ export function EventPage() {
           <section className="container mx-auto px-4 lg:px-6 py-10">
             <div className="mx-auto max-w-4xl rounded-2xl border border-border bg-white py-6 px-4 lg:p-6 shadow-sm md:p-8">
 
-              <h1 className="mb-4 text-3xl text-center font-medium text-foreground">{event.name}</h1>
+              <h1 className="mb-4 text-3xl text-center font-medium text-foreground">
+                <div dangerouslySetInnerHTML={{ __html: event.name ?? '' }} />
+              </h1>
 
               <div className="detail-box flex flex-col gap-2 items-center text-xl">
                 <div className="date flex items-center gap-2">
