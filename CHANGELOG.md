@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.7](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.0.6...v2.0.7) (2026-05-10)
+
+
+### Bug Fixes
+
+* user can't change password ([e0c91ef](https://github.com/kritsadaskt/asw-creatorclub/commit/e0c91efb93d492efac8ef47e71b133208afe6bdf))
+
 ### [2.0.6](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.0.5...v2.0.6) (2026-05-09)
 
 

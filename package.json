@@ -1,7 +1,7 @@
 {
   "name": "AssetWise - Creator Club",
   "private": true,
-  "version": "2.0.6",
+  "version": "2.0.7",
   "type": "module",
   "scripts": {
     "dev": "next dev",
