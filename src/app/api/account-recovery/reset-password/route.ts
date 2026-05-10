@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logServerError, requestLogContext } from '@/lib/log-server-error';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { supabase } from '@/modules/utils/supabase';
 import { hashPassword, validatePassword } from '@/modules/utils/password';
 
 export async function POST(request: NextRequest) {
@@ -17,7 +16,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'WEAK_PASSWORD', message: validationError }, { status: 400 });
     }
 
-    const query = supabase
+    const query = supabaseAdmin
       .from('password_recovery_requests')
       .select('*')
       .eq('email', email)

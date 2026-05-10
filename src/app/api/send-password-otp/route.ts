@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       to: email,
       subject: 'รหัสยืนยันกู้คืนรหัสผ่าน — Creator Club',
       text: `รหัสยืนยันของคุณคือ ${otp} (หมดอายุใน 10 นาที)`,
-      html: `<p>รหัสยืนยันของคุณคือ <strong>${otp}</strong></p><p>รหัสหมดอายุใน 10 นาที</p>`,
+      html: `<p>รหัสยืนยันของคุณคือ <strong>${otp}</strong></p><p>หากคุณไม่ได้ดำเนินการ กรุณาเพิกเฉยอีเมลนี้</p>`,
     });
 
     if (result.sent) {
