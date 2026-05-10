@@ -8,8 +8,8 @@ import { Input } from '../components/shared/Input';
 import { Button } from '../components/shared/Button';
 import { supabase } from '../utils/supabase';
 import { getCreatorByEmail } from '../utils/storage';
-import { hashPassword, validatePassword } from '../utils/password';
-import { ArrowLeftIcon } from 'lucide-react';
+import { validatePassword } from '../utils/password';
+import { ArrowLeftIcon, Loader2 } from 'lucide-react';
 
 type Step = 'email' | 'otp' | 'newPassword' | 'done';
 
@@ -118,77 +118,23 @@ export function AccountRecovery() {
     setLoading(true);
 
     try {
-      const { data: recoveryRequest, error } = await supabase
-        .from('password_recovery_requests')
-        .select('*')
-        .eq('email', email)
-        .order('requested_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (error || !recoveryRequest) {
-        throw new Error('INVALID_OR_EXPIRED_OTP');
-      }
-
-      const now = new Date();
-      const expiresAt = new Date(recoveryRequest.otp_expires_at);
-
-      if (recoveryRequest.status !== 'pending' || now > expiresAt) {
-        await supabase
-          .from('password_recovery_requests')
-          .update({ status: 'expired' })
-          .eq('id', recoveryRequest.id);
-        throw new Error('INVALID_OR_EXPIRED_OTP');
-      }
-
-      const attempts = recoveryRequest.attempts ?? 0;
-      if (attempts >= 5) {
-        await supabase
-          .from('password_recovery_requests')
-          .update({ status: 'failed' })
-          .eq('id', recoveryRequest.id);
-        throw new Error('INVALID_OR_EXPIRED_OTP');
-      }
-
-      if (recoveryRequest.otp_code !== otp) {
-        await supabase
-          .from('password_recovery_requests')
-          .update({ attempts: attempts + 1 })
-          .eq('id', recoveryRequest.id);
-
-        await supabase.from('password_recovery_logs').insert({
-          profile_id: recoveryRequest.profile_id,
-          email,
-          action: 'otp_failed',
-          status: 'failed',
-          recovery_request_id: recoveryRequest.id,
-          message: 'invalid_code',
-        });
-
-        throw new Error('INVALID_OR_EXPIRED_OTP');
-      }
-
-      const newResetToken = crypto.randomUUID();
-      const resetTokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
-
-      await supabase
-        .from('password_recovery_requests')
-        .update({
-          status: 'verified',
-          reset_token: newResetToken,
-          reset_token_expires_at: resetTokenExpiresAt,
-        })
-        .eq('id', recoveryRequest.id);
-
-      await supabase.from('password_recovery_logs').insert({
-        profile_id: recoveryRequest.profile_id,
-        email,
-        action: 'otp_verified',
-        status: 'success',
-        recovery_request_id: recoveryRequest.id,
+      const res = await fetch(`${BASE_PATH}/api/account-recovery/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp }),
       });
 
-      setResetToken(newResetToken);
+      const body = (await res.json().catch(() => ({}))) as {
+        success?: boolean;
+        resetToken?: string;
+        error?: string;
+      };
+
+      if (!res.ok || !body.success || !body.resetToken) {
+        throw new Error(body.error || 'INVALID_OR_EXPIRED_OTP');
+      }
+
+      setResetToken(body.resetToken);
 
       toast.success('ยืนยันรหัสสำเร็จ');
       setStep('newPassword');
@@ -213,64 +159,23 @@ export function AccountRecovery() {
       return;
     }
 
+    if (!resetToken) {
+      toast.error('การยืนยันหมดอายุหรือไม่สมบูรณ์ กรุณาขอรหัสยืนยันใหม่');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const { data: recoveryRequest, error: requestError } = await supabase
-        .from('password_recovery_requests')
-        .select('*')
-        .eq('email', email)
-        .order('requested_at', { ascending: false })
-        .limit(1)
-        .single();
+      const res = await fetch(`${BASE_PATH}/api/account-recovery/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, newPassword, resetToken }),
+      });
 
-      if (requestError || !recoveryRequest) {
-        throw new Error('INVALID_RESET_REQUEST');
-      }
-
-      if (recoveryRequest.status !== 'verified') {
-        throw new Error('INVALID_RESET_REQUEST');
-      }
-
-      if (resetToken && recoveryRequest.reset_token !== resetToken) {
-        throw new Error('INVALID_RESET_REQUEST');
-      }
-
-      if (recoveryRequest.reset_token_expires_at) {
-        const now = new Date();
-        const expiresAt = new Date(recoveryRequest.reset_token_expires_at);
-        if (now > expiresAt) {
-          throw new Error('INVALID_RESET_REQUEST');
-        }
-      }
-
-      const passwordHash = await hashPassword(newPassword);
-
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ password_hash: passwordHash })
-        .eq('id', recoveryRequest.profile_id);
-
-      if (updateError) {
-        console.error('Error updating password:', updateError);
+      if (!res.ok) {
         throw new Error('FAILED_TO_UPDATE_PASSWORD');
       }
-
-      await supabase
-        .from('password_recovery_requests')
-        .update({
-          status: 'completed',
-          completed_at: new Date().toISOString(),
-        })
-        .eq('id', recoveryRequest.id);
-
-      await supabase.from('password_recovery_logs').insert({
-        profile_id: recoveryRequest.profile_id,
-        email,
-        action: 'reset_success',
-        status: 'success',
-        recovery_request_id: recoveryRequest.id,
-      });
 
       toast.success('เปลี่ยนรหัสผ่านสำเร็จ');
       setStep('done');
@@ -291,7 +196,7 @@ export function AccountRecovery() {
           กู้คืนรหัสผ่าน
         </h1>
         <p className="text-muted-foreground text-center">
-          กรุณากรอกอีเมลที่ใช้สมัครเพื่อกู้คืนรหัสผ่าน
+          { step === 'email' ? 'กรุณากรอกอีเมลที่ใช้สมัครเพื่อกู้คืนรหัสผ่าน' : step === 'otp' ? 'กรุณากรอกรหัสยืนยันที่ได้รับทางอีเมล' : step === 'newPassword' ? 'กรุณากรอกรหัสผ่านใหม่' : 'เปลี่ยนรหัสผ่านสำเร็จ'}
         </p>
 
         {step === 'email' && (
@@ -316,17 +221,14 @@ export function AccountRecovery() {
               placeholder="กรอกอีเมลที่ใช้สมัคร"
               required
             />
-            <Button type="submit" fullWidth disabled={loading}>
-              {loading ? 'กำลังดำเนินการ...' : 'ส่งรหัสยืนยัน'}
+            <Button type="submit" fullWidth disabled={loading} className='flex items-center gap-2 justify-center'>
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'ส่งรหัสยืนยัน'}
             </Button>
           </form>
         )}
 
         {step === 'otp' && (
           <form onSubmit={handleVerifyOtp} className="space-y-4">
-            <p className="text-sm text-muted-foreground text-center">
-              เราได้ส่งรหัส 6 หลักไปที่อีเมลของคุณ กรุณากรอกรหัสเพื่อยืนยันตัวตน
-            </p>
             <Input
               label="รหัสยืนยัน (6 หลัก)"
               type="text"

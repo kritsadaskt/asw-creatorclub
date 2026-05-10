@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logServerError, requestLogContext } from '@/lib/log-server-error';
-import { supabase } from '@/modules/utils/supabase';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 const MAX_ATTEMPTS = 5;
 
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'INVALID_INPUT' }, { status: 400 });
     }
 
-    const { data: recoveryRequest, error } = await supabase
+    const { data: recoveryRequest, error } = await supabaseAdmin
       .from('password_recovery_requests')
       .select('*')
       .eq('email', email)
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date(recoveryRequest.otp_expires_at);
 
     if (now > expiresAt) {
-      await supabase
+      await supabaseAdmin
         .from('password_recovery_requests')
         .update({ status: 'expired' })
         .eq('id', recoveryRequest.id);
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     const attempts = recoveryRequest.attempts ?? 0;
     if (attempts >= MAX_ATTEMPTS) {
-      await supabase
+      await supabaseAdmin
         .from('password_recovery_requests')
         .update({ status: 'failed' })
         .eq('id', recoveryRequest.id);
@@ -51,12 +51,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (recoveryRequest.otp_code !== otp) {
-      await supabase
+      await supabaseAdmin
         .from('password_recovery_requests')
         .update({ attempts: attempts + 1 })
         .eq('id', recoveryRequest.id);
 
-      await supabase.from('password_recovery_logs').insert({
+      await supabaseAdmin.from('password_recovery_logs').insert({
         profile_id: recoveryRequest.profile_id,
         email,
         action: 'otp_failed',
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     const resetToken = crypto.randomUUID();
     const resetTokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
-    await supabase
+    const { error: verifyUpdateError } = await supabaseAdmin
       .from('password_recovery_requests')
       .update({
         status: 'verified',
@@ -80,7 +80,19 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', recoveryRequest.id);
 
-    await supabase.from('password_recovery_logs').insert({
+    if (verifyUpdateError) {
+      console.error('verify-otp: failed to mark request verified:', verifyUpdateError);
+      await logServerError({
+        environment: process.env.NODE_ENV ?? 'development',
+        source: 'api:account-recovery/verify-otp',
+        severity: 'error',
+        error: verifyUpdateError,
+        context: requestLogContext(request),
+      });
+      return NextResponse.json({ error: 'INTERNAL_ERROR' }, { status: 500 });
+    }
+
+    await supabaseAdmin.from('password_recovery_logs').insert({
       profile_id: recoveryRequest.profile_id,
       email,
       action: 'otp_verified',
