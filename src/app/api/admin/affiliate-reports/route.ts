@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logServerError, requestLogContext } from '@/lib/log-server-error';
+import {
+  getAffiliateLinkClickStatsByIds,
+  maxSyncedAt,
+  rowToVisitStats,
+} from '@/lib/affiliate-link-click-cache';
+import { mapWithConcurrency } from '@/lib/concurrency';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import {
   fetchShlinkShortUrlMeta,
@@ -23,7 +29,7 @@ export type {
 } from '@/modules/types/adminAffiliateReports';
 
 type LinkRow = {
-  id?: string;
+  id: string;
   creator_id: string;
   project_id: string | null;
   url: string | null;
@@ -31,6 +37,8 @@ type LinkRow = {
   campaign_name?: string | null;
   created_at?: string | null;
 };
+
+const LIVE_FALLBACK_CONCURRENCY = 8;
 
 function normalizePostLinks(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
@@ -45,30 +53,6 @@ function displayNameFromProfile(name: string | null | undefined, lastname: strin
   const l = (lastname ?? '').trim();
   if (n && l) return `${n} ${l}`;
   return n || l || '—';
-}
-
-async function sumClicksForCreatorLinks(apiKey: string, creatorId: string, links: LinkRow[]): Promise<number> {
-  let sum = 0;
-  for (const row of links) {
-    const url = row.url?.trim() ?? '';
-    if (!url) continue;
-    const parsed = parseShlinkShortCode(url);
-    if (!parsed) continue;
-    const meta = await fetchShlinkShortUrlMeta(apiKey, parsed.shortCode, parsed.domain);
-    if (!meta) continue;
-    const longUrl =
-      typeof meta.longUrl === 'string'
-        ? meta.longUrl
-        : typeof meta.originalUrl === 'string'
-          ? meta.originalUrl
-          : '';
-    if (!longUrlBelongsToCreator(longUrl, creatorId)) continue;
-    const stats = visitsFromShlinkShortUrlJson(meta);
-    if (stats?.total != null && Number.isFinite(stats.total)) {
-      sum += stats.total;
-    }
-  }
-  return sum;
 }
 
 export async function GET(request: NextRequest) {
@@ -98,10 +82,7 @@ export async function GET(request: NextRequest) {
 
     const creatorLinkCount = new Map<string, number>();
     const creatorLinksMap = new Map<string, LinkRow[]>();
-    const projectAgg = new Map<
-      string | null,
-      { linkCount: number; creators: Set<string> }
-    >();
+    const projectAgg = new Map<string | null, { linkCount: number; creators: Set<string> }>();
 
     for (const row of rows) {
       const cid = row.creator_id;
@@ -262,12 +243,72 @@ export async function GET(request: NextRequest) {
     const apiKey = process.env.SHLINK_API_KEY;
     const shlinkConfigured = Boolean(apiKey);
     const totalLinks = creatorEntriesExcludingAdmin.reduce((sum, [, linkCount]) => sum + linkCount, 0);
+
+    const nonAdminRows = rows.filter((r) => r.creator_id && !adminCreatorIds.has(r.creator_id));
+    const cacheMap = await getAffiliateLinkClickStatsByIds(nonAdminRows.map((r) => r.id));
+
+    type FallbackTask = { id: string; creatorId: string; url: string };
+    const fallbackTasks: FallbackTask[] = [];
+    const linkResolvedClicks = new Map<string, number>();
+
+    for (const row of nonAdminRows) {
+      const creatorId = row.creator_id!;
+      const cached = cacheMap.get(row.id);
+      const url = row.url?.trim() ?? '';
+
+      if (cached && cached.total_visits != null && Number.isFinite(cached.total_visits)) {
+        const lu = cached.long_url?.trim() ?? '';
+        if (lu && longUrlBelongsToCreator(lu, creatorId)) {
+          const st = rowToVisitStats(cached);
+          if (st?.total != null) linkResolvedClicks.set(row.id, st.total);
+          continue;
+        }
+      }
+
+      if (apiKey && url) {
+        const parsed = parseShlinkShortCode(url);
+        if (parsed) {
+          fallbackTasks.push({ id: row.id, creatorId, url });
+        }
+      }
+    }
+
+    if (apiKey && fallbackTasks.length > 0) {
+      await mapWithConcurrency(fallbackTasks, LIVE_FALLBACK_CONCURRENCY, async (task) => {
+        const parsed = parseShlinkShortCode(task.url);
+        if (!parsed) return;
+        const meta = await fetchShlinkShortUrlMeta(apiKey, parsed.shortCode, parsed.domain);
+        if (!meta) return;
+        const longUrl =
+          typeof meta.longUrl === 'string'
+            ? meta.longUrl
+            : typeof meta.originalUrl === 'string'
+              ? meta.originalUrl
+              : '';
+        if (!longUrlBelongsToCreator(longUrl, task.creatorId)) return;
+        const stats = visitsFromShlinkShortUrlJson(meta);
+        if (stats?.total != null && Number.isFinite(stats.total)) {
+          linkResolvedClicks.set(task.id, stats.total);
+        }
+      });
+    }
+
+    const clicksByCreator = new Map<string, number>();
+    for (const row of nonAdminRows) {
+      const v = linkResolvedClicks.get(row.id);
+      if (v == null || !Number.isFinite(v)) continue;
+      const cid = row.creator_id!;
+      clicksByCreator.set(cid, (clicksByCreator.get(cid) ?? 0) + v);
+    }
+
+    const statsSyncedAt = maxSyncedAt(nonAdminRows.map((r) => cacheMap.get(r.id)));
+    const hasClickSource = shlinkConfigured || statsSyncedAt != null;
+
     let totalClicks: number | null = null;
-    if (apiKey) {
+    if (hasClickSource) {
       totalClicks = 0;
-      for (const [creatorId] of creatorEntriesExcludingAdmin) {
-        const links = creatorLinksMap.get(creatorId) ?? [];
-        totalClicks += await sumClicksForCreatorLinks(apiKey, creatorId, links);
+      for (const [cid] of creatorEntriesExcludingAdmin) {
+        totalClicks += clicksByCreator.get(cid) ?? 0;
       }
     }
 
@@ -275,12 +316,13 @@ export async function GET(request: NextRequest) {
     for (const [creatorId, linkCount] of topCreatorEntries) {
       const displayName = nameByCreatorId.get(creatorId) ?? creatorId.slice(0, 8);
       const inviteType = inviteTypeByCreatorId.get(creatorId) ?? '';
-      let totalClicks: number | null = null;
-      if (apiKey) {
-        const links = creatorLinksMap.get(creatorId) ?? [];
-        totalClicks = await sumClicksForCreatorLinks(apiKey, creatorId, links);
-      }
-      topCreators.push({ creatorId, displayName, inviteType, linkCount, totalClicks });
+      topCreators.push({
+        creatorId,
+        displayName,
+        inviteType,
+        linkCount,
+        totalClicks: hasClickSource ? (clicksByCreator.get(creatorId) ?? 0) : null,
+      });
     }
 
     const projectRanked = [...projectAgg.entries()]
@@ -331,6 +373,7 @@ export async function GET(request: NextRequest) {
       totalClicks,
       linksWithSubmittedPosts,
       submittedPostAffiliateLinks,
+      statsSyncedAt,
     };
     return NextResponse.json(body, { status: 200 });
   } catch (err) {

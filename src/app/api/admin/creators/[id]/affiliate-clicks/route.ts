@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logServerError, requestLogContext } from '@/lib/log-server-error';
+import {
+  getAffiliateLinkClickStatsByIds,
+  maxSyncedAt,
+  rowToVisitStats,
+} from '@/lib/affiliate-link-click-cache';
+import { mapWithConcurrency } from '@/lib/concurrency';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import {
   fetchShlinkShortUrlMeta,
@@ -16,7 +22,10 @@ type LinkRow = { id: string; url: string | null };
 type AdminCreatorAffiliateClicksResponse = {
   stats: Record<string, ShlinkVisitStats | null>;
   shlinkConfigured: boolean;
+  statsSyncedAt?: string | null;
 };
+
+const LIVE_CONCURRENCY = 8;
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   const session = getServerSession(request);
@@ -30,10 +39,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 
   const apiKey = process.env.SHLINK_API_KEY;
-  if (!apiKey) {
-    const body: AdminCreatorAffiliateClicksResponse = { stats: {}, shlinkConfigured: false };
-    return NextResponse.json(body, { status: 200 });
-  }
+  const shlinkConfigured = Boolean(apiKey);
 
   try {
     const { data, error } = await supabaseAdmin
@@ -54,28 +60,46 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     const rows = (data ?? []) as LinkRow[];
+    const cacheMap = await getAffiliateLinkClickStatsByIds(rows.map((r) => r.id));
+
     const stats: Record<string, ShlinkVisitStats | null> = {};
+    const liveTasks: { id: string; url: string }[] = [];
 
-    await Promise.all(
-      rows.map(async (row) => {
-        const url = row.url?.trim() ?? '';
-        if (!url) {
-          stats[row.id] = null;
-          return;
+    for (const row of rows) {
+      const url = row.url?.trim() ?? '';
+      if (!url) {
+        stats[row.id] = null;
+        continue;
+      }
+
+      const parsed = parseShlinkShortCode(url);
+      if (!parsed) {
+        stats[row.id] = null;
+        continue;
+      }
+
+      const cached = cacheMap.get(row.id);
+      if (cached && cached.total_visits != null && Number.isFinite(cached.total_visits)) {
+        const lu = cached.long_url?.trim() ?? '';
+        if (lu && longUrlBelongsToCreator(lu, creatorId)) {
+          stats[row.id] = rowToVisitStats(cached);
+          continue;
         }
+      }
 
-        const parsed = parseShlinkShortCode(url);
-        if (!parsed) {
-          stats[row.id] = null;
-          return;
-        }
+      if (apiKey) {
+        liveTasks.push({ id: row.id, url });
+      } else {
+        stats[row.id] = null;
+      }
+    }
 
+    if (apiKey && liveTasks.length > 0) {
+      await mapWithConcurrency(liveTasks, LIVE_CONCURRENCY, async (task) => {
+        const parsed = parseShlinkShortCode(task.url);
+        if (!parsed) return;
         const meta = await fetchShlinkShortUrlMeta(apiKey, parsed.shortCode, parsed.domain);
-        if (!meta) {
-          stats[row.id] = null;
-          return;
-        }
-
+        if (!meta) return;
         const longUrl =
           typeof meta.longUrl === 'string'
             ? meta.longUrl
@@ -83,16 +107,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
               ? meta.originalUrl
               : '';
 
-        if (!longUrlBelongsToCreator(longUrl, creatorId)) {
-          stats[row.id] = null;
-          return;
-        }
+        if (!longUrlBelongsToCreator(longUrl, creatorId)) return;
+        stats[task.id] = visitsFromShlinkShortUrlJson(meta);
+      });
+    }
 
-        stats[row.id] = visitsFromShlinkShortUrlJson(meta);
-      }),
-    );
+    const statsSyncedAt = maxSyncedAt(rows.map((r) => cacheMap.get(r.id)));
 
-    const body: AdminCreatorAffiliateClicksResponse = { stats, shlinkConfigured: true };
+    const body: AdminCreatorAffiliateClicksResponse = {
+      stats,
+      shlinkConfigured,
+      statsSyncedAt,
+    };
     return NextResponse.json(body, { status: 200 });
   } catch (err) {
     console.error('admin creator affiliate-clicks error:', err);

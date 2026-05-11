@@ -36,4 +36,6 @@ export type AdminAffiliateReportsResponse = {
   /** Count of affiliate rows (non-admin) with at least one post URL in `post_links`; same as `submittedPostAffiliateLinks.length`. */
   linksWithSubmittedPosts: number;
   submittedPostAffiliateLinks: AdminAffiliateSubmittedPostLinkRow[];
+  /** Latest Shlink sync time (UTC ISO) from `affiliate_link_click_stats`, if any. */
+  statsSyncedAt?: string | null;
 };

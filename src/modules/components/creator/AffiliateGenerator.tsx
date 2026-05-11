@@ -8,6 +8,7 @@ import { Input } from '../shared/Input';
 import { AffiliateLink, Project, Campaign } from '../../types';
 import { getAffiliateLinksByCreator, getProjects, getCampaigns, updateAffiliateLink } from '../../utils/storage';
 import { BASE_PATH } from '@/lib/publicPath';
+import { formatStatsSyncedAtBangkok } from '@/lib/format-stats-synced-at';
 import { Building2, CalendarIcon, Home, HomeIcon, Link2, Loader2, MousePointerClick, PencilIcon, PlusIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import {
@@ -48,6 +49,7 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
   const [shlinkStats, setShlinkStats] = useState<Record<string, ShlinkStatEntry>>({});
   const [shlinkStatsLoading, setShlinkStatsLoading] = useState(false);
   const [shlinkTotalClicks, setShlinkTotalClicks] = useState(0);
+  const [shlinkStatsSyncedAt, setShlinkStatsSyncedAt] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const router = useRouter();
   useEffect(() => {
@@ -66,12 +68,14 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
       if (res.status === 503) {
         setShlinkStats({});
         setShlinkTotalClicks(0);
+        setShlinkStatsSyncedAt(null);
         return;
       }
       if (!res.ok) return;
       const data = (await res.json()) as {
         stats?: Record<string, ShlinkStatEntry>;
         totalClicksAll?: number;
+        statsSyncedAt?: string | null;
       };
       setShlinkStats(data.stats ?? {});
       setShlinkTotalClicks(
@@ -79,6 +83,7 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
           ? data.totalClicksAll
           : 0
       );
+      setShlinkStatsSyncedAt(typeof data.statsSyncedAt === 'string' ? data.statsSyncedAt : null);
     } catch (e) {
       console.error('Error loading Shlink stats:', e);
     } finally {
@@ -232,6 +237,11 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
                 )}
               </span>
             </div>
+          )}
+          {!loading && links.length > 0 && formatStatsSyncedAtBangkok(shlinkStatsSyncedAt) && (
+            <p className="text-xs text-muted-foreground sm:text-right">
+              ข้อมูลคลิก sync ล่าสุด: {formatStatsSyncedAtBangkok(shlinkStatsSyncedAt)} (เวลาไทย)
+            </p>
           )}
         </div>
 

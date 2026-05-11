@@ -1,3 +1,9 @@
 {
-  "outputDirectory": ".next"
+  "outputDirectory": ".next",
+  "crons": [
+    {
+      "path": "/creatorclub/api/cron/sync-shlink-stats",
+      "schedule": "0 17 * * *"
+    }
+  ]
 }
