@@ -10,17 +10,35 @@ import {
 import { getServerSession } from '@/modules/utils/auth';
 import type {
   AdminAffiliateReportsResponse,
+  AdminAffiliateSubmittedPostLinkRow,
   AdminAffiliateTopCreatorRow,
   AdminAffiliateTopProjectRow,
 } from '@/modules/types/adminAffiliateReports';
 
 export type {
   AdminAffiliateReportsResponse,
+  AdminAffiliateSubmittedPostLinkRow,
   AdminAffiliateTopCreatorRow,
   AdminAffiliateTopProjectRow,
 } from '@/modules/types/adminAffiliateReports';
 
-type LinkRow = { creator_id: string; project_id: string | null; url: string | null };
+type LinkRow = {
+  id?: string;
+  creator_id: string;
+  project_id: string | null;
+  url: string | null;
+  post_links?: unknown;
+  campaign_name?: string | null;
+  created_at?: string | null;
+};
+
+function normalizePostLinks(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((item): item is string => typeof item === 'string')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
 
 function displayNameFromProfile(name: string | null | undefined, lastname: string | null | undefined): string {
   const n = (name ?? '').trim();
@@ -62,7 +80,7 @@ export async function GET(request: NextRequest) {
   try {
     const { data: linkRows, error: linksError } = await supabaseAdmin
       .from('affiliate_links')
-      .select('creator_id, project_id, url');
+      .select('id, creator_id, project_id, url, post_links, campaign_name, created_at');
 
     if (linksError) {
       console.error('affiliate-reports affiliate_links:', linksError);
@@ -124,6 +142,101 @@ export async function GET(request: NextRequest) {
     const creatorEntriesExcludingAdmin = [...creatorLinkCount.entries()].filter(
       ([creatorId]) => !adminCreatorIds.has(creatorId),
     );
+
+    type SubmittedDraft = {
+      linkId: string;
+      creatorId: string;
+      campaignName: string;
+      projectId: string | null;
+      affiliateUrl: string;
+      postLinks: string[];
+      createdAt: string;
+    };
+
+    const submittedDraft: SubmittedDraft[] = [];
+    for (const row of rows) {
+      const cid = row.creator_id;
+      if (!cid || adminCreatorIds.has(cid)) continue;
+      const postLinks = normalizePostLinks(row.post_links);
+      if (postLinks.length === 0) continue;
+      const linkId = row.id?.trim();
+      if (!linkId) continue;
+      submittedDraft.push({
+        linkId,
+        creatorId: cid,
+        campaignName: (row.campaign_name ?? '').trim() || '—',
+        projectId: row.project_id ?? null,
+        affiliateUrl: (row.url ?? '').trim(),
+        postLinks,
+        createdAt: (row.created_at ?? '').trim() || new Date(0).toISOString(),
+      });
+    }
+
+    const submittedCreatorIds = [...new Set(submittedDraft.map((d) => d.creatorId))];
+    const submittedPostNameById = new Map<string, string>();
+    const submittedPostInviteTypeById = new Map<string, string>();
+    if (submittedCreatorIds.length > 0) {
+      const { data: submittedProfiles, error: submittedProfError } = await supabaseAdmin
+        .from('profiles')
+        .select('id, name, lastname, type')
+        .in('id', submittedCreatorIds);
+
+      if (submittedProfError) {
+        console.error('affiliate-reports profiles (submitted posts):', submittedProfError);
+      } else {
+        for (const p of submittedProfiles ?? []) {
+          const r = p as { id: string; name?: string | null; lastname?: string | null; type?: string | null };
+          submittedPostNameById.set(r.id, displayNameFromProfile(r.name, r.lastname));
+          submittedPostInviteTypeById.set(r.id, (r.type ?? '').trim());
+        }
+      }
+    }
+
+    const submittedProjectIds = [
+      ...new Set(submittedDraft.map((d) => d.projectId).filter((id): id is string => id != null && id.length > 0)),
+    ];
+    const submittedProjectNameById = new Map<string, string>();
+    if (submittedProjectIds.length > 0) {
+      const { data: submittedProjects, error: submittedProjError } = await supabaseAdmin
+        .from('projects')
+        .select('id, name')
+        .in('id', submittedProjectIds);
+
+      if (submittedProjError) {
+        console.error('affiliate-reports projects (submitted posts):', submittedProjError);
+      } else {
+        for (const pr of submittedProjects ?? []) {
+          const r = pr as { id: string; name?: string | null };
+          submittedProjectNameById.set(r.id, (r.name ?? '').trim() || r.id);
+        }
+      }
+    }
+
+    const submittedPostAffiliateLinks: AdminAffiliateSubmittedPostLinkRow[] = submittedDraft
+      .map((d) => ({
+        linkId: d.linkId,
+        creatorId: d.creatorId,
+        displayName: submittedPostNameById.get(d.creatorId) ?? d.creatorId.slice(0, 8),
+        inviteType: submittedPostInviteTypeById.get(d.creatorId) ?? '',
+        campaignName: d.campaignName,
+        affiliateUrl: d.affiliateUrl,
+        postLinks: d.postLinks,
+        projectName:
+          d.projectId == null || d.projectId === ''
+            ? 'ไม่ระบุโครงการ'
+            : submittedProjectNameById.get(d.projectId) ?? d.projectId.slice(0, 8),
+        createdAt: d.createdAt,
+      }))
+      .sort((a, b) => {
+        const ta = Date.parse(a.createdAt);
+        const tb = Date.parse(b.createdAt);
+        const na = Number.isFinite(ta) ? ta : 0;
+        const nb = Number.isFinite(tb) ? tb : 0;
+        return nb - na;
+      });
+
+    const linksWithSubmittedPosts = submittedPostAffiliateLinks.length;
+
     const topCreatorEntries = sortedCreators.slice(0, 10);
     const topCreatorIds = topCreatorEntries.map(([id]) => id);
 
@@ -216,6 +329,8 @@ export async function GET(request: NextRequest) {
       shlinkConfigured,
       totalLinks,
       totalClicks,
+      linksWithSubmittedPosts,
+      submittedPostAffiliateLinks,
     };
     return NextResponse.json(body, { status: 200 });
   } catch (err) {
