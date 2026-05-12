@@ -315,20 +315,22 @@ export function AdminDashboardCharts({
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm text-muted-foreground">Link ของโพสต์ที่ Creator ส่งมาแล้ว</p>
+            <p className="text-sm text-muted-foreground">ลิงก์ที่ส่งโพสต์ให้ตรวจ</p>
             <p className="mt-1 text-3xl font-semibold text-foreground tabular-nums">
               {affiliateReportLoading || !affiliateReport ? (
                 <LoadingDots />
               ) : (
-                affiliateReport.linksWithSubmittedPosts.toLocaleString()
+                (affiliateReport.linksWithSubmittedPosts ?? 0).toLocaleString()
               )}
-              <span className="text-sm ml-2 font-medium text-muted-foreground">Links</span>
+              <span className="ml-2 text-sm font-medium text-muted-foreground">รายการ</span>
             </p>
           </div>
           <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
-            {!affiliateReportLoading && affiliateReport && affiliateReport.submittedPostAffiliateLinks.length > 0 ? (
+            {!affiliateReportLoading &&
+            affiliateReport &&
+            (affiliateReport.submittedPostAffiliateLinks?.length ?? 0) > 0 ? (
               <p className="text-xs text-muted-foreground sm:text-right">
-                เรียงจากล่าสุด · แสดง {affiliateReport.submittedPostAffiliateLinks.length} รายการในแดชบอร์ด
+                เรียงจากล่าสุด · แสดงในแดชบอร์ดครบทุกรายการ (เลื่อนดูในตารางด้านล่าง)
               </p>
             ) : null}
             <Link
@@ -343,7 +345,7 @@ export function AdminDashboardCharts({
         {!affiliateReportLoading && affiliateReport && (
           <div className="mt-4 border-t border-border pt-4">
             <AdminAffiliateSubmittedPostsTable
-              rows={affiliateReport.submittedPostAffiliateLinks}
+              rows={affiliateReport.submittedPostAffiliateLinks ?? []}
               onSelectCreator={onSelectCreator}
               variant="summary"
               wrapperClassName="max-h-[min(28rem,55vh)]"

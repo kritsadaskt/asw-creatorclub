@@ -37,7 +37,6 @@ type LinkRow = {
   campaign_name?: string | null;
   created_at?: string | null;
 };
-
 const LIVE_FALLBACK_CONCURRENCY = 8;
 
 function normalizePostLinks(raw: unknown): string[] {
@@ -116,13 +115,6 @@ export async function GET(request: NextRequest) {
         }
       }
     }
-
-    const sortedCreators = [...creatorLinkCount.entries()]
-      .filter(([creatorId]) => !adminCreatorIds.has(creatorId))
-      .sort((a, b) => b[1] - a[1]);
-    const creatorEntriesExcludingAdmin = [...creatorLinkCount.entries()].filter(
-      ([creatorId]) => !adminCreatorIds.has(creatorId),
-    );
 
     type SubmittedDraft = {
       linkId: string;
@@ -217,6 +209,13 @@ export async function GET(request: NextRequest) {
       });
 
     const linksWithSubmittedPosts = submittedPostAffiliateLinks.length;
+
+    const sortedCreators = [...creatorLinkCount.entries()]
+      .filter(([creatorId]) => !adminCreatorIds.has(creatorId))
+      .sort((a, b) => b[1] - a[1]);
+    const creatorEntriesExcludingAdmin = [...creatorLinkCount.entries()].filter(
+      ([creatorId]) => !adminCreatorIds.has(creatorId),
+    );
 
     const topCreatorEntries = sortedCreators.slice(0, 10);
     const topCreatorIds = topCreatorEntries.map(([id]) => id);
