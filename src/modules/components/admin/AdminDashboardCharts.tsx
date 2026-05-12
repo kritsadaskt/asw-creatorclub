@@ -32,12 +32,15 @@ import {
 } from '../ui/chart';
 import { cn } from '../ui/utils';
 import type { AdminAffiliateReportsResponse } from '@/modules/types/adminAffiliateReports';
+import Link from 'next/link';
+import { AdminAffiliateSubmittedPostsTable } from './AdminAffiliateSubmittedPostsTable';
 
 type Props = {
   creators: CreatorProfile[];
   loading: boolean;
   affiliateReport: AdminAffiliateReportsResponse | null;
   affiliateReportLoading: boolean;
+  onSelectCreator?: (creatorId: string) => void | Promise<void>;
 };
 
 const barChartConfig = {
@@ -106,7 +109,13 @@ function normalizeCreatorType(typeRaw: string | undefined): 'staff' | 'household
   return 'general';
 }
 
-export function AdminDashboardCharts({ creators, loading, affiliateReport, affiliateReportLoading }: Props) {
+export function AdminDashboardCharts({
+  creators,
+  loading,
+  affiliateReport,
+  affiliateReportLoading,
+  onSelectCreator,
+}: Props) {
   const listed = useMemo(() => filterListedCreators(creators), [creators]);
   const approvedListed = useMemo(
     () => listed.filter((creator) => creator.approvalStatus === 1),
@@ -264,18 +273,22 @@ export function AdminDashboardCharts({ creators, loading, affiliateReport, affil
           {
             label: 'จำนวนลิงก์ทั้งหมด',
             value:
-              affiliateReportLoading || !affiliateReport
-                ? <LoadingDots />
-                : affiliateReport.totalLinks.toLocaleString(),
+              affiliateReportLoading || !affiliateReport ? (
+                <LoadingDots />
+              ) : (
+                affiliateReport.totalLinks.toLocaleString()
+              ),
           },
           {
             label: 'จำนวนคลิกทั้งหมด',
             value:
-              affiliateReportLoading || !affiliateReport
-                ? <LoadingDots />
-                : affiliateReport.totalClicks == null
-                  ? '—'
-                  : affiliateReport.totalClicks.toLocaleString(),
+              affiliateReportLoading || !affiliateReport ? (
+                <LoadingDots />
+              ) : affiliateReport.totalClicks == null ? (
+                '—'
+              ) : (
+                affiliateReport.totalClicks.toLocaleString()
+              ),
           },
         ].map((item, idx) => (
           <div
@@ -292,6 +305,51 @@ export function AdminDashboardCharts({ creators, loading, affiliateReport, affil
             </p>
           </div>
         ))}
+      </div>
+
+      <div
+        className={cn(
+          'mt-4 rounded-xl border border-border bg-white p-4 shadow-sm',
+          'animate-in fade-in-0 slide-in-from-bottom-2 duration-500 fill-mode-both [animation-delay:120ms]',
+        )}
+      >
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground">Link ของโพสต์ที่ Creator ส่งมาแล้ว</p>
+            <p className="mt-1 text-3xl font-semibold text-foreground tabular-nums">
+              {affiliateReportLoading || !affiliateReport ? (
+                <LoadingDots />
+              ) : (
+                affiliateReport.linksWithSubmittedPosts.toLocaleString()
+              )}
+              <span className="text-sm ml-2 font-medium text-muted-foreground">Links</span>
+            </p>
+          </div>
+          <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+            {!affiliateReportLoading && affiliateReport && affiliateReport.submittedPostAffiliateLinks.length > 0 ? (
+              <p className="text-xs text-muted-foreground sm:text-right">
+                เรียงจากล่าสุด · แสดง {affiliateReport.submittedPostAffiliateLinks.length} รายการในแดชบอร์ด
+              </p>
+            ) : null}
+            <Link
+              href="/admin/affiliate-posts"
+              className="inline-flex shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+            >
+              ดูทั้งหมด
+            </Link>
+          </div>
+        </div>
+
+        {!affiliateReportLoading && affiliateReport && (
+          <div className="mt-4 border-t border-border pt-4">
+            <AdminAffiliateSubmittedPostsTable
+              rows={affiliateReport.submittedPostAffiliateLinks}
+              onSelectCreator={onSelectCreator}
+              variant="summary"
+              wrapperClassName="max-h-[min(28rem,55vh)]"
+            />
+          </div>
+        )}
       </div>
     </>
   );

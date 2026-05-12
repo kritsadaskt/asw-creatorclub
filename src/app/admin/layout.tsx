@@ -14,6 +14,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           onLogout={handleLogout}
           navTabs={[
             { label: 'จัดการ Creators', to: '/admin/dashboard', end: true },
+            { label: 'ลิงก์โพสต์ Affiliate', to: '/admin/affiliate-posts' },
             { label: 'จัดการโครงการ', to: '/admin/projects' },
             { label: 'จัดการแคมเปญ', to: '/admin/campaigns' },
             { label: 'จัดการ Events', to: '/admin/events' },
