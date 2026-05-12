@@ -30,15 +30,7 @@ export function AdminAffiliateSubmittedPostsTable({
       <table className={cn('w-full text-left text-sm', isFull ? 'min-w-[720px]' : 'min-w-[640px]')}>
         <thead className="sticky top-0 z-[1] border-b border-border bg-muted/80 backdrop-blur-sm">
           <tr className="text-muted-foreground">
-            {isFull ? (
-              <>
-                <th className="px-3 py-2.5 font-medium whitespace-nowrap">แคมเปญ</th>
-                <th className="px-3 py-2.5 font-medium whitespace-nowrap">โครงการ</th>
-                <th className="px-3 py-2.5 font-medium">ลิงก์ Affiliate</th>
-              </>
-            ) : (
-              <th className="px-3 py-2.5 font-medium whitespace-nowrap w-2/12">โครงการ</th>
-            )}
+            <th className="px-3 py-2.5 font-medium whitespace-nowrap w-2/12">โครงการ</th>
             <th className={cn('px-3 py-2.5 font-medium', isFull ? '' : 'w-7/12')}>ลิงก์โพสต์</th>
             <th className={cn('px-3 py-2.5 font-medium whitespace-nowrap', isFull ? '' : 'w-3/12')}>
               ครีเอเตอร์
@@ -48,28 +40,7 @@ export function AdminAffiliateSubmittedPostsTable({
         <tbody>
           {rows.map((row) => (
             <tr key={row.linkId} className="border-b border-border/80 align-top last:border-b-0">
-              {isFull ? (
-                <>
-                  <td className="max-w-[10rem] break-words px-3 py-2.5 text-foreground">{row.campaignName}</td>
-                  <td className="max-w-[9rem] break-words px-3 py-2.5 text-foreground">{row.projectName}</td>
-                  <td className="px-3 py-2.5">
-                    {row.affiliateUrl ? (
-                      <a
-                        href={row.affiliateUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="break-all text-primary underline-offset-2 hover:underline"
-                      >
-                        {row.affiliateUrl}
-                      </a>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </td>
-                </>
-              ) : (
-                <td className="break-words px-3 py-2.5 text-foreground">{row.projectName}</td>
-              )}
+              <td className="break-words px-3 py-2.5 text-foreground">{row.projectName}</td>
               <td className="px-3 py-2.5">
                 <ul className="list-none space-y-1.5 break-all">
                   {row.postLinks.map((href, i) => (

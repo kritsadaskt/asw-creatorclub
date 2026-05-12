@@ -86,7 +86,7 @@ export function AdminAffiliatePostsPage() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-[1600px] px-4 py-8 md:px-6">
+    <div className="container px-4 py-8 md:px-6">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">ลิงก์โพสต์จากครีเอเตอร์</h1>

@@ -35,6 +35,9 @@ import type { AdminAffiliateReportsResponse } from '@/modules/types/adminAffilia
 import Link from 'next/link';
 import { AdminAffiliateSubmittedPostsTable } from './AdminAffiliateSubmittedPostsTable';
 
+/** Affiliate post-links preview rows on dashboard (API returns newest first). */
+const DASHBOARD_AFFILIATE_POSTS_LIMIT = 10;
+
 type Props = {
   creators: CreatorProfile[];
   loading: boolean;
@@ -240,24 +243,24 @@ export function AdminDashboardCharts({
       <h4 className="text-lg font-medium mb-2">ภาพรวมครีเอเตอร์</h4>
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {[
-          { label: 'ทั้งหมด', value: approvalStats.all },
-          { label: 'รออนุมัติ', value: approvalStats.pending },
-          { label: 'อนุมัติแล้ว', value: approvalStats.approved },
-          { label: 'ถูกปฏิเสธ', value: approvalStats.rejected },
+          { label: 'ทั้งหมด', value: approvalStats.all, bgColor: 'bg-blue-50', textColor: 'text-blue-500' },
+          { label: 'รออนุมัติ', value: approvalStats.pending, bgColor: 'bg-orange-50', textColor: 'text-orange-500' },
+          { label: 'อนุมัติแล้ว', value: approvalStats.approved, bgColor: 'bg-green-50', textColor: 'text-green-500' },
+          { label: 'ถูกปฏิเสธ', value: approvalStats.rejected, bgColor: 'bg-red-50', textColor: 'text-red-500' },
         ].map((item, idx) => (
           <div
             key={item.label}
             className={cn(
-              'rounded-xl border border-border bg-white p-4 shadow-sm',
-              'animate-in fade-in-0 slide-in-from-bottom-2 duration-500 fill-mode-both',
+              `rounded-xl border border-border ${item.bgColor} p-4 shadow-sm`,
+              `animate-in fade-in-0 slide-in-from-bottom-2 duration-500 fill-mode-both hover:${item.bgColor}`,
               idx === 1 && '[animation-delay:80ms]',
               idx === 2 && '[animation-delay:160ms]',
               idx === 3 && '[animation-delay:240ms]',
             )}
           >
-            <p className="text-sm text-muted-foreground">{item.label}</p>
-            <p className="mt-1 text-2xl font-semibold text-foreground tabular-nums">
-              {item.value.toLocaleString()}
+            <p className="text-sm text-neutral-700">{item.label}</p>
+            <p className={`mt-1 text-4xl font-semibold text-foreground tabular-nums ${item.textColor}`}>
+              <span className={`${item.textColor}`}>{item.value.toLocaleString()}</span>
             </p>
           </div>
         ))}
@@ -294,13 +297,13 @@ export function AdminDashboardCharts({
           <div
             key={item.label}
             className={cn(
-              'rounded-xl border border-border bg-white p-4 shadow-sm',
+              'rounded-xl border border-border bg-purple-50 p-4 shadow-sm',
               'animate-in fade-in-0 slide-in-from-bottom-2 duration-500 fill-mode-both',
               idx === 1 && '[animation-delay:80ms]',
             )}
           >
-            <p className="text-sm text-muted-foreground">{item.label}</p>
-            <p className="mt-1 min-h-8 flex items-center text-2xl font-semibold text-foreground tabular-nums">
+            <p className="text-sm text-neutral-700">{item.label}</p>
+            <p className="mt-1 min-h-8 flex items-center text-4xl font-semibold tabular-nums text-purple-500">
               {item.value}
             </p>
           </div>
@@ -330,7 +333,8 @@ export function AdminDashboardCharts({
             affiliateReport &&
             (affiliateReport.submittedPostAffiliateLinks?.length ?? 0) > 0 ? (
               <p className="text-xs text-muted-foreground sm:text-right">
-                เรียงจากล่าสุด · แสดงในแดชบอร์ดครบทุกรายการ (เลื่อนดูในตารางด้านล่าง)
+                แสดง {Math.min(DASHBOARD_AFFILIATE_POSTS_LIMIT, affiliateReport.submittedPostAffiliateLinks.length)}{' '}
+                รายการล่าสุด
               </p>
             ) : null}
             <Link
@@ -345,7 +349,7 @@ export function AdminDashboardCharts({
         {!affiliateReportLoading && affiliateReport && (
           <div className="mt-4 border-t border-border pt-4">
             <AdminAffiliateSubmittedPostsTable
-              rows={affiliateReport.submittedPostAffiliateLinks ?? []}
+              rows={(affiliateReport.submittedPostAffiliateLinks ?? []).slice(0, DASHBOARD_AFFILIATE_POSTS_LIMIT)}
               onSelectCreator={onSelectCreator}
               variant="summary"
               wrapperClassName="max-h-[min(28rem,55vh)]"
@@ -363,242 +367,242 @@ export function AdminDashboardCharts({
   return (
     <div className="space-y-6">
       {statCards}
-      {affStatsCards}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      <div
-        className={cn(
-          'rounded-xl border border-border bg-white p-6 shadow-sm',
-          'animate-in fade-in-0 slide-in-from-bottom-2 duration-500 fill-mode-both',
-        )}
-      >
-        <h3 className="mb-4 text-neutral-700 text-lg font-medium">
-          ครีเอเตอร์แยกตามหมวดหมู่ (Top 10)
-        </h3>
-        <ChartContainer config={barChartConfig} className="aspect-auto h-[320px] w-full">
-          <BarChart
-            data={categoryBarData}
-            layout="vertical"
-            margin={{ top: 8, right: 40, left: 16, bottom: 0 }}
-            accessibilityLayer
-          >
-            <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-            <XAxis
-              type="number"
-              allowDecimals={false}
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              tick={{ fontSize: 11 }}
-            />
-            <YAxis
-              type="category"
-              dataKey="category"
-              tickLine={false}
-              axisLine={false}
-              width={100}
-              tickMargin={8}
-              tick={{ fontSize: 11 }}
-            />
-            <ChartTooltip
-              cursor={{ fill: 'var(--muted)', opacity: 0.35 }}
-              content={
-                <ChartTooltipContent
-                  formatter={(value) => (
-                    <span className="font-mono tabular-nums">
-                      {Number(value).toLocaleString()}
-                    </span>
-                  )}
-                  labelFormatter={(_, payload) => {
-                    const row = payload?.[0]?.payload as { category?: string } | undefined;
-                    return row?.category ?? '';
-                  }}
-                />
-              }
-            />
-            <Bar dataKey="count" radius={[0, 6, 6, 0]} animationDuration={700}>
-              {categoryBarData.map((row, idx) => (
-                <Cell
-                  key={row.category}
-                  fill={CATEGORY_BAR_COLORS[idx % CATEGORY_BAR_COLORS.length]}
-                />
-              ))}
-              <LabelList
-                dataKey="count"
-                position="right"
-                offset={8}
-                fill="var(--foreground)"
-                fontSize={12}
-                formatter={(value: number) => value.toLocaleString()}
-              />
-            </Bar>
-          </BarChart>
-        </ChartContainer>
-      </div>
-
-      <div
-        className={cn(
-          'rounded-xl border border-border bg-white p-6 shadow-sm',
-          'animate-in fade-in-0 slide-in-from-bottom-2 duration-500 fill-mode-both [animation-delay:150ms]',
-        )}
-      >
-        <h3 className="mb-4 text-neutral-700 text-lg font-medium">
-          การสมัครรายวัน (7 วันล่าสุด)
-        </h3>
-        <ChartContainer config={lineChartConfig} className="aspect-auto h-[260px] w-full">
-          <LineChart
-            data={lineData}
-            margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
-            accessibilityLayer
-          >
-            <CartesianGrid vertical={false} strokeDasharray="3 3" />
-            <XAxis
-              dataKey="label"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              interval={0}
-              tick={{ fontSize: 11 }}
-            />
-            <YAxis
-              allowDecimals={false}
-              tickLine={false}
-              axisLine={false}
-              width={32}
-              tickMargin={8}
-            />
-            <ChartTooltip
-              content={
-                <ChartTooltipContent
-                  formatter={(value) => (
-                    <span className="font-mono tabular-nums">
-                      {Number(value).toLocaleString()}
-                    </span>
-                  )}
-                  labelFormatter={(_, payload) => {
-                    const row = payload?.[0]?.payload as { label?: string } | undefined;
-                    return row?.label ?? '';
-                  }}
-                />
-              }
-            />
-            <Line
-              type="monotone"
-              dataKey="registrations"
-              stroke="var(--color-registrations)"
-              strokeWidth={2}
-              dot={{ r: 4, fill: 'var(--color-registrations)' }}
-              activeDot={{ r: 5 }}
-              animationDuration={700}
-            />
-          </LineChart>
-        </ChartContainer>
-      </div>
-
-      <div
-        className={cn(
-          'rounded-xl border border-border bg-white p-6 shadow-sm',
-          'animate-in fade-in-0 slide-in-from-bottom-2 duration-500 fill-mode-both [animation-delay:220ms]',
-        )}
-      >
-        <h3 className="mb-4 text-neutral-700 text-lg font-medium">
-          สัดส่วนประเภทครีเอเตอร์
-        </h3>
-        <ChartContainer config={creatorTypeChartConfig} className="aspect-auto h-[320px] w-full">
-          <PieChart accessibilityLayer>
-            <ChartTooltip
-              content={
-                <ChartTooltipContent
-                  formatter={(value) => (
-                    <span className="font-mono tabular-nums">
-                      {Number(value).toLocaleString()}
-                    </span>
-                  )}
-                />
-              }
-            />
-            <Pie
-              data={creatorTypePieData}
-              dataKey="value"
-              nameKey="name"
-              cx="50%"
-              cy="50%"
-              outerRadius={100}
-              label={({ name, value }) => `${name}: ${Number(value).toLocaleString()}`}
-              labelLine={false}
+        <div
+          className={cn(
+            'rounded-xl border border-border bg-white p-6 shadow-sm',
+            'animate-in fade-in-0 slide-in-from-bottom-2 duration-500 fill-mode-both',
+          )}
+        >
+          <h3 className="mb-4 text-neutral-700 text-lg font-medium">
+            ครีเอเตอร์แยกตามหมวดหมู่ (Top 10)
+          </h3>
+          <ChartContainer config={barChartConfig} className="aspect-auto h-[320px] w-full">
+            <BarChart
+              data={categoryBarData}
+              layout="vertical"
+              margin={{ top: 8, right: 40, left: 16, bottom: 0 }}
+              accessibilityLayer
             >
-              {creatorTypePieData.map((entry) => (
-                <Cell key={entry.key} fill={entry.fill} />
-              ))}
-            </Pie>
-          </PieChart>
-        </ChartContainer>
-      </div>
-
-      <div
-        className={cn(
-          'rounded-xl border border-border bg-white p-6 shadow-sm',
-          'animate-in fade-in-0 slide-in-from-bottom-2 duration-500 fill-mode-both [animation-delay:290ms]',
-        )}
-      >
-        <h3 className="mb-4 text-neutral-700 text-lg font-medium">
-          จำนวนครีเอเตอร์ตามพื้นที่
-        </h3>
-        <ChartContainer config={baseLocationChartConfig} className="aspect-auto h-[320px] w-full">
-          <BarChart
-            data={baseLocationData}
-            layout="vertical"
-            margin={{ top: 8, right: 24, left: 16, bottom: 0 }}
-            accessibilityLayer
-          >
-            <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-            <XAxis
-              type="number"
-              allowDecimals={false}
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              tick={{ fontSize: 11 }}
-            />
-            <YAxis
-              type="category"
-              dataKey="location"
-              tickLine={false}
-              axisLine={false}
-              width={110}
-              tickMargin={8}
-              tick={{ fontSize: 11 }}
-            />
-            <ChartTooltip
-              cursor={{ fill: 'var(--muted)', opacity: 0.35 }}
-              content={
-                <ChartTooltipContent
-                  formatter={(value) => (
-                    <span className="font-mono tabular-nums">
-                      {Number(value).toLocaleString()}
-                    </span>
-                  )}
-                />
-              }
-            />
-            <Bar
-              dataKey="count"
-              fill="hsl(188 94% 42%)"
-              radius={[0, 6, 6, 0]}
-              animationDuration={700}
-            >
-              <LabelList
-                dataKey="count"
-                position="right"
-                offset={8}
-                fill="var(--foreground)"
-                fontSize={12}
-                formatter={(value: number) => value.toLocaleString()}
+              <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+              <XAxis
+                type="number"
+                allowDecimals={false}
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                tick={{ fontSize: 11 }}
               />
-            </Bar>
-          </BarChart>
-        </ChartContainer>
+              <YAxis
+                type="category"
+                dataKey="category"
+                tickLine={false}
+                axisLine={false}
+                width={100}
+                tickMargin={8}
+                tick={{ fontSize: 11 }}
+              />
+              <ChartTooltip
+                cursor={{ fill: 'var(--muted)', opacity: 0.35 }}
+                content={
+                  <ChartTooltipContent
+                    formatter={(value) => (
+                      <span className="font-mono tabular-nums">
+                        {Number(value).toLocaleString()}
+                      </span>
+                    )}
+                    labelFormatter={(_, payload) => {
+                      const row = payload?.[0]?.payload as { category?: string } | undefined;
+                      return row?.category ?? '';
+                    }}
+                  />
+                }
+              />
+              <Bar dataKey="count" radius={[0, 6, 6, 0]} animationDuration={700}>
+                {categoryBarData.map((row, idx) => (
+                  <Cell
+                    key={row.category}
+                    fill={CATEGORY_BAR_COLORS[idx % CATEGORY_BAR_COLORS.length]}
+                  />
+                ))}
+                <LabelList
+                  dataKey="count"
+                  position="right"
+                  offset={8}
+                  fill="var(--foreground)"
+                  fontSize={12}
+                  formatter={(value: number) => value.toLocaleString()}
+                />
+              </Bar>
+            </BarChart>
+          </ChartContainer>
+        </div>
+
+        <div
+          className={cn(
+            'rounded-xl border border-border bg-white p-6 shadow-sm',
+            'animate-in fade-in-0 slide-in-from-bottom-2 duration-500 fill-mode-both [animation-delay:150ms]',
+          )}
+        >
+          <h3 className="mb-4 text-neutral-700 text-lg font-medium">
+            การสมัครรายวัน (7 วันล่าสุด)
+          </h3>
+          <ChartContainer config={lineChartConfig} className="aspect-auto h-[260px] w-full">
+            <LineChart
+              data={lineData}
+              margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+              accessibilityLayer
+            >
+              <CartesianGrid vertical={false} strokeDasharray="3 3" />
+              <XAxis
+                dataKey="label"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                interval={0}
+                tick={{ fontSize: 11 }}
+              />
+              <YAxis
+                allowDecimals={false}
+                tickLine={false}
+                axisLine={false}
+                width={32}
+                tickMargin={8}
+              />
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    formatter={(value) => (
+                      <span className="font-mono tabular-nums">
+                        {Number(value).toLocaleString()}
+                      </span>
+                    )}
+                    labelFormatter={(_, payload) => {
+                      const row = payload?.[0]?.payload as { label?: string } | undefined;
+                      return row?.label ?? '';
+                    }}
+                  />
+                }
+              />
+              <Line
+                type="monotone"
+                dataKey="registrations"
+                stroke="var(--color-registrations)"
+                strokeWidth={2}
+                dot={{ r: 4, fill: 'var(--color-registrations)' }}
+                activeDot={{ r: 5 }}
+                animationDuration={700}
+              />
+            </LineChart>
+          </ChartContainer>
+        </div>
+
+        <div
+          className={cn(
+            'rounded-xl border border-border bg-white p-6 shadow-sm',
+            'animate-in fade-in-0 slide-in-from-bottom-2 duration-500 fill-mode-both [animation-delay:220ms]',
+          )}
+        >
+          <h3 className="mb-4 text-neutral-700 text-lg font-medium">
+            สัดส่วนประเภทครีเอเตอร์
+          </h3>
+          <ChartContainer config={creatorTypeChartConfig} className="aspect-auto h-[320px] w-full">
+            <PieChart accessibilityLayer>
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    formatter={(value) => (
+                      <span className="font-mono tabular-nums">
+                        {Number(value).toLocaleString()}
+                      </span>
+                    )}
+                  />
+                }
+              />
+              <Pie
+                data={creatorTypePieData}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={100}
+                label={({ name, value }) => `${name}: ${Number(value).toLocaleString()}`}
+                labelLine={false}
+              >
+                {creatorTypePieData.map((entry) => (
+                  <Cell key={entry.key} fill={entry.fill} />
+                ))}
+              </Pie>
+            </PieChart>
+          </ChartContainer>
+        </div>
+
+        <div
+          className={cn(
+            'rounded-xl border border-border bg-white p-6 shadow-sm',
+            'animate-in fade-in-0 slide-in-from-bottom-2 duration-500 fill-mode-both [animation-delay:290ms]',
+          )}
+        >
+          <h3 className="mb-4 text-neutral-700 text-lg font-medium">
+            จำนวนครีเอเตอร์ตามพื้นที่
+          </h3>
+          <ChartContainer config={baseLocationChartConfig} className="aspect-auto h-[320px] w-full">
+            <BarChart
+              data={baseLocationData}
+              layout="vertical"
+              margin={{ top: 8, right: 24, left: 16, bottom: 0 }}
+              accessibilityLayer
+            >
+              <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+              <XAxis
+                type="number"
+                allowDecimals={false}
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                tick={{ fontSize: 11 }}
+              />
+              <YAxis
+                type="category"
+                dataKey="location"
+                tickLine={false}
+                axisLine={false}
+                width={110}
+                tickMargin={8}
+                tick={{ fontSize: 11 }}
+              />
+              <ChartTooltip
+                cursor={{ fill: 'var(--muted)', opacity: 0.35 }}
+                content={
+                  <ChartTooltipContent
+                    formatter={(value) => (
+                      <span className="font-mono tabular-nums">
+                        {Number(value).toLocaleString()}
+                      </span>
+                    )}
+                  />
+                }
+              />
+              <Bar
+                dataKey="count"
+                fill="hsl(188 94% 42%)"
+                radius={[0, 6, 6, 0]}
+                animationDuration={700}
+              >
+                <LabelList
+                  dataKey="count"
+                  position="right"
+                  offset={8}
+                  fill="var(--foreground)"
+                  fontSize={12}
+                  formatter={(value: number) => value.toLocaleString()}
+                />
+              </Bar>
+            </BarChart>
+          </ChartContainer>
+        </div>
       </div>
-    </div>
+      {affStatsCards}
     </div>
   );
 }
