@@ -444,23 +444,6 @@ export function AdminDashboard() {
               }))
             : [],
           statsSyncedAt: typeof json.statsSyncedAt === 'string' ? json.statsSyncedAt : null,
-          linksWithSubmittedPosts:
-            typeof json.linksWithSubmittedPosts === 'number' ? json.linksWithSubmittedPosts : 0,
-          submittedPostAffiliateLinks: Array.isArray(json.submittedPostAffiliateLinks)
-            ? json.submittedPostAffiliateLinks.map((row) => ({
-                linkId: typeof row.linkId === 'string' ? row.linkId : '',
-                creatorId: typeof row.creatorId === 'string' ? row.creatorId : '',
-                displayName: typeof row.displayName === 'string' ? row.displayName : '—',
-                inviteType: typeof row.inviteType === 'string' ? row.inviteType : '',
-                campaignName: typeof row.campaignName === 'string' ? row.campaignName : '—',
-                affiliateUrl: typeof row.affiliateUrl === 'string' ? row.affiliateUrl : '',
-                postLinks: Array.isArray(row.postLinks)
-                  ? row.postLinks.filter((u): u is string => typeof u === 'string')
-                  : [],
-                projectName: typeof row.projectName === 'string' ? row.projectName : '—',
-                createdAt: typeof row.createdAt === 'string' ? row.createdAt : '',
-              }))
-            : [],
         });
       } catch {
         if (!cancelled) {
