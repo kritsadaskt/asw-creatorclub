@@ -4,7 +4,7 @@ import Image from 'next/image';
 import desktopBanner from '@/assets/creator-club_desktop-banner.jpg';
 import mobileBanner from '@/assets/creator-club_mobile-banner.jpg';
 
-export type HeroBannerImage = StaticImageData;
+export type HeroBannerImage = StaticImageData | string;
 
 export interface HeroBannerProps {
   imageDesktop?: HeroBannerImage;
@@ -21,18 +21,36 @@ export function HeroBanner({
 }: HeroBannerProps) {
   return (
     <>
-      <Image
-        src={imageDesktop}
-        alt={altDesktop}
-        className="w-full h-full object-cover hidden md:block"
-        priority
-      />
-      <Image
-        src={imageMobile}
-        alt={altMobile}
-        className="w-full h-full object-cover block md:hidden"
-        priority
-      />
+      {typeof imageDesktop === 'string' ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imageDesktop}
+          alt={altDesktop}
+          className="w-full h-full object-cover hidden md:block"
+        />
+      ) : (
+        <Image
+          src={imageDesktop}
+          alt={altDesktop}
+          className="w-full h-full object-cover hidden md:block"
+          priority
+        />
+      )}
+      {typeof imageMobile === 'string' ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imageMobile}
+          alt={altMobile}
+          className="w-full h-full object-cover block md:hidden"
+        />
+      ) : (
+        <Image
+          src={imageMobile}
+          alt={altMobile}
+          className="w-full h-full object-cover block md:hidden"
+          priority
+        />
+      )}
     </>
   );
 }
