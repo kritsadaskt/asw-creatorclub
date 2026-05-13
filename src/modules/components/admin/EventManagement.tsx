@@ -41,6 +41,8 @@ type EventFormState = {
   mBanner: string;
   location: string;
   locationMapUrl: string;
+  /** When false, /event public page will not show this event. */
+  isActive: boolean;
 };
 
 const DEFAULT_FORM: EventFormState = {
@@ -51,6 +53,7 @@ const DEFAULT_FORM: EventFormState = {
   mBanner: '',
   location: '',
   locationMapUrl: '',
+  isActive: true,
 };
 
 export function EventManagement() {
@@ -221,6 +224,7 @@ export function EventManagement() {
         mBanner: form.mBanner.trim() || undefined,
         location: form.location.trim() || undefined,
         locationMapUrl: form.locationMapUrl.trim() || undefined,
+        isActive: form.isActive,
       };
       await saveEvent(payload);
       toast.success(editingId ? 'บันทึกการแก้ไขสำเร็จ' : 'เพิ่มอีเวนต์สำเร็จ');
@@ -247,8 +251,26 @@ export function EventManagement() {
       mBanner: event.mBanner ?? '',
       location: event.location ?? '',
       locationMapUrl: event.locationMapUrl ?? '',
+      isActive: event.isActive !== false,
     });
     setIsFormDrawerOpen(true);
+  };
+
+  const handleToggleEventActive = async (event: Event, isActive: boolean) => {
+    const snapshot = events;
+    setEvents((prev) => prev.map((e) => (e.id === event.id ? { ...e, isActive } : e)));
+    try {
+      await saveEvent({ ...event, isActive });
+      toast.success(
+        isActive
+          ? 'เปิดแสดงบนหน้า /event แล้ว'
+          : 'ปิดแสดงบนหน้า /event แล้ว — ผู้ใช้จะไม่เห็นอีเวนต์นี้เมื่อเข้า /event',
+      );
+    } catch (error) {
+      console.error('Error toggling event active:', error);
+      setEvents(snapshot);
+      toast.error('ไม่สามารถอัปเดตสถานะอีเวนต์ได้');
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -323,6 +345,7 @@ export function EventManagement() {
                   <th className="px-4 py-3 text-left text-sm font-medium">ชื่อ Event</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">วันที่</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">สถานที่</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">หน้า /event</th>
                   <th className="px-4 py-3 text-right text-sm font-medium">จัดการ</th>
                 </tr>
               </thead>
@@ -342,6 +365,18 @@ export function EventManagement() {
                         </td>
                         <td className="px-4 py-3 text-sm">{event.date}</td>
                         <td className="px-4 py-3 text-sm text-muted-foreground">{event.location || '-'}</td>
+                        <td className="px-4 py-3 text-sm">
+                          <div className="inline-flex items-center gap-2">
+                            <Switch
+                              checked={event.isActive !== false}
+                              onCheckedChange={(checked) => void handleToggleEventActive(event, checked)}
+                              aria-label={event.isActive !== false ? 'ปิดหน้า /event' : 'เปิดหน้า /event'}
+                            />
+                            <span className="text-xs text-muted-foreground">
+                              {event.isActive !== false ? 'เปิด' : 'ปิด'}
+                            </span>
+                          </div>
+                        </td>
                         <td className="px-4 py-3 text-right">
                           <div className="inline-flex items-center gap-1">
                             <Button variant="ghost" className="p-2" onClick={() => handleEdit(event)} aria-label="แก้ไข">
@@ -498,6 +533,19 @@ export function EventManagement() {
             <DrawerTitle>{editingId ? 'แก้ไข' : 'เพิ่ม'}</DrawerTitle>
           </DrawerHeader>
           <div className="space-y-4 px-7 pb-7">
+            <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+              <div>
+                <p className="text-sm font-medium text-foreground">แสดงบนหน้า /event</p>
+                <p className="text-xs text-muted-foreground">
+                  ปิดเมื่อต้องการซ่อนอีเวนต์จากผู้ใช้ — แอดมินยังจัดการและ check-in ได้ตามปกติ
+                </p>
+              </div>
+              <Switch
+                checked={form.isActive}
+                onCheckedChange={(checked) => setForm((prev) => ({ ...prev, isActive: checked }))}
+                aria-label="แสดงบนหน้า /event"
+              />
+            </div>
             <Input label="ชื่อ Event" value={form.name} onChange={(value) => setForm((prev) => ({ ...prev, name: value }))} />
             <Input label="วันที่จัดงาน" type="date" value={form.date} onChange={(value) => setForm((prev) => ({ ...prev, date: value }))} />
             <Input label="สถานที่" value={form.location} onChange={(value) => setForm((prev) => ({ ...prev, location: value }))} />

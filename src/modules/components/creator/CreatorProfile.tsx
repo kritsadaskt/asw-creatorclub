@@ -12,6 +12,7 @@ import {
   uploadCreatorProfileImage,
 } from '../../utils/storage';
 import { BASE_PATH } from '@/lib/publicPath';
+import { formatStatsSyncedAtBangkok } from '@/lib/format-stats-synced-at';
 import { getProfileImageUrl } from '../../utils/profileImage';
 import { AffiliateGenerator } from './AffiliateGenerator';
 import { supabase } from '../../utils/supabase';
@@ -45,6 +46,7 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
   const [affiliateStatsLoading, setAffiliateStatsLoading] = useState(false);
   const [affiliateLinkCount, setAffiliateLinkCount] = useState(0);
   const [affiliateTotalClicks, setAffiliateTotalClicks] = useState(0);
+  const [affiliateStatsSyncedAt, setAffiliateStatsSyncedAt] = useState<string | null>(null);
   const profileImageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -97,12 +99,16 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
         });
 
         if (!res.ok) {
-          if (!cancelled) setAffiliateTotalClicks(0);
+          if (!cancelled) {
+            setAffiliateTotalClicks(0);
+            setAffiliateStatsSyncedAt(null);
+          }
           return;
         }
 
         const data = (await res.json()) as {
           stats?: Record<string, ShlinkStatEntry>;
+          statsSyncedAt?: string | null;
         };
 
         const statsByLinkId = data.stats ?? {};
@@ -111,12 +117,16 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
           return sum + (Number.isFinite(total) ? total : 0);
         }, 0);
 
-        if (!cancelled) setAffiliateTotalClicks(totalClicks);
+        if (!cancelled) {
+          setAffiliateTotalClicks(totalClicks);
+          setAffiliateStatsSyncedAt(typeof data.statsSyncedAt === 'string' ? data.statsSyncedAt : null);
+        }
       } catch (error) {
         console.error('Error loading affiliate stats:', error);
         if (!cancelled) {
           setAffiliateLinkCount(0);
           setAffiliateTotalClicks(0);
+          setAffiliateStatsSyncedAt(null);
         }
       } finally {
         if (!cancelled) setAffiliateStatsLoading(false);
@@ -568,6 +578,11 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                   </p>
                 </div>
               </div>
+              {formatStatsSyncedAtBangkok(affiliateStatsSyncedAt) && (
+                <p className="text-xs text-muted-foreground">
+                  ตัวเลขคลิก sync ล่าสุด: {formatStatsSyncedAtBangkok(affiliateStatsSyncedAt)} (เวลาไทย)
+                </p>
+              )}
               <AffiliateGenerator creatorId={creatorId} showBackButton={false} />
             </div>
           )}

@@ -26,16 +26,11 @@ export function AdminAffiliateSubmittedPostsTable({
   const isFull = variant === 'full';
 
   return (
-    <div
-      className={cn(
-        'overflow-auto rounded-lg border border-border',
-        wrapperClassName,
-      )}
-    >
+    <div className={cn('overflow-auto rounded-lg border border-border', wrapperClassName)}>
       <table className={cn('w-full text-left text-sm', isFull ? 'min-w-[720px]' : 'min-w-[640px]')}>
         <thead className="sticky top-0 z-[1] border-b border-border bg-muted/80 backdrop-blur-sm">
           <tr className="text-muted-foreground">
-            <th className="px-3 py-2.5 font-medium whitespace-nowrap">โครงการ</th>
+            <th className="px-3 py-2.5 font-medium whitespace-nowrap w-2/12">โครงการ</th>
             <th className={cn('px-3 py-2.5 font-medium', isFull ? '' : 'w-7/12')}>ลิงก์โพสต์</th>
             <th className={cn('px-3 py-2.5 font-medium whitespace-nowrap', isFull ? '' : 'w-3/12')}>
               ครีเอเตอร์
@@ -45,9 +40,7 @@ export function AdminAffiliateSubmittedPostsTable({
         <tbody>
           {rows.map((row) => (
             <tr key={row.linkId} className="border-b border-border/80 align-top last:border-b-0">
-              <td className="px-3 py-2.5 text-foreground break-words max-w-[9rem]">
-                {row.projectName}
-              </td>
+              <td className="break-words px-3 py-2.5 text-foreground">{row.projectName}</td>
               <td className="px-3 py-2.5">
                 <ul className="list-none space-y-1.5 break-all">
                   {row.postLinks.map((href, i) => (
@@ -64,21 +57,19 @@ export function AdminAffiliateSubmittedPostsTable({
                   ))}
                 </ul>
               </td>
-              <td className="px-3 py-2.5 whitespace-nowrap">
+              <td className="whitespace-nowrap px-3 py-2.5">
                 <div className="flex flex-col items-start gap-1 sm:flex-row sm:flex-wrap sm:items-center">
                   {onSelectCreator ? (
                     <button
                       type="button"
-                      className="text-left text-primary hover:underline underline-offset-2 cursor-pointer break-words max-w-[12rem] sm:max-w-none"
+                      className="max-w-[12rem] cursor-pointer break-words text-left text-primary underline-offset-2 hover:underline sm:max-w-none"
                       onClick={() => void onSelectCreator(row.creatorId)}
                       aria-label={`ดูรายละเอียด ${row.displayName}`}
                     >
                       {row.displayName}
                     </button>
                   ) : (
-                    <span className="break-words text-foreground max-w-[12rem] sm:max-w-none">
-                      {row.displayName}
-                    </span>
+                    <span className="max-w-[12rem] break-words text-foreground sm:max-w-none">{row.displayName}</span>
                   )}
                   <CreatorBadge type={row.inviteType} />
                 </div>

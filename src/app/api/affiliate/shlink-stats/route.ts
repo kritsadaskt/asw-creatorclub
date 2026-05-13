@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logServerError, requestLogContext } from '@/lib/log-server-error';
+import {
+  getAffiliateLinkClickStatsByIds,
+  maxSyncedAt,
+  rowToVisitStats,
+} from '@/lib/affiliate-link-click-cache';
+import { mapWithConcurrency } from '@/lib/concurrency';
 import { getServerSession } from '@/modules/utils/auth';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import {
@@ -14,20 +20,20 @@ export type ShlinkStatsResponse = {
   stats: Record<string, ShlinkVisitStats | null>;
   /** Sum of `total` for non-null stats (convenience for UI). */
   totalClicksAll: number;
+  /** Latest cache sync (UTC ISO) when reading from `affiliate_link_click_stats`. */
+  statsSyncedAt?: string | null;
 };
 
-export async function GET(request: NextRequest) {
-  const apiKey = process.env.SHLINK_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json({ error: 'Shlink API key not configured' }, { status: 503 });
-  }
+const LIVE_CONCURRENCY = 8;
 
+export async function GET(request: NextRequest) {
   const session = getServerSession(request);
   if (!session || session.role !== 'creator') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const creatorId = session.id;
+  const apiKey = process.env.SHLINK_API_KEY;
 
   try {
     const { data: rows, error } = await supabaseAdmin
@@ -47,44 +53,60 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to load links' }, { status: 500 });
     }
 
-    const stats: Record<string, ShlinkVisitStats | null> = {};
     const list = rows ?? [];
+    const ids = list.map((r: { id: string }) => r.id);
+    const cacheMap = await getAffiliateLinkClickStatsByIds(ids);
 
-    await Promise.all(
-      list.map(async (row: { id: string; url: string | null }) => {
-        const id = row.id;
-        const url = row.url?.trim() ?? '';
-        if (!url) {
-          stats[id] = null;
-          return;
+    const stats: Record<string, ShlinkVisitStats | null> = {};
+    type Task = { id: string; url: string };
+    const liveTasks: Task[] = [];
+
+    for (const row of list as { id: string; url: string | null }[]) {
+      const id = row.id;
+      const url = row.url?.trim() ?? '';
+      if (!url) {
+        stats[id] = null;
+        continue;
+      }
+
+      const parsed = parseShlinkShortCode(url);
+      if (!parsed) {
+        stats[id] = null;
+        continue;
+      }
+
+      const cached = cacheMap.get(id);
+      if (cached && cached.total_visits != null && Number.isFinite(cached.total_visits)) {
+        const lu = cached.long_url?.trim() ?? '';
+        if (lu && longUrlBelongsToCreator(lu, creatorId)) {
+          stats[id] = rowToVisitStats(cached);
+          continue;
         }
+      }
 
-        const parsed = parseShlinkShortCode(url);
-        if (!parsed) {
-          stats[id] = null;
-          return;
-        }
+      if (apiKey) {
+        liveTasks.push({ id, url });
+      } else {
+        stats[id] = null;
+      }
+    }
 
+    if (apiKey && liveTasks.length > 0) {
+      await mapWithConcurrency(liveTasks, LIVE_CONCURRENCY, async (task) => {
+        const parsed = parseShlinkShortCode(task.url);
+        if (!parsed) return;
         const meta = await fetchShlinkShortUrlMeta(apiKey, parsed.shortCode, parsed.domain);
-        if (!meta) {
-          stats[id] = null;
-          return;
-        }
-
+        if (!meta) return;
         const longUrl =
           typeof meta.longUrl === 'string'
             ? meta.longUrl
             : typeof meta.originalUrl === 'string'
               ? meta.originalUrl
               : '';
-        if (!longUrlBelongsToCreator(longUrl, creatorId)) {
-          stats[id] = null;
-          return;
-        }
-
-        stats[id] = visitsFromShlinkShortUrlJson(meta);
-      })
-    );
+        if (!longUrlBelongsToCreator(longUrl, creatorId)) return;
+        stats[task.id] = visitsFromShlinkShortUrlJson(meta);
+      });
+    }
 
     let totalClicksAll = 0;
     for (const v of Object.values(stats)) {
@@ -93,7 +115,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const body: ShlinkStatsResponse = { stats, totalClicksAll };
+    const statsSyncedAt = maxSyncedAt(ids.map((i) => cacheMap.get(i)));
+
+    const body: ShlinkStatsResponse = { stats, totalClicksAll, statsSyncedAt };
     return NextResponse.json(body, { status: 200 });
   } catch (err) {
     console.error('shlink-stats error:', err);

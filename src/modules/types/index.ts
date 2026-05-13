@@ -152,6 +152,8 @@ export interface Event {
   mBanner?: string;
   location?: string;
   locationMapUrl?: string;
+  /** When false, public /event does not show this event (admin can still manage & check-in). */
+  isActive?: boolean;
 }
 
 export interface EventParticipant {

@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react';
 import type { AdminAffiliateReportsResponse } from '@/modules/types/adminAffiliateReports';
 import { CreatorBadge } from '../ui/creator-badge';
 import { cn } from '../ui/utils';
+import { formatStatsSyncedAtBangkok } from '@/lib/format-stats-synced-at';
 
 type Props = {
   data: AdminAffiliateReportsResponse | null;
@@ -69,13 +70,21 @@ export function AdminAffiliateReports({ data, loading, error, onSelectCreator }:
     return null;
   }
 
-  const { topCreators, topProjects, shlinkConfigured } = data;
+  const { topCreators, topProjects, shlinkConfigured, statsSyncedAt } = data;
+  const syncedLabel = formatStatsSyncedAtBangkok(statsSyncedAt ?? null);
+  const showClicksColumn =
+    shlinkConfigured || (typeof statsSyncedAt === 'string' && statsSyncedAt.length > 0);
 
   return (
     <div className="space-y-4">
       {!shlinkConfigured && (
         <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200/80 rounded-lg px-3 py-2">
           ยังไม่ได้ตั้งค่า Shlink API — คอลัมน์ยอดคลิกรวมจะไม่แสดงตัวเลข
+        </p>
+      )}
+      {syncedLabel && (
+        <p className="text-xs text-muted-foreground">
+          ข้อมูลยอดคลิกอ้างอิงจาก Shlink ที่ sync ล่าสุด: {syncedLabel} (เวลาไทย)
         </p>
       )}
 
@@ -98,6 +107,7 @@ export function AdminAffiliateReports({ data, loading, error, onSelectCreator }:
                     <th className="py-2 pr-3 font-medium w-10">#</th>
                     <th className="py-2 pr-3 font-medium">ชื่อครีเอเตอร์</th>
                     <th className="py-2 pr-3 font-medium text-right whitespace-nowrap">จำนวนลิงก์</th>
+                    <th className="py-2 font-medium text-right whitespace-nowrap">คลิกรวม</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -123,6 +133,11 @@ export function AdminAffiliateReports({ data, loading, error, onSelectCreator }:
                       </td>
                       <td className="py-2.5 pr-3 text-right font-mono tabular-nums">
                         {row.linkCount.toLocaleString()}
+                      </td>
+                      <td className="py-2.5 text-right font-mono tabular-nums">
+                        {showClicksColumn
+                          ? (row.totalClicks ?? 0).toLocaleString()
+                          : '—'}
                       </td>
                     </tr>
                   ))}

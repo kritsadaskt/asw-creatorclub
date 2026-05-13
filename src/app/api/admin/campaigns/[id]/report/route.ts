@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  getAffiliateLinkClickStatsByIds,
+  maxSyncedAt,
+  rowToVisitStats,
+} from '@/lib/affiliate-link-click-cache';
+import { mapWithConcurrency } from '@/lib/concurrency';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { getServerSession } from '@/modules/utils/auth';
 import {
   fetchShlinkShortUrlMeta,
   parseShlinkShortCode,
   visitsFromShlinkShortUrlJson,
 } from '@/lib/shlink-server';
+import { getServerSession } from '@/modules/utils/auth';
 
 type LinkRow = {
   id: string;
@@ -30,6 +36,8 @@ type TopLinkRow = {
   creatorDisplayName: string;
   clicks: number | null;
 };
+
+const LIVE_CONCURRENCY = 8;
 
 function displayNameFromProfile(name: string | null | undefined, lastname: string | null | undefined): string {
   const first = (name ?? '').trim();
@@ -61,7 +69,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const rows = (data ?? []) as LinkRow[];
   const creators = new Set<string>();
   const projects = new Set<string>();
-  let totalClicks: number | null = null;
   const creatorLinkCount = new Map<string, number>();
   const linkClicks = new Map<string, number>();
 
@@ -74,20 +81,48 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   const apiKey = process.env.SHLINK_API_KEY;
-  if (apiKey) {
+  const cacheMap = await getAffiliateLinkClickStatsByIds(rows.map((r) => r.id));
+  const liveTasks: { id: string; shortUrl: string }[] = [];
+
+  for (const row of rows) {
+    const shortUrl = row.url?.trim() ?? '';
+    if (!shortUrl) continue;
+    const parsed = parseShlinkShortCode(shortUrl);
+    if (!parsed) continue;
+
+    const cached = cacheMap.get(row.id);
+    const visit = cached ? rowToVisitStats(cached) : null;
+    if (visit?.total != null && Number.isFinite(visit.total)) {
+      linkClicks.set(row.id, visit.total);
+      continue;
+    }
+
+    if (apiKey) {
+      liveTasks.push({ id: row.id, shortUrl });
+    }
+  }
+
+  if (apiKey && liveTasks.length > 0) {
+    await mapWithConcurrency(liveTasks, LIVE_CONCURRENCY, async (task) => {
+      const parsed = parseShlinkShortCode(task.shortUrl);
+      if (!parsed) return;
+      const meta = await fetchShlinkShortUrlMeta(apiKey, parsed.shortCode, parsed.domain);
+      if (!meta) return;
+      const v = visitsFromShlinkShortUrlJson(meta);
+      if (v?.total != null && Number.isFinite(v.total)) {
+        linkClicks.set(task.id, v.total);
+      }
+    });
+  }
+
+  const statsSyncedAt = maxSyncedAt(rows.map((r) => cacheMap.get(r.id)));
+  const hasClickSource = Boolean(apiKey) || statsSyncedAt != null;
+
+  let totalClicks: number | null = null;
+  if (hasClickSource) {
     totalClicks = 0;
     for (const row of rows) {
-      const shortUrl = row.url?.trim() ?? '';
-      if (!shortUrl) continue;
-      const parsed = parseShlinkShortCode(shortUrl);
-      if (!parsed) continue;
-      const meta = await fetchShlinkShortUrlMeta(apiKey, parsed.shortCode, parsed.domain);
-      if (!meta) continue;
-      const visit = visitsFromShlinkShortUrlJson(meta);
-      if (visit?.total != null && Number.isFinite(visit.total)) {
-        totalClicks += visit.total;
-        linkClicks.set(row.id, visit.total);
-      }
+      totalClicks += linkClicks.get(row.id) ?? 0;
     }
   }
 
@@ -157,7 +192,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         row.project_id == null ? 'ไม่ระบุโครงการ' : projectNameMap.get(row.project_id) ?? row.project_id.slice(0, 8),
       creatorId: row.creator_id,
       creatorDisplayName: row.creator_id ? creatorNameMap.get(row.creator_id) ?? row.creator_id.slice(0, 8) : '—',
-      clicks: apiKey ? (linkClicks.get(row.id) ?? 0) : null,
+      clicks: hasClickSource ? (linkClicks.get(row.id) ?? 0) : null,
     }))
     .filter((row) => row.shortUrl.length > 0)
     .sort((a, b) => (b.clicks ?? 0) - (a.clicks ?? 0))
@@ -170,6 +205,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     projectCount: projects.size,
     totalClicks,
     shlinkConfigured: Boolean(apiKey),
+    statsSyncedAt,
     topCreators,
     topLinks,
   });

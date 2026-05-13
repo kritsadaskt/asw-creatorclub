@@ -67,7 +67,7 @@ type AffiliatePageProps = {
 
 export function CampaignAffiliatePage({ campaignKey }: AffiliatePageProps) {
   return (
-    <CampaignLayout>
+    <CampaignLayout campaignKey={campaignKey}>
       <AffiliateProjectList campaignKey={campaignKey} />
     </CampaignLayout>
   );
@@ -348,7 +348,7 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
                 <img
                   src={campaign.bannerDesktopUrl || campaign.promotionImg || campaign.bannerMobileUrl}
                   alt={campaign.name}
-                  className="w-full h-40 object-cover rounded-xl bg-muted"
+                  className="w-full h-35 md:h-36 lg:h-60 object-cover rounded bg-muted"
                 />
               ) : (
                 <div className="w-full h-40 rounded-xl bg-muted flex items-center justify-center text-muted-foreground">

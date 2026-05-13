@@ -22,6 +22,7 @@ import { CreatorBadge } from '../ui/creator-badge';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { getProfileImageUrl } from '../../utils/profileImage';
 import { Lemon8Icon } from '@/modules/utils/svg';
+import { formatStatsSyncedAtBangkok } from '@/lib/format-stats-synced-at';
 
 type CampaignEditorProps = {
   campaignKey: string;
@@ -144,6 +145,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
     projectCount: number;
     totalClicks: number | null;
     shlinkConfigured: boolean;
+    statsSyncedAt?: string | null;
     topCreators: Array<{
       creatorId: string;
       displayName: string;
@@ -230,6 +232,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
         projectCount: Number(data.projectCount ?? 0),
         totalClicks: typeof data.totalClicks === 'number' ? data.totalClicks : null,
         shlinkConfigured: Boolean(data.shlinkConfigured),
+        statsSyncedAt: typeof data.statsSyncedAt === 'string' ? data.statsSyncedAt : null,
         topCreators: Array.isArray(data.topCreators) ? data.topCreators : [],
         topLinks: Array.isArray(data.topLinks) ? data.topLinks : [],
       });
@@ -404,6 +407,11 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
             </p>
           </div>
         </div>
+        {report && formatStatsSyncedAtBangkok(report.statsSyncedAt ?? null) && (
+          <p className="text-xs text-muted-foreground mb-3">
+            ยอดคลิกอ้างอิงจาก Shlink ที่ sync ล่าสุด: {formatStatsSyncedAtBangkok(report.statsSyncedAt ?? null)} (เวลาไทย)
+          </p>
+        )}
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="overflow-x-auto">

@@ -14,7 +14,7 @@ export type AdminAffiliateTopProjectRow = {
   creatorCount: number;
 };
 
-/** One affiliate link row that has at least one submitted post URL in `post_links` (for admin review). */
+/** One affiliate link row with submitted post URLs (`post_links`) for admin review. */
 export type AdminAffiliateSubmittedPostLinkRow = {
   linkId: string;
   creatorId: string;
@@ -33,7 +33,9 @@ export type AdminAffiliateReportsResponse = {
   shlinkConfigured: boolean;
   totalLinks: number;
   totalClicks: number | null;
-  /** Count of affiliate rows (non-admin) with at least one post URL in `post_links`; same as `submittedPostAffiliateLinks.length`. */
+  /** Affiliate rows (non-admin) with at least one post URL in `post_links`; same length as `submittedPostAffiliateLinks`. */
   linksWithSubmittedPosts: number;
   submittedPostAffiliateLinks: AdminAffiliateSubmittedPostLinkRow[];
+  /** Latest Shlink sync time (UTC ISO) from `affiliate_link_click_stats`, if any. */
+  statsSyncedAt?: string | null;
 };

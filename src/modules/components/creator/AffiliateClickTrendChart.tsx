@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { BASE_PATH } from '@/lib/publicPath';
+import { formatStatsSyncedAtBangkok } from '@/lib/format-stats-synced-at';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 type DailyPoint = {
@@ -17,6 +18,7 @@ type ClickSeriesResponse = {
     days7: number;
     days30: number;
   };
+  statsSyncedAt?: string | null;
 };
 
 type Props = {
@@ -37,6 +39,7 @@ export function AffiliateClickTrendChart({ linkId }: Props) {
     days7: 0,
     days30: 0,
   });
+  const [statsSyncedAt, setStatsSyncedAt] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,6 +59,7 @@ export function AffiliateClickTrendChart({ linkId }: Props) {
         if (cancelled) return;
         setPoints30(Array.isArray(data.points) ? data.points : []);
         if (data.totals) setTotals(data.totals);
+        setStatsSyncedAt(typeof data.statsSyncedAt === 'string' ? data.statsSyncedAt : null);
       } catch (e) {
         console.error('Error loading click trend:', e);
         if (!cancelled) setError('ไม่สามารถโหลดข้อมูลได้');
@@ -112,6 +116,11 @@ export function AffiliateClickTrendChart({ linkId }: Props) {
           ))}
         </div>
       </div>
+      {formatStatsSyncedAtBangkok(statsSyncedAt) && (
+        <p className="text-xs text-muted-foreground">
+          กราฟจากข้อมูลที่ sync ล่าสุด: {formatStatsSyncedAtBangkok(statsSyncedAt)} (เวลาไทย)
+        </p>
+      )}
 
       {loading ? (
         <div className="h-44 flex items-center justify-center text-muted-foreground">

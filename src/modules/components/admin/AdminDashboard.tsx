@@ -37,6 +37,7 @@ import {
 import { FaFacebook, FaInstagram, FaTiktok, FaYoutube, FaXTwitter } from 'react-icons/fa6';
 import { FaPhone } from 'react-icons/fa6';
 import { BASE_PATH } from '@/lib/publicPath';
+import { formatStatsSyncedAtBangkok } from '@/lib/format-stats-synced-at';
 import { formatGenericErrorToast } from '../../utils/toast-error';
 import {
   Drawer,
@@ -269,6 +270,7 @@ export function AdminDashboard() {
   const [affiliateLinkClicks, setAffiliateLinkClicks] = useState<Record<string, ShlinkVisitStats | null>>({});
   const [affiliateLinkClicksLoading, setAffiliateLinkClicksLoading] = useState(false);
   const [affiliateLinkClicksEnabled, setAffiliateLinkClicksEnabled] = useState(true);
+  const [affiliateLinkClicksSyncedAt, setAffiliateLinkClicksSyncedAt] = useState<string | null>(null);
   const [decisionDialog, setDecisionDialog] = useState<{
     open: boolean;
     creator: CreatorProfile | null;
@@ -441,6 +443,7 @@ export function AdminDashboard() {
                 createdAt: typeof row.createdAt === 'string' ? row.createdAt : '',
               }))
             : [],
+          statsSyncedAt: typeof json.statsSyncedAt === 'string' ? json.statsSyncedAt : null,
         });
       } catch {
         if (!cancelled) {
@@ -552,6 +555,7 @@ export function AdminDashboard() {
         setCreatorAffiliateLinks([]);
         setAffiliateLinkClicks({});
         setAffiliateLinkClicksEnabled(true);
+        setAffiliateLinkClicksSyncedAt(null);
         return;
       }
 
@@ -569,19 +573,27 @@ export function AdminDashboard() {
         const clickStatsJson = (await clickStatsRes.json().catch(() => ({}))) as {
           stats?: Record<string, ShlinkVisitStats | null>;
           shlinkConfigured?: boolean;
+          statsSyncedAt?: string | null;
         };
         if (clickStatsRes.ok) {
           setAffiliateLinkClicks(clickStatsJson.stats ?? {});
-          setAffiliateLinkClicksEnabled(Boolean(clickStatsJson.shlinkConfigured));
+          setAffiliateLinkClicksEnabled(
+            Boolean(clickStatsJson.shlinkConfigured || clickStatsJson.statsSyncedAt),
+          );
+          setAffiliateLinkClicksSyncedAt(
+            typeof clickStatsJson.statsSyncedAt === 'string' ? clickStatsJson.statsSyncedAt : null,
+          );
         } else {
           setAffiliateLinkClicks({});
           setAffiliateLinkClicksEnabled(true);
+          setAffiliateLinkClicksSyncedAt(null);
         }
       } catch (error) {
         console.error('Error loading affiliate links by creator:', error);
         toast.error('ไม่สามารถโหลดลิงก์ Affiliate ของครีเอเตอร์ได้');
         setAffiliateLinkClicks({});
         setAffiliateLinkClicksEnabled(true);
+        setAffiliateLinkClicksSyncedAt(null);
       } finally {
         setAffiliateLinksLoading(false);
         setAffiliateLinkClicksLoading(false);
@@ -988,6 +1000,11 @@ export function AdminDashboard() {
 
       <div>
         <label className="text-muted-foreground">Affiliate Links</label>
+        {formatStatsSyncedAtBangkok(affiliateLinkClicksSyncedAt) && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            ยอดคลิก sync ล่าสุด: {formatStatsSyncedAtBangkok(affiliateLinkClicksSyncedAt)} (เวลาไทย)
+          </p>
+        )}
         <div className="mt-2 rounded-lg border border-border">
           {affiliateLinksLoading ? (
             <div className="py-4 text-muted-foreground flex items-center gap-2">
