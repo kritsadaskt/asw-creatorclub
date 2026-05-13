@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.2.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.1.0...v2.2.0) (2026-05-13)
+
+
+### Features
+
+* **admin:** restore affiliate submitted-post links on dev ([c09e7bf](https://github.com/kritsadaskt/asw-creatorclub/commit/c09e7bfa412236a33a4155f45d8d60781ee17b97))
+* ปรับ UI ของ Dashboard + เพิ่ม flow supabase cached ([8e37590](https://github.com/kritsadaskt/asw-creatorclub/commit/8e375906cb402aa0d5cf37e14e111bed9d632560))
+
+
+### Bug Fixes
+
+* adjusted dashboard query ([b791758](https://github.com/kritsadaskt/asw-creatorclub/commit/b791758b1569807ab94ebb3ccf25ef27b918091a))
+* Removed the duplicate trailing copy in src/modules/components/admin/AdminDashboard.tsx ([8383038](https://github.com/kritsadaskt/asw-creatorclub/commit/83830381869e33c1b39f39166d37f39aa7cf5ff9))
+
 ## [2.1.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.0.7...v2.1.0) (2026-05-12)
 
 
