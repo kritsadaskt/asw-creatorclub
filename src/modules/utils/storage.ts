@@ -925,6 +925,7 @@ const mapDbToEvent = (row: any): Event => ({
   mBanner: row.m_banner || undefined,
   location: row.location || undefined,
   locationMapUrl: row.location_map_url || undefined,
+  isActive: row.is_active !== false,
 });
 
 export const getEvents = async (): Promise<Event[]> => {
@@ -952,6 +953,7 @@ export const getCurrentEvent = async (): Promise<Event | null> => {
   const { data: upcoming, error: upcomingError } = await supabase
     .from('events')
     .select('*')
+    .eq('is_active', true)
     .gte('date', today)
     .order('date', { ascending: true })
     .order('created_at', { ascending: false })
@@ -967,6 +969,7 @@ export const getCurrentEvent = async (): Promise<Event | null> => {
   const { data: latest, error: latestError } = await supabase
     .from('events')
     .select('*')
+    .eq('is_active', true)
     .order('date', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(1)
@@ -994,6 +997,7 @@ export const saveEvent = async (event: Event): Promise<void> => {
         m_banner: event.mBanner ?? null,
         location: event.location ?? null,
         location_map_url: event.locationMapUrl ?? null,
+        is_active: event.isActive ?? true,
       },
       { onConflict: 'id' },
     );

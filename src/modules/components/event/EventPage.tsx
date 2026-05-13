@@ -98,8 +98,10 @@ export function EventPage() {
       ) : !event ? (
         <div className="container mx-auto px-6 py-20 text-center">
           <div className="mx-auto max-w-xl rounded-xl border border-border bg-white p-8 shadow-sm">
-            <h2 className="mb-2">ยังไม่มีอีเวนต์ให้ลงทะเบียน</h2>
-            <p className="text-muted-foreground">โปรดติดตามประกาศจากทีมงาน Creator Club</p>
+            <h2 className="mb-2">ไม่มีอีเวนต์ที่เปิดรับลงทะเบียน</h2>
+            <p className="text-muted-foreground">
+              อาจยังไม่มีกิจกรรม หรืออีเวนต์ถูกปิดชั่วคราว — โปรดติดตามประกาศจากทีมงาน Creator Club
+            </p>
           </div>
         </div>
       ) : (
