@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.3.1](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.3.0...v2.3.1) (2026-05-14)
+
+
+### Bug Fixes
+
+* เพิ่ม field 'mission description', 'termUrl' ([d7bbd54](https://github.com/kritsadaskt/asw-creatorclub/commit/d7bbd549f6758e22aabb61d5f2fc4845a0af3b2e))
+
 ## [2.3.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.2.2...v2.3.0) (2026-05-14)
 
 
