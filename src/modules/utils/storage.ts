@@ -727,6 +727,7 @@ export const saveCampaign = async (campaign: Campaign): Promise<void> => {
     .upsert({
       id: campaign.id,
       name: campaign.name,
+      sub_title: campaign.subTitle ?? null,
       detail: campaign.detail,
       promotion_img: campaign.promotionImg,
       banner_desktop_url: campaign.bannerDesktopUrl,
@@ -740,6 +741,7 @@ export const saveCampaign = async (campaign: Campaign): Promise<void> => {
       utm_campaign: campaign.utmCampaign,
       landing_url: campaign.landingUrl,
       materials_url: campaign.materialsUrl ?? null,
+      terms_url: campaign.termsUrl ?? null,
       project_ids: campaign.projectIds,
       start_at: campaign.startAt ?? null,
       end_at: campaign.endAt ?? null,
@@ -1380,6 +1382,7 @@ export const updateFgfLeadStatusAndChoice = async (
 const mapDbToCampaign = (row: any): Campaign => ({
   id: row.id,
   name: row.name || '',
+  subTitle: row.sub_title || undefined,
   detail: row.detail || '',
   promotionImg: row.promotion_img,
   bannerDesktopUrl: row.banner_desktop_url || undefined,
@@ -1393,6 +1396,7 @@ const mapDbToCampaign = (row: any): Campaign => ({
   utmCampaign: row.utm_campaign || '',
   landingUrl: row.landing_url || '',
   materialsUrl: row.materials_url || undefined,
+  termsUrl: row.terms_url || undefined,
   projectIds: row.project_ids || [],
   startAt: row.start_at || undefined,
   endAt: row.end_at || undefined,

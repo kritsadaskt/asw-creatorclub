@@ -123,6 +123,7 @@ export interface AffiliateLink {
 export interface Campaign {
   id: string;
   name: string;
+  subTitle?: string;
   detail: string;
   promotionImg?: string;
   bannerDesktopUrl?: string;
@@ -136,6 +137,7 @@ export interface Campaign {
   utmCampaign: string;
   landingUrl: string;
   materialsUrl?: string;
+  termsUrl?: string;
   projectIds: string[];
   startAt?: string;
   endAt?: string;

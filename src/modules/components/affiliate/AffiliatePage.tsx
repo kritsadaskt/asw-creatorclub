@@ -328,7 +328,9 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
           {isCampaignMode && selectedCampaign ? (
             <>
               <span className="text-4xl lg:text-5xl mb-3 block">{selectedCampaign.name}</span>
-              <span className="text-xl lg:text-2xl font-medium">{selectedCampaign.detail}</span>
+              {selectedCampaign.subTitle && (
+                <span className="text-xl lg:text-2xl font-medium block">{selectedCampaign.subTitle}</span>
+              )}
             </>
           ) : (
             <>
@@ -351,7 +353,7 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
               ดาวน์โหลด Materials
             </a>
           )}
-          <a href={`${BASE_PATH}/affiliate/terms-and-conditions`} title='ข้อกำหนดและเงื่อนไข' className='text-white bg-gradient-to-br from-orange-400 to-orange-600 px-7 py-4 rounded-full block w-fit leading-none'>ข้อกำหนดและเงื่อนไข</a>
+          <a href={selectedCampaign?.termsUrl || `${BASE_PATH}/affiliate/terms-and-conditions`} target={selectedCampaign?.termsUrl ? '_blank' : undefined} rel={selectedCampaign?.termsUrl ? 'noopener noreferrer' : undefined} title='ข้อกำหนดและเงื่อนไข' className='text-white bg-gradient-to-br from-orange-400 to-orange-600 px-7 py-4 rounded-full block w-fit leading-none'>ข้อกำหนดและเงื่อนไข</a>
           {isCampaignMode && selectedCampaign?.materialsUrl && (
             <a
               href={selectedCampaign.materialsUrl}
@@ -365,6 +367,14 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
           )}
         </div>
       </div>
+
+      {isCampaignMode && selectedCampaign?.detail && (
+        <div
+          className="prose prose-sm md:prose-base max-w-none mb-8 bg-white rounded-2xl border border-border p-6 lg:p-8"
+          dangerouslySetInnerHTML={{ __html: selectedCampaign.detail }}
+        />
+      )}
+
       {!isCampaignMode && activeCampaigns.length > 0 && (
         <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
           {activeCampaigns.map((campaign) => (
@@ -383,7 +393,9 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
               )}
               <div>
                 <h3 className="text-lg font-semibold text-foreground">{campaign.name}</h3>
-                <p className="text-sm text-muted-foreground line-clamp-2">{campaign.detail}</p>
+                {campaign.subTitle && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">{campaign.subTitle}</p>
+                )}
               </div>
               <div className="flex flex-wrap gap-2">
                 <Link
