@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.2.2](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.2.1...v2.2.2) (2026-05-14)
+
+
+### Bug Fixes
+
+* exclude admin from stat in admin dashboard ([96e9eeb](https://github.com/kritsadaskt/asw-creatorclub/commit/96e9eeb97421eb4acc31ebf3dd96ef92f604dfa3))
+
 ### [2.2.1](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.2.0...v2.2.1) (2026-05-14)
 
 
