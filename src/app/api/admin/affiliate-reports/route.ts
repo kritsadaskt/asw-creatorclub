@@ -98,6 +98,8 @@ export async function GET(request: NextRequest) {
       projectAgg.set(pid, cur);
     }
 
+    const EXCLUDED_STAT_EMAILS = ['admin@creatorsclub.com', 'admin@creatorclub.com'];
+
     const allCreatorIds = [...creatorLinkCount.keys()];
     const adminCreatorIds = new Set<string>();
     if (allCreatorIds.length > 0) {
@@ -110,6 +112,21 @@ export async function GET(request: NextRequest) {
         console.error('affiliate-reports profiles is_admin:', adminError);
       } else {
         for (const row of adminRows ?? []) {
+          const r = row as { id: string };
+          adminCreatorIds.add(r.id);
+        }
+      }
+    }
+
+    {
+      const { data: excludedRows, error: excludedError } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .in('email', EXCLUDED_STAT_EMAILS);
+      if (excludedError) {
+        console.error('affiliate-reports excluded emails:', excludedError);
+      } else {
+        for (const row of excludedRows ?? []) {
           const r = row as { id: string };
           adminCreatorIds.add(r.id);
         }

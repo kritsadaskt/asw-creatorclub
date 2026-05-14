@@ -488,8 +488,10 @@ export function AdminDashboard() {
   const creatorsBaseFiltered = useMemo(() => {
     let filtered = [...creators];
 
-    // Hide internal/test accounts from admin creator listing
-    filtered = filtered.filter((creator) => !creator.email.toLowerCase().includes('@creatorclub.com'));
+    filtered = filtered.filter((creator) => {
+      const email = creator.email.toLowerCase();
+      return !email.includes('@creatorclub.com') && email !== 'admin@creatorsclub.com';
+    });
 
     if (selectedCategory !== 'ทั้งหมด') {
       filtered = filtered.filter(
