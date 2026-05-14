@@ -66,7 +66,22 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: 'Failed to load campaign links' }, { status: 500 });
   }
 
-  const rows = (data ?? []) as LinkRow[];
+  const allRows = (data ?? []) as LinkRow[];
+
+  const EXCLUDED_EMAILS = ['admin@creatorsclub.com', 'admin@creatorclub.com'];
+  const excludedCreatorIds = new Set<string>();
+
+  const allCreatorIds = [...new Set(allRows.map((r) => r.creator_id).filter((id): id is string => Boolean(id)))];
+  if (allCreatorIds.length > 0) {
+    const [{ data: adminRows }, { data: emailRows }] = await Promise.all([
+      supabaseAdmin.from('profiles').select('id').in('id', allCreatorIds).eq('is_admin', true),
+      supabaseAdmin.from('profiles').select('id').in('email', EXCLUDED_EMAILS),
+    ]);
+    for (const row of adminRows ?? []) excludedCreatorIds.add((row as { id: string }).id);
+    for (const row of emailRows ?? []) excludedCreatorIds.add((row as { id: string }).id);
+  }
+
+  const rows = allRows.filter((r) => !r.creator_id || !excludedCreatorIds.has(r.creator_id));
   const creators = new Set<string>();
   const projects = new Set<string>();
   const creatorLinkCount = new Map<string, number>();

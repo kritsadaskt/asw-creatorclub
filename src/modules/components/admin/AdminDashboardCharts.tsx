@@ -92,8 +92,13 @@ function LoadingDots() {
   );
 }
 
+const EXCLUDED_STAT_EMAILS = new Set(['admin@creatorsclub.com']);
+
 function filterListedCreators(creators: CreatorProfile[]) {
-  return creators.filter((c) => !c.email.toLowerCase().includes('@creatorclub.com'));
+  return creators.filter((c) => {
+    const email = c.email.toLowerCase();
+    return !email.includes('@creatorclub.com') && !EXCLUDED_STAT_EMAILS.has(email);
+  });
 }
 
 function categoryLabelEnglishOnly(raw: string): string {
