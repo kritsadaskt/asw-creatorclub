@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.3.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.2.2...v2.3.0) (2026-05-14)
+
+
+### Features
+
+* add DL material button ([0906426](https://github.com/kritsadaskt/asw-creatorclub/commit/09064266cd16c4a0c809ac449b93d4818864b70e))
+
+
+### Bug Fixes
+
+* ปรับ wording campaign > mission ([4683b95](https://github.com/kritsadaskt/asw-creatorclub/commit/4683b951951b377c382d1ebb7aaaaa7fe1c14f39))
+* ปรับคำว่า แคมเปญ กลับในหน้า T&C ([3b413d3](https://github.com/kritsadaskt/asw-creatorclub/commit/3b413d35dde9761f21e9b1cd145c9f84e928c5ca))
+
 ### [2.2.2](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.2.1...v2.2.2) (2026-05-14)
 
 
