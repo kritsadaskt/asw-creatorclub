@@ -38,6 +38,7 @@ export function CampaignManagement() {
   const [utmId, setUtmId] = useState('');
   const [utmCampaign, setUtmCampaign] = useState('');
   const [landingUrl, setLandingUrl] = useState('');
+  const [materialsUrl, setMaterialsUrl] = useState('');
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
 
   useEffect(() => {
@@ -77,13 +78,14 @@ export function CampaignManagement() {
     setUtmId('');
     setUtmCampaign('');
     setLandingUrl('');
+    setMaterialsUrl('');
     setSelectedProjectIds([]);
     setIsFormOpen(false);
   };
 
   const handleEdit = (campaign: Campaign) => {
     if (!campaign.campaignKey) {
-      toast.error('แคมเปญนี้ยังไม่มี Campaign Key');
+      toast.error('Mission นี้ยังไม่มี Campaign Key');
       return;
     }
     router.push(`/admin/campaigns/${campaign.campaignKey}`);
@@ -127,6 +129,7 @@ export function CampaignManagement() {
         utmId,
         utmCampaign,
         landingUrl,
+        materialsUrl: materialsUrl || undefined,
         projectIds: selectedProjectIds,
         startAt: startAt ? new Date(startAt).toISOString() : undefined,
         endAt: endAt ? new Date(`${endAt}T23:59:59.999Z`).toISOString() : undefined,
@@ -136,7 +139,7 @@ export function CampaignManagement() {
 
       await saveCampaign(campaign);
       await loadData();
-      toast.success('เพิ่มแคมเปญสำเร็จ');
+      toast.success('เพิ่ม Mission สำเร็จ');
       resetForm();
     } catch (error) {
       console.error('Error saving campaign:', error);
@@ -151,9 +154,9 @@ export function CampaignManagement() {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2>จัดการแคมเปญ</h2>
+          <h2>จัดการ Mission</h2>
           <p className="text-muted-foreground mt-1">
-            จัดการแคมเปญโฆษณาสำหรับ Affiliate
+            จัดการ Mission โฆษณาสำหรับ Affiliate
           </p>
         </div>
         <Button
@@ -161,7 +164,7 @@ export function CampaignManagement() {
           className={`flex items-center gap-2 cursor-pointer ${isFormOpen ? 'hidden' : ''}`}
         >
           <Plus className="w-4 h-4" />
-          เพิ่มแคมเปญ
+          เพิ่ม Mission
         </Button>
       </div>
 
@@ -169,20 +172,20 @@ export function CampaignManagement() {
       {isFormOpen && (
         <div className="bg-white rounded-xl shadow-sm border border-border p-6 mb-6">
           <h3 className="text-primary mb-4">
-            เพิ่มแคมเปญใหม่
+            เพิ่ม Mission ใหม่
           </h3>
           
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
-                label="ชื่อแคมเปญ"
+                label="ชื่อ Mission"
                 value={name}
                 onChange={setName}
                 placeholder="เช่น โปรโมชั่นต้นปี 2024"
                 required
               />
               <Input
-                label="Campaign Key"
+                label="Mission Key"
                 value={campaignKey}
                 onChange={setCampaignKey}
                 placeholder="เช่น condo-midyear-2026"
@@ -200,12 +203,12 @@ export function CampaignManagement() {
 
             <div>
               <label className="block text-sm mb-2 text-foreground">
-                รายละเอียดแคมเปญ <span className="text-destructive">*</span>
+                รายละเอียด Mission <span className="text-destructive">*</span>
               </label>
               <textarea
                 value={detail}
                 onChange={(e) => setDetail(e.target.value)}
-                placeholder="รายละเอียดเกี่ยวกับแคมเปญ"
+                placeholder="รายละเอียดเกี่ยวกับ Mission"
                 className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
                 rows={3}
               />
@@ -259,6 +262,13 @@ export function CampaignManagement() {
               onChange={setLandingUrl}
               placeholder="https://example.com/landing"
               required
+            />
+
+            <Input
+              label="Materials URL (ลิงก์ดาวน์โหลดไฟล์)"
+              value={materialsUrl}
+              onChange={setMaterialsUrl}
+              placeholder="https://drive.google.com/..."
             />
 
             {/* UTM Parameters Section */}
@@ -336,7 +346,7 @@ export function CampaignManagement() {
 
             <div className="flex gap-3 pt-4">
               <Button onClick={handleSubmit} fullWidth disabled={saving}>
-                {saving ? 'กำลังบันทึก...' : 'เพิ่มแคมเปญ'}
+                {saving ? 'กำลังบันทึก...' : 'เพิ่ม Mission'}
               </Button>
               <Button onClick={resetForm} variant="outline" fullWidth disabled={saving}>
                 ยกเลิก
@@ -349,7 +359,7 @@ export function CampaignManagement() {
       {/* Campaigns List */}
       <div className="bg-white rounded-xl shadow-sm border border-border overflow-hidden">
         <div className="p-6 border-b border-border">
-          <h3 className="text-primary">แคมเปญทั้งหมด ({campaigns.length})</h3>
+          <h3 className="text-primary">Mission ทั้งหมด ({campaigns.length})</h3>
         </div>
 
         {loading ? (
@@ -361,7 +371,7 @@ export function CampaignManagement() {
         ) : campaigns.length === 0 ? (
           <div className="p-12 text-center">
             <p className="text-muted-foreground">
-              ยังไม่มีแคมเปญ เพิ่มแคมเปญแรกของคุณเลย!
+              ยังไม่มี Mission เพิ่ม Mission แรกของคุณเลย!
             </p>
           </div>
         ) : (
@@ -370,7 +380,7 @@ export function CampaignManagement() {
               <thead className="bg-muted/30">
                 <tr>
                   <th className="px-6 py-3 text-left text-sm font-medium text-foreground">
-                    แคมเปญ
+                    Mission
                   </th>
                   <th className="px-6 py-3 text-left text-sm font-medium text-foreground">
                     กลุ่มเป้าหมาย

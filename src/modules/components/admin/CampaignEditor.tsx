@@ -132,6 +132,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
   const [utmId, setUtmId] = useState('');
   const [utmCampaign, setUtmCampaign] = useState('');
   const [landingUrl, setLandingUrl] = useState('');
+  const [materialsUrl, setMaterialsUrl] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
   const [projectToAdd, setProjectToAdd] = useState<ProjectSelectOption | null>(null);
@@ -238,7 +239,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
       });
     } catch (error) {
       console.error('Error loading campaign report:', error);
-      toast.error('ไม่สามารถโหลดรายงานแคมเปญได้');
+      toast.error('ไม่สามารถโหลดรายงาน Mission ได้');
     } finally {
       setReportLoading(false);
     }
@@ -250,7 +251,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
         setLoading(true);
         const [campaignData, projectData] = await Promise.all([getCampaignByKey(campaignKey), getProjects()]);
         if (!campaignData) {
-          toast.error('ไม่พบแคมเปญที่ต้องการแก้ไข');
+          toast.error('ไม่พบ Mission ที่ต้องการแก้ไข');
           router.replace('/admin/campaigns');
           return;
         }
@@ -270,12 +271,13 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
         setUtmId(campaignData.utmId);
         setUtmCampaign(campaignData.utmCampaign);
         setLandingUrl(campaignData.landingUrl);
+        setMaterialsUrl(campaignData.materialsUrl || '');
         setIsActive(campaignData.isActive ?? true);
         setSelectedProjectIds(campaignData.projectIds ?? []);
         await loadReport(campaignData.id);
       } catch (error) {
         console.error('Error loading campaign editor:', error);
-        toast.error('ไม่สามารถโหลดข้อมูลแคมเปญได้');
+        toast.error('ไม่สามารถโหลดข้อมูล Mission ได้');
       } finally {
         setLoading(false);
       }
@@ -310,6 +312,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
         utmId,
         utmCampaign,
         landingUrl,
+        materialsUrl: materialsUrl || undefined,
         isActive,
         projectIds: selectedProjectIds,
         startAt: startAt ? new Date(startAt).toISOString() : undefined,
@@ -331,6 +334,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
               utmId,
               utmCampaign,
               landingUrl,
+              materialsUrl: materialsUrl || undefined,
               isActive,
               projectIds: selectedProjectIds,
               startAt: startAt ? new Date(startAt).toISOString() : undefined,
@@ -338,7 +342,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
             }
           : prev,
       );
-      toast.success('แก้ไขแคมเปญสำเร็จ');
+      toast.success('แก้ไข Mission สำเร็จ');
     } catch (error) {
       console.error('Error saving campaign:', error);
       toast.error('ไม่สามารถบันทึกข้อมูลได้');
@@ -348,7 +352,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
   };
 
   if (loading) {
-    return <div className="max-w-7xl mx-auto p-6 text-muted-foreground">กำลังโหลดข้อมูลแคมเปญ...</div>;
+    return <div className="max-w-7xl mx-auto p-6 text-muted-foreground">กำลังโหลดข้อมูล Mission...</div>;
   }
 
   if (!campaign) {
@@ -363,13 +367,13 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
           className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
         >
           <ArrowLeft className="w-4 h-4" />
-          กลับหน้ารวมแคมเปญ
+          กลับหน้ารวม Mission
         </Link>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-border p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-primary">รายงานแคมเปญ</h3>
+          <h3 className="text-primary">รายงาน Mission</h3>
           <Button
             onClick={() => void loadReport(campaign.id)}
             variant="outline"
@@ -416,7 +420,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="overflow-x-auto">
             <h4 className="text-sm font-medium text-foreground mb-3">
-              10 อันดับครีเอเตอร์ที่สร้างลิงก์ในแคมเปญมากที่สุด
+              10 อันดับครีเอเตอร์ที่สร้างลิงก์ใน Mission มากที่สุด
             </h4>
             <table className="w-full text-sm">
               <thead>
@@ -519,9 +523,9 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
 
       <div className="bg-white rounded-xl shadow-sm border border-border p-6">
         <div className="mb-4 flex items-start justify-between gap-4">
-          <h2 className="text-primary">แก้ไขแคมเปญ: {campaign.name}</h2>
+          <h2 className="text-primary">แก้ไข Mission: {campaign.name}</h2>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">สถานะแคมเปญ</span>
+            <span className="text-xs text-muted-foreground whitespace-nowrap">สถานะ Mission</span>
             <button
               type="button"
               role="switch"
@@ -546,8 +550,8 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
 
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input label="ชื่อแคมเปญ" value={name} onChange={setName} required />
-            <Input label="Campaign Key" value={campaign.campaignKey ?? campaignKey} onChange={() => {}} disabled />
+            <Input label="ชื่อ Mission" value={name} onChange={setName} required />
+            <Input label="Mission Key" value={campaign.campaignKey ?? campaignKey} onChange={() => {}} disabled />
             <Input label="งบประมาณ (บาท)" type="number" value={budget} onChange={setBudget} />
             <Input label="กลุ่มเป้าหมาย" value={leadTarget} onChange={setLeadTarget} />
           </div>
@@ -624,7 +628,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
           </div>
 
           <div>
-            <label className="block text-sm mb-2 text-foreground">รายละเอียดแคมเปญ <span className="text-destructive">*</span></label>
+            <label className="block text-sm mb-2 text-foreground">รายละเอียด Mission <span className="text-destructive">*</span></label>
             <textarea
               value={detail}
               onChange={(e) => setDetail(e.target.value)}
@@ -638,6 +642,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
             <Input label="Banner Desktop (URL)" value={bannerDesktopUrl} onChange={setBannerDesktopUrl} />
             <Input label="Banner Mobile (URL)" value={bannerMobileUrl} onChange={setBannerMobileUrl} />
             <Input label="URL ปลายทาง" value={landingUrl} onChange={setLandingUrl} required />
+            <Input label="Materials URL (ลิงก์ดาวน์โหลดไฟล์)" value={materialsUrl} onChange={setMaterialsUrl} placeholder="https://drive.google.com/..." />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -679,7 +684,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
         <DrawerContent>
           <DrawerHeader className="p-7">
             <DrawerTitle>รายละเอียดครีเอเตอร์</DrawerTitle>
-            <DrawerDescription>ข้อมูลผู้สร้างลิงก์ในแคมเปญนี้</DrawerDescription>
+            <DrawerDescription>ข้อมูลผู้สร้างลิงก์ใน Mission นี้</DrawerDescription>
           </DrawerHeader>
           <div className="px-7 pb-7 space-y-3 overflow-y-auto">
             {creatorLoading ? (

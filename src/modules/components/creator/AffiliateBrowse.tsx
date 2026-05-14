@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Building2, Home, Megaphone, X, Link2, Copy, Check } from 'lucide-react';
+import { Building2, Home, Megaphone, X, Link2, Copy, Check, Download } from 'lucide-react';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
 import { Project, Campaign, AffiliateLink } from '../../types';
@@ -80,7 +80,7 @@ function CreateLinkModal({ isOpen, onClose, project, campaign, creatorId, onSucc
 
   const generateLink = async () => {
     if (!campaignName) {
-      toast.error('กรุณากรอกชื่อแคมเปญ');
+      toast.error('กรุณากรอกชื่อ Mission');
       return;
     }
 
@@ -219,7 +219,7 @@ function CreateLinkModal({ isOpen, onClose, project, campaign, creatorId, onSucc
                   <Megaphone className="w-5 h-5 text-primary" />
                   <div>
                     <p className="font-medium text-foreground">{campaign.name}</p>
-                    <p className="text-sm text-muted-foreground">แคมเปญ</p>
+                    <p className="text-sm text-muted-foreground">Mission</p>
                   </div>
                 </div>
               ) : project ? (
@@ -238,7 +238,7 @@ function CreateLinkModal({ isOpen, onClose, project, campaign, creatorId, onSucc
             </div>
 
             <Input
-              label="ชื่อแคมเปญของคุณ"
+              label="ชื่อ Mission ของคุณ"
               value={campaignName}
               onChange={setCampaignName}
               placeholder="เช่น โปรโมชั่นเดือนนี้"
@@ -249,7 +249,7 @@ function CreateLinkModal({ isOpen, onClose, project, campaign, creatorId, onSucc
             {project && availableCampaigns.length > 0 && (
               <div>
                 <label className="block text-sm mb-2 text-foreground">
-                  เลือกแคมเปญ (ไม่บังคับ)
+                  เลือก Mission (ไม่บังคับ)
                 </label>
                 <select
                   value={selectedCampaignId}
@@ -336,7 +336,7 @@ export function AffiliateBrowse({ creatorId }: AffiliateBrowseProps) {
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-foreground">สร้าง Affiliate Link</h2>
         <p className="text-muted-foreground mt-1">
-          เลือกโครงการหรือแคมเปญเพื่อสร้างลิงค์ Affiliate ของคุณ
+          เลือกโครงการหรือ Mission เพื่อสร้างลิงค์ Affiliate ของคุณ
         </p>
       </div>
 
@@ -365,7 +365,7 @@ export function AffiliateBrowse({ creatorId }: AffiliateBrowseProps) {
         >
           <div className="flex items-center gap-2">
             <Megaphone className="w-4 h-4" />
-            แคมเปญ ({campaigns.length})
+            Mission ({campaigns.length})
           </div>
         </button>
       </div>
@@ -430,7 +430,7 @@ export function AffiliateBrowse({ creatorId }: AffiliateBrowseProps) {
           {campaigns.length === 0 ? (
             <div className="col-span-full text-center py-12">
               <Megaphone className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">ยังไม่มีแคมเปญ</p>
+              <p className="text-muted-foreground">ยังไม่มี Mission</p>
             </div>
           ) : (
             campaigns.map((campaign) => (
@@ -473,14 +473,27 @@ export function AffiliateBrowse({ creatorId }: AffiliateBrowseProps) {
                       {campaign.detail}
                     </p>
                   )}
-                  <Button
-                    onClick={() => handleCreateFromCampaign(campaign)}
-                    fullWidth
-                    variant="outline"
-                  >
-                    <Link2 className="w-4 h-4 mr-2" />
-                    สร้างลิงค์
-                  </Button>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      onClick={() => handleCreateFromCampaign(campaign)}
+                      fullWidth
+                      variant="outline"
+                    >
+                      <Link2 className="w-4 h-4 mr-2" />
+                      สร้างลิงค์
+                    </Button>
+                    {campaign.materialsUrl && (
+                      <a
+                        href={campaign.materialsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 w-full px-4 py-2 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-colors"
+                      >
+                        <Download className="w-4 h-4" />
+                        ดาวน์โหลด Materials
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
             ))

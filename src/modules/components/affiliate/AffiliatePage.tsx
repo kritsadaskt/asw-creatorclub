@@ -153,7 +153,7 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
         if (isCampaignMode && campaignKey) {
           const campaign = await getCampaignByKey(campaignKey);
           if (!campaign || !campaign.isActive) {
-            setError('ไม่พบแคมเปญ หรือแคมเปญนี้ไม่พร้อมใช้งาน');
+            setError('ไม่พบ Mission หรือ Mission นี้ไม่พร้อมใช้งาน');
             setProjects([]);
             return;
           }
@@ -327,7 +327,7 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
         <h2 className="text-center text-2xl font-bold text-primary mb-7">
           {isCampaignMode && selectedCampaign ? (
             <>
-              <span className="text-4xl lg:text-5xl">{selectedCampaign.name}</span><br />
+              <span className="text-4xl lg:text-5xl mb-3 block">{selectedCampaign.name}</span>
               <span className="text-xl lg:text-2xl font-medium">{selectedCampaign.detail}</span>
             </>
           ) : (
@@ -337,7 +337,33 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
             </>
           )}
         </h2>
-        <a href={`${BASE_PATH}/affiliate/terms-and-conditions`} title='ข้อกำหนดและเงื่อนไข' className='text-white bg-gradient-to-br from-orange-400 to-orange-600 px-7 py-4 rounded-full block w-fit mx-auto leading-none'>ข้อกำหนดและเงื่อนไข</a>
+
+        {isCampaignMode && selectedCampaign && (
+        <div className="text-center text-lg text-muted-foreground mb-4">
+          ระยะเวลา Mission : {selectedCampaign?.startAt ? new Date(selectedCampaign.startAt).toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' }) : ''} - {selectedCampaign?.endAt ? new Date(selectedCampaign.endAt).toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' }) : ''}
+        </div>
+        )}
+
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
+          {!isCampaignMode && (
+            <a href={selectedCampaign?.materialsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-7 py-4 rounded-full border-2 border-primary text-primary font-medium hover:bg-primary hover:text-white transition-colors leading-none">
+              <Download className="w-4 h-4" />
+              ดาวน์โหลด Materials
+            </a>
+          )}
+          <a href={`${BASE_PATH}/affiliate/terms-and-conditions`} title='ข้อกำหนดและเงื่อนไข' className='text-white bg-gradient-to-br from-orange-400 to-orange-600 px-7 py-4 rounded-full block w-fit leading-none'>ข้อกำหนดและเงื่อนไข</a>
+          {isCampaignMode && selectedCampaign?.materialsUrl && (
+            <a
+              href={selectedCampaign.materialsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-7 py-4 rounded-full border-2 border-primary text-primary font-medium hover:bg-primary hover:text-white transition-colors leading-none"
+            >
+              <Download className="w-4 h-4" />
+              ดาวน์โหลด Materials
+            </a>
+          )}
+        </div>
       </div>
       {!isCampaignMode && activeCampaigns.length > 0 && (
         <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -352,19 +378,32 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
                 />
               ) : (
                 <div className="w-full h-40 rounded-xl bg-muted flex items-center justify-center text-muted-foreground">
-                  ไม่มีรูปแคมเปญ
+                  ไม่มีรูป Mission
                 </div>
               )}
               <div>
                 <h3 className="text-lg font-semibold text-foreground">{campaign.name}</h3>
                 <p className="text-sm text-muted-foreground line-clamp-2">{campaign.detail}</p>
               </div>
-              <Link
-                href={`/campaign/${campaign.campaignKey ?? campaign.id}`}
-                className="inline-flex w-fit items-center justify-center rounded-lg border border-primary px-3 py-1.5 font-medium text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
-              >
-                ดูเพิ่มเติม
-              </Link>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href={`/campaign/${campaign.campaignKey ?? campaign.id}`}
+                  className="inline-flex items-center justify-center rounded-lg border border-primary px-3 py-1.5 font-medium text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+                >
+                  ดูเพิ่มเติม
+                </Link>
+                {campaign.materialsUrl && (
+                  <a
+                    href={campaign.materialsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 font-medium text-foreground hover:bg-muted transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Materials
+                  </a>
+                )}
+              </div>
             </div>
           ))}
         </div>
