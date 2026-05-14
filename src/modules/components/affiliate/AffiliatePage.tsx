@@ -459,18 +459,15 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
                               <div className="w-45 h-auto rounded-md bg-muted overflow-hidden flex items-center justify-center text-xs text-muted-foreground aspect-square flex-shrink-0 relative">
                                 {project.imageUrl || project.thumbUrl ? (
                                   // eslint-disable-next-line @next/next/no-img-element
-                                  <img
-                                    src={project.imageUrl || project.thumbUrl}
-                                    alt={project.name}
-                                    className="w-full h-full object-cover"
-                                  />
+                                  <div className="w-full h-full" style={{ backgroundImage: `url(${project.imageUrl || project.thumbUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                                  </div>
                                 ) : (
                                   <span className="px-1 text-center">
                                     no thumbnail
                                   </span>
                                 )}
                                 <StatusLabel className="block md:hidden z-10" status={getStatusLabel(project.projectStatus)} />
-                                <div className='absolute block md:hidden top-0 right-0 bg-gradient-to-bl from-black/50 via-black/30 to-transparent w-full h-full'></div>
+                                <div className='absolute block md:hidden top-0 right-0 bg-gradient-to-bl from-black/30 via-black/10 to-transparent w-full h-full'></div>
                               </div>
                               <div>
                                 <h4 className="text-xl mb-2 font-medium text-foreground flex items-center gap-2">
