@@ -24,6 +24,7 @@ export function CampaignManagement() {
   
   // Form state
   const [name, setName] = useState('');
+  const [subTitle, setSubTitle] = useState('');
   const [detail, setDetail] = useState('');
   const [promotionImg, setPromotionImg] = useState('');
   const [bannerDesktopUrl, setBannerDesktopUrl] = useState('');
@@ -39,6 +40,7 @@ export function CampaignManagement() {
   const [utmCampaign, setUtmCampaign] = useState('');
   const [landingUrl, setLandingUrl] = useState('');
   const [materialsUrl, setMaterialsUrl] = useState('');
+  const [termsUrl, setTermsUrl] = useState('');
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
 
   useEffect(() => {
@@ -64,6 +66,7 @@ export function CampaignManagement() {
 
   const resetForm = () => {
     setName('');
+    setSubTitle('');
     setDetail('');
     setPromotionImg('');
     setBannerDesktopUrl('');
@@ -79,6 +82,7 @@ export function CampaignManagement() {
     setUtmCampaign('');
     setLandingUrl('');
     setMaterialsUrl('');
+    setTermsUrl('');
     setSelectedProjectIds([]);
     setIsFormOpen(false);
   };
@@ -103,7 +107,7 @@ export function CampaignManagement() {
     value.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
 
   const handleSubmit = async () => {
-    if (!name || !detail || !landingUrl || !utmSource || !utmMedium || !utmCampaign || !campaignKey) {
+    if (!name || !landingUrl || !utmSource || !utmMedium || !utmCampaign || !campaignKey) {
       toast.error('กรุณากรอกข้อมูลให้ครบถ้วน');
       return;
     }
@@ -117,6 +121,7 @@ export function CampaignManagement() {
       const campaign: Campaign = {
         id: generateUUID(),
         name,
+        subTitle: subTitle || undefined,
         detail,
         promotionImg: promotionImg || undefined,
         bannerDesktopUrl: bannerDesktopUrl || undefined,
@@ -130,6 +135,7 @@ export function CampaignManagement() {
         utmCampaign,
         landingUrl,
         materialsUrl: materialsUrl || undefined,
+        termsUrl: termsUrl || undefined,
         projectIds: selectedProjectIds,
         startAt: startAt ? new Date(startAt).toISOString() : undefined,
         endAt: endAt ? new Date(`${endAt}T23:59:59.999Z`).toISOString() : undefined,
@@ -199,19 +205,40 @@ export function CampaignManagement() {
                 onChange={setBudget}
                 placeholder="เช่น 100000"
               />
+              <Input
+                label="Sub Title"
+                value={subTitle}
+                onChange={setSubTitle}
+                placeholder="หัวข้อรอง (ไม่บังคับ)"
+              />
             </div>
 
             <div>
               <label className="block text-sm mb-2 text-foreground">
-                รายละเอียด Mission <span className="text-destructive">*</span>
+                รายละเอียด Mission (HTML)
               </label>
-              <textarea
-                value={detail}
-                onChange={(e) => setDetail(e.target.value)}
-                placeholder="รายละเอียดเกี่ยวกับ Mission"
-                className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
-                rows={3}
-              />
+              <div className="relative rounded-lg border border-border overflow-hidden">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 border-b border-border">
+                  <code className="text-xs text-muted-foreground">HTML</code>
+                </div>
+                <textarea
+                  value={detail}
+                  onChange={(e) => setDetail(e.target.value)}
+                  placeholder="<div>เนื้อหา HTML ที่ต้องการแสดงในหน้า Mission</div>"
+                  className="w-full px-4 py-3 font-mono text-sm bg-gray-950 text-gray-100 focus:outline-none resize-y min-h-[120px]"
+                  rows={6}
+                  spellCheck={false}
+                />
+              </div>
+              {detail && (
+                <details className="mt-2">
+                  <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">ดูตัวอย่าง Preview</summary>
+                  <div
+                    className="mt-2 p-4 border border-border rounded-lg bg-white prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: detail }}
+                  />
+                </details>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -269,6 +296,13 @@ export function CampaignManagement() {
               value={materialsUrl}
               onChange={setMaterialsUrl}
               placeholder="https://drive.google.com/..."
+            />
+
+            <Input
+              label="Link ข้อกำหนดและเงื่อนไข"
+              value={termsUrl}
+              onChange={setTermsUrl}
+              placeholder="ถ้าไม่ระบุจะใช้ลิงก์ default"
             />
 
             {/* UTM Parameters Section */}

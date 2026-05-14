@@ -119,6 +119,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
   const [projects, setProjects] = useState<Project[]>([]);
 
   const [name, setName] = useState('');
+  const [subTitle, setSubTitle] = useState('');
   const [detail, setDetail] = useState('');
   const [promotionImg, setPromotionImg] = useState('');
   const [bannerDesktopUrl, setBannerDesktopUrl] = useState('');
@@ -133,6 +134,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
   const [utmCampaign, setUtmCampaign] = useState('');
   const [landingUrl, setLandingUrl] = useState('');
   const [materialsUrl, setMaterialsUrl] = useState('');
+  const [termsUrl, setTermsUrl] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
   const [projectToAdd, setProjectToAdd] = useState<ProjectSelectOption | null>(null);
@@ -258,6 +260,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
         setCampaign(campaignData);
         setProjects(projectData);
         setName(campaignData.name);
+        setSubTitle(campaignData.subTitle || '');
         setDetail(campaignData.detail);
         setPromotionImg(campaignData.promotionImg || '');
         setBannerDesktopUrl(campaignData.bannerDesktopUrl || '');
@@ -272,6 +275,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
         setUtmCampaign(campaignData.utmCampaign);
         setLandingUrl(campaignData.landingUrl);
         setMaterialsUrl(campaignData.materialsUrl || '');
+        setTermsUrl(campaignData.termsUrl || '');
         setIsActive(campaignData.isActive ?? true);
         setSelectedProjectIds(campaignData.projectIds ?? []);
         await loadReport(campaignData.id);
@@ -287,7 +291,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
 
   const handleSave = async () => {
     if (!campaign) return;
-    if (!name || !detail || !landingUrl || !utmSource || !utmMedium || !utmCampaign) {
+    if (!name || !landingUrl || !utmSource || !utmMedium || !utmCampaign) {
       toast.error('กรุณากรอกข้อมูลให้ครบถ้วน');
       return;
     }
@@ -301,6 +305,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
       await saveCampaign({
         ...campaign,
         name,
+        subTitle: subTitle || undefined,
         detail,
         promotionImg: promotionImg || undefined,
         bannerDesktopUrl: bannerDesktopUrl || undefined,
@@ -313,6 +318,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
         utmCampaign,
         landingUrl,
         materialsUrl: materialsUrl || undefined,
+        termsUrl: termsUrl || undefined,
         isActive,
         projectIds: selectedProjectIds,
         startAt: startAt ? new Date(startAt).toISOString() : undefined,
@@ -323,6 +329,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
           ? {
               ...prev,
               name,
+              subTitle: subTitle || undefined,
               detail,
               promotionImg: promotionImg || undefined,
               bannerDesktopUrl: bannerDesktopUrl || undefined,
@@ -335,6 +342,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
               utmCampaign,
               landingUrl,
               materialsUrl: materialsUrl || undefined,
+              termsUrl: termsUrl || undefined,
               isActive,
               projectIds: selectedProjectIds,
               startAt: startAt ? new Date(startAt).toISOString() : undefined,
@@ -552,6 +560,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input label="ชื่อ Mission" value={name} onChange={setName} required />
             <Input label="Mission Key" value={campaign.campaignKey ?? campaignKey} onChange={() => {}} disabled />
+            <Input label="Sub Title" value={subTitle} onChange={setSubTitle} placeholder="หัวข้อรอง (ไม่บังคับ)" />
             <Input label="งบประมาณ (บาท)" type="number" value={budget} onChange={setBudget} />
             <Input label="กลุ่มเป้าหมาย" value={leadTarget} onChange={setLeadTarget} />
           </div>
@@ -628,13 +637,31 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
           </div>
 
           <div>
-            <label className="block text-sm mb-2 text-foreground">รายละเอียด Mission <span className="text-destructive">*</span></label>
-            <textarea
-              value={detail}
-              onChange={(e) => setDetail(e.target.value)}
-              className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
-              rows={3}
-            />
+            <label className="block text-sm mb-2 text-foreground">
+              รายละเอียด Mission (HTML)
+            </label>
+            <div className="relative rounded-lg border border-border overflow-hidden">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 border-b border-border">
+                <code className="text-xs text-muted-foreground">HTML</code>
+              </div>
+              <textarea
+                value={detail}
+                onChange={(e) => setDetail(e.target.value)}
+                className="w-full px-4 py-3 font-mono text-sm bg-gray-950 text-gray-100 focus:outline-none resize-y min-h-[160px]"
+                rows={8}
+                spellCheck={false}
+                placeholder="<div>เนื้อหา HTML ที่ต้องการแสดงในหน้า Mission</div>"
+              />
+            </div>
+            {detail && (
+              <details className="mt-2">
+                <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">ดูตัวอย่าง Preview</summary>
+                <div
+                  className="mt-2 p-4 border border-border rounded-lg bg-white prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: detail }}
+                />
+              </details>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -643,6 +670,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
             <Input label="Banner Mobile (URL)" value={bannerMobileUrl} onChange={setBannerMobileUrl} />
             <Input label="URL ปลายทาง" value={landingUrl} onChange={setLandingUrl} required />
             <Input label="Materials URL (ลิงก์ดาวน์โหลดไฟล์)" value={materialsUrl} onChange={setMaterialsUrl} placeholder="https://drive.google.com/..." />
+            <Input label="Link ข้อกำหนดและเงื่อนไข" value={termsUrl} onChange={setTermsUrl} placeholder="ถ้าไม่ระบุจะใช้ลิงก์ default" />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
