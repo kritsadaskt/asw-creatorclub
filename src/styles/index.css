@@ -15,7 +15,7 @@
 
 .project-status-badge.new, .project-status-label.new {
   span {
-    @apply bg-green-500 text-white;
+    @apply bg-green-600 text-white;
   }
 }
 
