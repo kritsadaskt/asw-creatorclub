@@ -32,7 +32,7 @@ export function IntroSection() {
                   <div className="h-4"></div>
                   <ul className="text-left space-y-2">
                     <li className="flex">
-                      <SquareCheckBig className="w-6 h-6 inline-block mr-2 flex-shrink-0 text-orange-400" /><span>เข้าร่วมกิจกรรมและแคมเปญพิเศษก่อนใคร</span></li>
+                      <SquareCheckBig className="w-6 h-6 inline-block mr-2 flex-shrink-0 text-orange-400" /><span>เข้าร่วมกิจกรรมและ Mission พิเศษก่อนใคร</span></li>
                     <li className="flex">
                       <SquareCheckBig className="w-6 h-6 inline-block mr-2 flex-shrink-0 text-orange-400" /><span>เรียนรู้และอัปสกิลผ่าน Workshop จากผู้เชี่ยวชาญ</span></li>
                     <li className="flex">

@@ -153,7 +153,7 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
         if (isCampaignMode && campaignKey) {
           const campaign = await getCampaignByKey(campaignKey);
           if (!campaign || !campaign.isActive) {
-            setError('ไม่พบแคมเปญ หรือแคมเปญนี้ไม่พร้อมใช้งาน');
+            setError('ไม่พบ Mission หรือ Mission นี้ไม่พร้อมใช้งาน');
             setProjects([]);
             return;
           }
@@ -352,7 +352,7 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
                 />
               ) : (
                 <div className="w-full h-40 rounded-xl bg-muted flex items-center justify-center text-muted-foreground">
-                  ไม่มีรูปแคมเปญ
+                  ไม่มีรูป Mission
                 </div>
               )}
               <div>

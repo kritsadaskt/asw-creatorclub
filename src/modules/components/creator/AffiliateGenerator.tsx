@@ -166,7 +166,7 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
   const handleSaveLink = async () => {
     if (!selectedLink) return;
     if (!draftCampaignName.trim()) {
-      toast.error('กรุณากรอกชื่อแคมเปญ');
+      toast.error('กรุณากรอกชื่อ Mission');
       return;
     }
     if (!draftUrl.trim()) {
@@ -268,7 +268,7 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
                   label="ค้นหา"
                   value={searchQuery}
                   onChange={setSearchQuery}
-                  placeholder="ค้นหาจากชื่อแคมเปญ ชื่อโครงการ หรือ URL"
+                  placeholder="ค้นหาจากชื่อ Mission ชื่อโครงการ หรือ URL"
                 />
               </div>
               <div className="w-full md:w-[280px]">
@@ -438,7 +438,7 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
                 label="ชื่อลิงก์"
                 value={draftCampaignName}
                 onChange={setDraftCampaignName}
-                placeholder="กรอกชื่อแคมเปญ"
+                placeholder="กรอกชื่อ Mission"
                 required
               />
 
