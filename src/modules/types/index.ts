@@ -135,6 +135,7 @@ export interface Campaign {
   utmId: string;
   utmCampaign: string;
   landingUrl: string;
+  materialsUrl?: string;
   projectIds: string[];
   startAt?: string;
   endAt?: string;

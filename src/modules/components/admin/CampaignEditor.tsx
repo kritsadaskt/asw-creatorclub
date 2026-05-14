@@ -132,6 +132,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
   const [utmId, setUtmId] = useState('');
   const [utmCampaign, setUtmCampaign] = useState('');
   const [landingUrl, setLandingUrl] = useState('');
+  const [materialsUrl, setMaterialsUrl] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
   const [projectToAdd, setProjectToAdd] = useState<ProjectSelectOption | null>(null);
@@ -270,6 +271,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
         setUtmId(campaignData.utmId);
         setUtmCampaign(campaignData.utmCampaign);
         setLandingUrl(campaignData.landingUrl);
+        setMaterialsUrl(campaignData.materialsUrl || '');
         setIsActive(campaignData.isActive ?? true);
         setSelectedProjectIds(campaignData.projectIds ?? []);
         await loadReport(campaignData.id);
@@ -310,6 +312,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
         utmId,
         utmCampaign,
         landingUrl,
+        materialsUrl: materialsUrl || undefined,
         isActive,
         projectIds: selectedProjectIds,
         startAt: startAt ? new Date(startAt).toISOString() : undefined,
@@ -331,6 +334,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
               utmId,
               utmCampaign,
               landingUrl,
+              materialsUrl: materialsUrl || undefined,
               isActive,
               projectIds: selectedProjectIds,
               startAt: startAt ? new Date(startAt).toISOString() : undefined,
@@ -638,6 +642,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
             <Input label="Banner Desktop (URL)" value={bannerDesktopUrl} onChange={setBannerDesktopUrl} />
             <Input label="Banner Mobile (URL)" value={bannerMobileUrl} onChange={setBannerMobileUrl} />
             <Input label="URL ปลายทาง" value={landingUrl} onChange={setLandingUrl} required />
+            <Input label="Materials URL (ลิงก์ดาวน์โหลดไฟล์)" value={materialsUrl} onChange={setMaterialsUrl} placeholder="https://drive.google.com/..." />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

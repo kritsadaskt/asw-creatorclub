@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Building2, Home, Megaphone, X, Link2, Copy, Check } from 'lucide-react';
+import { Building2, Home, Megaphone, X, Link2, Copy, Check, Download } from 'lucide-react';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
 import { Project, Campaign, AffiliateLink } from '../../types';
@@ -473,14 +473,27 @@ export function AffiliateBrowse({ creatorId }: AffiliateBrowseProps) {
                       {campaign.detail}
                     </p>
                   )}
-                  <Button
-                    onClick={() => handleCreateFromCampaign(campaign)}
-                    fullWidth
-                    variant="outline"
-                  >
-                    <Link2 className="w-4 h-4 mr-2" />
-                    สร้างลิงค์
-                  </Button>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      onClick={() => handleCreateFromCampaign(campaign)}
+                      fullWidth
+                      variant="outline"
+                    >
+                      <Link2 className="w-4 h-4 mr-2" />
+                      สร้างลิงค์
+                    </Button>
+                    {campaign.materialsUrl && (
+                      <a
+                        href={campaign.materialsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 w-full px-4 py-2 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-colors"
+                      >
+                        <Download className="w-4 h-4" />
+                        ดาวน์โหลด Materials
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
             ))

@@ -38,6 +38,7 @@ export function CampaignManagement() {
   const [utmId, setUtmId] = useState('');
   const [utmCampaign, setUtmCampaign] = useState('');
   const [landingUrl, setLandingUrl] = useState('');
+  const [materialsUrl, setMaterialsUrl] = useState('');
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
 
   useEffect(() => {
@@ -77,6 +78,7 @@ export function CampaignManagement() {
     setUtmId('');
     setUtmCampaign('');
     setLandingUrl('');
+    setMaterialsUrl('');
     setSelectedProjectIds([]);
     setIsFormOpen(false);
   };
@@ -127,6 +129,7 @@ export function CampaignManagement() {
         utmId,
         utmCampaign,
         landingUrl,
+        materialsUrl: materialsUrl || undefined,
         projectIds: selectedProjectIds,
         startAt: startAt ? new Date(startAt).toISOString() : undefined,
         endAt: endAt ? new Date(`${endAt}T23:59:59.999Z`).toISOString() : undefined,
@@ -259,6 +262,13 @@ export function CampaignManagement() {
               onChange={setLandingUrl}
               placeholder="https://example.com/landing"
               required
+            />
+
+            <Input
+              label="Materials URL (ลิงก์ดาวน์โหลดไฟล์)"
+              value={materialsUrl}
+              onChange={setMaterialsUrl}
+              placeholder="https://drive.google.com/..."
             />
 
             {/* UTM Parameters Section */}
