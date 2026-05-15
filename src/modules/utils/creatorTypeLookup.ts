@@ -1,5 +1,38 @@
 import type { CreatorTypeRow } from '@/modules/types';
 
+const MAX_INVITE_TYPE_PARAM_LENGTH = 200;
+
+/**
+ * Map an invite `?type=` value to a canonical `creator_type.key` using the same alias rules as filters.
+ * Returns null when unknown or too long (no matching row).
+ */
+export function resolveInviteParamToCreatorTypeKey(
+  param: string | null | undefined,
+  creatorTypes: Pick<CreatorTypeRow, 'key'>[],
+): string | null {
+  if (param == null) return null;
+  const raw = param.trim();
+  if (!raw || raw.length > MAX_INVITE_TYPE_PARAM_LENGTH) return null;
+  for (const row of creatorTypes) {
+    if (profileTypeMatchesCreatorTypeFilter(raw, row.key)) {
+      return row.key;
+    }
+  }
+  return null;
+}
+
+/** Registration UX for `/register` when `profiles.type` matches this `creator_type` row. */
+export function registrationFlowForCreatorTypeKey(
+  canonicalKey: string | null | undefined,
+  creatorTypes: CreatorTypeRow[],
+): 'standard' | 'household' | 'pageant' | null {
+  if (!canonicalKey?.trim()) return null;
+  const row = creatorTypes.find((r) => r.key === canonicalKey.trim());
+  const f = row?.registrationFlow;
+  if (f === 'standard' || f === 'household' || f === 'pageant') return f;
+  return null;
+}
+
 /**
  * Legacy `profiles.type` values grouped under canonical `creator_type.key` from Supabase.
  * Keys not listed here match only by exact case-insensitive equality with `profiles.type`.

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useSession } from '@/modules/context/SessionContext';
+import type { CreatorTypeRow } from '@/modules/types';
 import { Header } from './Header';
 import { RegisterSection } from './RegisterSection';
 import { HeroBanner } from './HeroBanner';
@@ -9,9 +10,11 @@ import { HeroBanner } from './HeroBanner';
 export function InvitedRegisterPage({
   inviteLabels,
   inviteType,
+  creatorTypes,
 }: {
   inviteLabels: string[] | null;
   inviteType: string | null;
+  creatorTypes: CreatorTypeRow[];
 }) {
   const categoryLabels = inviteLabels;
   const { handleLogin, currentUserId } = useSession();
@@ -63,6 +66,7 @@ export function InvitedRegisterPage({
         onLogin={handleLogin}
         fixedCategoryLabels={categoryLabels}
         inviteType={inviteType ?? undefined}
+        creatorTypesFromServer={creatorTypes}
         variant="standalone"
       />
     </div>
