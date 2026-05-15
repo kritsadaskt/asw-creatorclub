@@ -14,7 +14,10 @@ import {
   joinCurrentEvent,
 } from '../../utils/storage';
 import type { Event } from '../../types';
+import { stripHtmlTags } from '../../utils/strip-html-tags';
 import { formatGenericErrorToast } from '../../utils/toast-error';
+
+const DEFAULT_PAGE_TITLE = 'AssetWise Creator Club';
 
 export function EventPage() {
   const { currentUserId, userRole, handleLogin } = useSession();
@@ -55,6 +58,19 @@ export function EventPage() {
     };
     void checkJoined();
   }, [event, currentUserId, userRole]);
+
+  useEffect(() => {
+    if (loading) return;
+    const previousTitle = document.title;
+    if (event?.name?.trim()) {
+      document.title = stripHtmlTags(event.name) || DEFAULT_PAGE_TITLE;
+    } else {
+      document.title = DEFAULT_PAGE_TITLE;
+    }
+    return () => {
+      document.title = previousTitle;
+    };
+  }, [loading, event]);
 
   const handleJoin = async () => {
     if (!event) return;
@@ -118,8 +134,11 @@ export function EventPage() {
           <section className="container mx-auto px-4 lg:px-6 py-10">
             <div className="mx-auto max-w-4xl rounded-2xl border border-border bg-white py-6 px-4 lg:p-6 shadow-sm md:p-8">
 
-              <h1 className="mb-4 text-3xl text-center font-medium text-foreground">
-                <div dangerouslySetInnerHTML={{ __html: event.name ?? '' }} />
+              <h1 className="mb-4 text-center text-4xl font-bold">
+                <div
+                  className="bg-gradient-to-br from-[#3d2ae8] to-[#ff5c24] bg-clip-text text-transparent"
+                  dangerouslySetInnerHTML={{ __html: event.name ?? '' }}
+                />
               </h1>
 
               <div className="detail-box flex flex-col gap-2 items-center text-xl">
