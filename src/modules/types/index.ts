@@ -84,6 +84,8 @@ export interface CreatorTypeRow {
   key: string;
   nameTh: string;
   nameEn: string;
+  /** Controls `/register?type=…` form sections when set; null/unknown → standard form. */
+  registrationFlow?: 'standard' | 'household' | 'pageant' | null;
 }
 
 export interface Project {

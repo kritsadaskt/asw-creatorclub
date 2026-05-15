@@ -192,7 +192,7 @@ export async function enrichCreatorProfiles(profiles: CreatorProfile[]): Promise
 export const getCreatorTypes = async (): Promise<CreatorTypeRow[]> => {
   const { data, error } = await supabase
     .from('creator_type')
-    .select('id,key,name_th,name_en')
+    .select('id,key,name_th,name_en,registration_flow')
     .order('id', { ascending: true });
 
   if (error) {
@@ -200,12 +200,26 @@ export const getCreatorTypes = async (): Promise<CreatorTypeRow[]> => {
     throw error;
   }
 
-  return (data ?? []).map((row: { id: number; key: string; name_th?: string | null; name_en?: string | null }) => ({
-    id: row.id,
-    key: (row.key ?? '').trim(),
-    nameTh: (row.name_th ?? '').trim(),
-    nameEn: (row.name_en ?? '').trim(),
-  }));
+  return (data ?? []).map(
+    (row: {
+      id: number;
+      key: string;
+      name_th?: string | null;
+      name_en?: string | null;
+      registration_flow?: string | null;
+    }) => {
+      const rf = row.registration_flow;
+      const registrationFlow =
+        rf === 'standard' || rf === 'household' || rf === 'pageant' ? rf : null;
+      return {
+        id: row.id,
+        key: (row.key ?? '').trim(),
+        nameTh: (row.name_th ?? '').trim(),
+        nameEn: (row.name_en ?? '').trim(),
+        registrationFlow,
+      };
+    },
+  );
 };
 
 export const saveCreator = async (creator: CreatorProfile): Promise<void> => {

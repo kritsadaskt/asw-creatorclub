@@ -17,10 +17,12 @@ import { Switch } from '../ui/switch';
 import Link from 'next/link';
 import { supabase } from '../../utils/supabase';
 import provinces from '@/lib/provinces.json';
-
-/** Invite `type` query value: show project dropdown and save as resident (no status toggle). */
-const ASW_HOUSEHOLD_INVITE_TYPE = 'asw_household';
-const PAGEANT_INVITE_TYPE = 'pageant';
+import { getCreatorTypes } from '../../utils/storage';
+import {
+  registrationFlowForCreatorTypeKey,
+  resolveInviteParamToCreatorTypeKey,
+} from '../../utils/creatorTypeLookup';
+import type { CreatorTypeRow } from '../../types';
 
 /** Calendar age from `YYYY-MM-DD` using local date (matches `<input type="date">`). */
 function ageFromBirthYmd(birthYmd: string): number {
@@ -40,13 +42,6 @@ function ageFromBirthYmd(birthYmd: string): number {
   return age;
 }
 
-const PAGEANT_STAGE_OPTIONS: SelectOption[] = [
-  { value: 'miss_world_th', label: 'Miss World Thailand' },
-  { value: 'mister_int', label: 'Mister International' },
-  { value: 'miss_th', label: 'นางสาวไทย' },
-  { value: 'mr_mrs_global', label: 'Mr. & Mrs. Global Thailand' },
-];
-
 type SelectOption = { value: string; label: string };
 
 interface RegisterSectionProps {
@@ -54,8 +49,10 @@ interface RegisterSectionProps {
   /** When set, the category field is hidden and these labels are saved (invite link flow). */
   fixedCategoryLabels?: string[];
   variant?: 'landing' | 'standalone';
-  /** Raw invite type from register URL (e.g. asw_household, pageant). */
+  /** Raw invite type from register URL (canonical `creator_type.key`). */
   inviteType?: string;
+  /** When provided (e.g. from RSC register page), avoids a duplicate client fetch of `creator_type`. */
+  creatorTypesFromServer?: CreatorTypeRow[];
 }
 
 type ProjectGroup = { label: string; options: SelectOption[] };
@@ -87,6 +84,7 @@ export function RegisterSection({
   fixedCategoryLabels,
   variant = 'landing',
   inviteType,
+  creatorTypesFromServer,
 }: RegisterSectionProps) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -150,32 +148,59 @@ export function RegisterSection({
   const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | ''>('');
   const [hideStatusField, setHideStatusField] = useState(false);
 
-  const needsHouseholdProject = inviteType === ASW_HOUSEHOLD_INVITE_TYPE;
-  const isPageantInvite =
-    inviteType === PAGEANT_INVITE_TYPE || inviteType === 'mister_int' || inviteType === 'miss_world' || inviteType === 'mr_mrs_global' || inviteType === 'miss_th';
+  const [creatorTypeRows, setCreatorTypeRows] = useState<CreatorTypeRow[]>(creatorTypesFromServer ?? []);
+
   const [pageantYear, setPageantYear] = useState<string>('');
   const [birthdate, setBirthdate] = useState<string>(new Date('2008-01-01').toISOString().split('T')[0]);
   const age = useMemo(() => ageFromBirthYmd(birthdate), [birthdate]);
 
   useEffect(() => {
-    if (inviteType === 'mister_int') {
-      setPageantStage('mister_int');
+    if (creatorTypesFromServer?.length) {
+      setCreatorTypeRows(creatorTypesFromServer);
       return;
     }
-    if (inviteType === 'miss_world') {
-      setPageantStage('miss_world');
+    void getCreatorTypes()
+      .then(setCreatorTypeRows)
+      .catch((err) => {
+        console.error('Failed to load creator_type', err);
+        setCreatorTypeRows([]);
+      });
+  }, [creatorTypesFromServer]);
+
+  const pageantStageOptions = useMemo((): SelectOption[] => {
+    return creatorTypeRows
+      .filter((r) => r.registrationFlow === 'pageant' && r.key !== 'pageant')
+      .map((r) => ({
+        value: r.key,
+        label: r.nameTh.trim() || r.nameEn.trim() || r.key,
+      }));
+  }, [creatorTypeRows]);
+
+  const inviteRegistrationFlow = useMemo(() => {
+    if (!inviteType?.trim() || creatorTypeRows.length === 0) return null;
+    const canon = resolveInviteParamToCreatorTypeKey(inviteType, creatorTypeRows) ?? inviteType;
+    return registrationFlowForCreatorTypeKey(canon, creatorTypeRows);
+  }, [inviteType, creatorTypeRows]);
+
+  const needsHouseholdProject = inviteRegistrationFlow === 'household';
+  const isPageantInvite = inviteRegistrationFlow === 'pageant';
+
+  useEffect(() => {
+    if (!inviteType?.trim() || creatorTypeRows.length === 0) return;
+    const canon = resolveInviteParamToCreatorTypeKey(inviteType, creatorTypeRows) ?? inviteType;
+    if (inviteRegistrationFlow !== 'pageant') {
+      setPageantStage('');
       return;
     }
-    if (inviteType === 'mr_mrs_global') {
-      setPageantStage('mr_mrs_global');
-      return;
+    if (canon !== 'pageant') {
+      const keys = new Set(pageantStageOptions.map((o) => o.value));
+      if (keys.has(canon)) {
+        setPageantStage(canon);
+      }
+    } else {
+      setPageantStage('');
     }
-    if (inviteType === 'miss_th') {
-      setPageantStage('miss_th');
-      return;
-    }
-    setPageantStage('');
-  }, [inviteType]);
+  }, [inviteType, creatorTypeRows, inviteRegistrationFlow, pageantStageOptions]);
 
   const sendRegistrationPendingEmail = async (
     creator: Pick<CreatorProfile, 'name' | 'email' | 'lastName'>,
@@ -975,8 +1000,8 @@ export function RegisterSection({
                   <h3 className="font-semibold text-primary">โปรดเลือกเวทีที่คุณสังกัด</h3>
                   <Select
                     instanceId="register-pageant-stage"
-                    options={PAGEANT_STAGE_OPTIONS}
-                    value={PAGEANT_STAGE_OPTIONS.find((option) => option.value === pageantStage) ?? null}
+                    options={pageantStageOptions}
+                    value={pageantStageOptions.find((option) => option.value === pageantStage) ?? null}
                     onChange={(option) => {
                       const value = option ? option.value : '';
                       setPageantStage(value);
