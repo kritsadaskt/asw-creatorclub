@@ -325,7 +325,7 @@ export default function SocialAccounts({
             value={socialAccounts.lemon8 || ""}
             onChange={(value) => handleUrlChange("lemon8", value)}
             disabled={disabled}
-            placeholder="เช่น user หรือ lemon8.com/…"
+            placeholder="@username"
             error={errors.lemon8Url}
             title={SOCIAL_URL_INPUT_TITLES.lemon8}
           />
