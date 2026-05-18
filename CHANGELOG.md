@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.3.4](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.3.3...v2.3.4) (2026-05-18)
+
+
+### Bug Fixes
+
+* change lemon8 profile link ([8b4c6b3](https://github.com/kritsadaskt/asw-creatorclub/commit/8b4c6b31610f66ddeda6ee5053fb37cfe87a5897))
+
 ### [2.3.3](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.3.2...v2.3.3) (2026-05-15)
 
 
