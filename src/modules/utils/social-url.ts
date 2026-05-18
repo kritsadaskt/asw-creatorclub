@@ -32,7 +32,7 @@ const BARE_HOSTS_BY_PLATFORM: Record<SocialPlatform, readonly string[]> = {
   tiktok: ['tiktok.com', 'www.tiktok.com', 'vm.tiktok.com', 'www.vm.tiktok.com'],
   youtube: ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be', 'www.youtu.be'],
   twitter: ['twitter.com', 'www.twitter.com', 'mobile.twitter.com', 'x.com', 'www.x.com'],
-  lemon8: ['lemon8.com', 'www.lemon8.com'],
+  lemon8: ['lemon8-app.com/@', 'www.lemon8-app.com/@'],
 };
 
 const SLUG_ONLY_RE = /^[A-Za-z0-9@_.-]+$/;
@@ -65,7 +65,7 @@ function hostAllowed(host: string, platform: SocialPlatform): boolean {
         h.endsWith('.x.com')
       );
     case 'lemon8':
-      return h === 'lemon8.com' || h.endsWith('.lemon8.com');
+      return h === 'lemon8-app.com' || h.endsWith('.lemon8-app.com');
   }
 }
 
@@ -150,7 +150,7 @@ function buildProfileUrlFromSlug(platform: SocialPlatform, slug: string): string
     case 'twitter':
       return `https://x.com/${encodeURIComponent(noAt)}`;
     case 'lemon8':
-      return `https://www.lemon8.com/${encodeURIComponent(noAt)}`;
+      return `https://www.lemon8-app.com/@${encodeURIComponent(noAt)}`;
   }
 }
 
