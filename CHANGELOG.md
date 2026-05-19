@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.3.5](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.3.4...v2.3.5) (2026-05-19)
+
+
+### Bug Fixes
+
+* แก้ข้อมูลใน dashboard ไม่ตรงกัน local / prod ([c5b1eac](https://github.com/kritsadaskt/asw-creatorclub/commit/c5b1eac1166e9bb19e4a1c940b6c96c45fc0cd47))
+
 ### [2.3.4](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.3.3...v2.3.4) (2026-05-18)
 
 
