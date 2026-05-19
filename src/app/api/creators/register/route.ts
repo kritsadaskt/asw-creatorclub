@@ -9,15 +9,6 @@ import {
   type CreatorCategoryRow,
 } from '@/modules/utils/creatorCategoryLookup';
 
-function getProfilesTableForDevHost(request: NextRequest): 'profiles' | 'profiles_uat' {
-  if (process.env.NODE_ENV !== 'development') return 'profiles';
-  const host = request.nextUrl.hostname.toLowerCase();
-  if (host === 'localhost' || host === '127.0.0.1' || host === '[::1]') {
-    return 'profiles_uat';
-  }
-  return 'profiles';
-}
-
 export async function POST(request: NextRequest) {
   let body: unknown;
   try {
@@ -129,8 +120,7 @@ export async function POST(request: NextRequest) {
       pageant_year = Number.isFinite(n) ? n : null;
     }
 
-    const profilesTable = getProfilesTableForDevHost(request);
-    const { error } = await supabaseAdmin.from(profilesTable).upsert(
+    const { error } = await supabaseAdmin.from('profiles').upsert(
       {
         id,
         email,

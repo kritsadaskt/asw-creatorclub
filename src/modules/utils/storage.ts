@@ -128,15 +128,6 @@ export const uploadCreatorProfileImage = async (
 
 // ===== Creator Profile Operations =====
 
-function shouldUseUatProfilesTable(): boolean {
-  if (process.env.NODE_ENV !== 'development') return false;
-  if (typeof window === 'undefined') return false;
-  const host = window.location.hostname.toLowerCase();
-  return host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
-}
-
-const CREATOR_PROFILES_TABLE = shouldUseUatProfilesTable() ? 'profiles_uat' : 'profiles';
-
 let creatorCategoryMapsCache: CreatorCategoryMaps | null = null;
 let creatorCategoryMapsPromise: Promise<CreatorCategoryMaps> | null = null;
 
@@ -230,7 +221,7 @@ export const saveCreator = async (creator: CreatorProfile): Promise<void> => {
     categoryIds.length > 0 ? resolveThLabelsFromIds(categoryIds, maps) : (creator.categories ?? []).map((s) => s.trim()).filter(Boolean);
 
   const { error } = await supabase
-    .from(CREATOR_PROFILES_TABLE)
+    .from('profiles')
     .upsert({
       id: creator.id,
       email: creator.email,
@@ -277,7 +268,7 @@ const normalizeCreatorBudget = (raw: unknown): number | undefined => {
 
 export const getCreators = async (): Promise<CreatorProfile[]> => {
   const { data, error } = await supabase
-    .from(CREATOR_PROFILES_TABLE)
+    .from('profiles')
     .select('*')
     .order('created_at', { ascending: false });
 
@@ -291,7 +282,7 @@ export const getCreators = async (): Promise<CreatorProfile[]> => {
 
 export const getCreatorById = async (id: string): Promise<CreatorProfile | null> => {
   const { data, error } = await supabase
-    .from(CREATOR_PROFILES_TABLE)
+    .from('profiles')
     .select('*')
     .eq('id', id)
     .single();
@@ -307,7 +298,7 @@ export const getCreatorById = async (id: string): Promise<CreatorProfile | null>
 
 export const getCreatorByEmail = async (email: string): Promise<CreatorProfile | null> => {
   const { data, error } = await supabase
-    .from(CREATOR_PROFILES_TABLE)
+    .from('profiles')
     .select('*')
     .eq('email', email)
     .single();
@@ -440,7 +431,7 @@ const mapDbToCreatorProfile = (row: any): CreatorProfile => {
 
 export const getCreatorByFacebookId = async (facebookId: string): Promise<CreatorProfile | null> => {
   const { data, error } = await supabase
-    .from(CREATOR_PROFILES_TABLE)
+    .from('profiles')
     .select('*')
     .eq('facebook_id', facebookId)
     .single();
