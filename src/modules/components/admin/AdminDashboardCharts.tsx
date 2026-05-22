@@ -76,6 +76,7 @@ const creatorTypeChartConfig = {
   staff: { label: 'พนักงาน', color: 'hsl(217 91% 60%)' },
   household: { label: 'ลูกบ้าน', color: 'hsl(142 71% 45%)' },
   general: { label: 'บุคคลทั่วไป', color: 'hsl(262 83% 58%)' },
+  pageant: { label: 'ผู้เข้าประกวด', color: 'hsla(333, 100%, 63%, 1.00)' },
 } satisfies ChartConfig;
 
 const baseLocationChartConfig = {
@@ -110,10 +111,11 @@ function categoryLabelEnglishOnly(raw: string): string {
   return left || text;
 }
 
-function normalizeCreatorType(typeRaw: string | undefined): 'staff' | 'household' | 'general' {
+function normalizeCreatorType(typeRaw: string | undefined): 'staff' | 'household' | 'general' | 'pageant' {
   const type = (typeRaw ?? '').trim().toLowerCase();
   if (type === 'assetwise_staff' || type === 'staff') return 'staff';
   if (type === 'household' || type === 'asw_household') return 'household';
+  if (type === 'pageant') return 'pageant';
   return 'general';
 }
 
@@ -188,7 +190,7 @@ export function AdminDashboardCharts({
   }, [approvedListed]);
 
   const creatorTypePieData = useMemo(() => {
-    const agg = { staff: 0, household: 0, general: 0 };
+    const agg = { staff: 0, household: 0, general: 0, pageant: 0 };
     for (const creator of approvedListed) {
       const key = normalizeCreatorType(creator.type);
       agg[key] += 1;
@@ -197,6 +199,7 @@ export function AdminDashboardCharts({
       { key: 'staff', name: 'พนักงาน', value: agg.staff, fill: creatorTypeChartConfig.staff.color },
       { key: 'household', name: 'ลูกบ้าน', value: agg.household, fill: creatorTypeChartConfig.household.color },
       { key: 'general', name: 'บุคคลทั่วไป', value: agg.general, fill: creatorTypeChartConfig.general.color },
+      { key: "pageant", name: 'ผู้เข้าประกวด', value: agg.pageant, fill: creatorTypeChartConfig.pageant.color }
     ];
   }, [approvedListed]);
 
@@ -206,9 +209,21 @@ export function AdminDashboardCharts({
       const key = (creator.baseLocation ?? '').trim() || 'ไม่ระบุพื้นที่';
       baseLocationCount.set(key, (baseLocationCount.get(key) ?? 0) + 1);
     }
-    return [...baseLocationCount.entries()]
+    const sorted = [...baseLocationCount.entries()]
       .map(([location, count]) => ({ location, count }))
       .sort((a, b) => b.count - a.count);
+
+    const top9 = sorted.slice(0, 9);
+    const othersCount = sorted.slice(9).reduce((sum, item) => sum + item.count, 0);
+
+    const chartItems = [...top9];
+    if (othersCount > 0) {
+      chartItems.push({
+        location: 'อื่นๆ',
+        count: othersCount,
+      });
+    }
+    return chartItems;
   }, [approvedListed]);
 
   const skeleton = (
@@ -335,8 +350,8 @@ export function AdminDashboardCharts({
           </div>
           <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
             {!affiliateReportLoading &&
-            affiliateReport &&
-            (affiliateReport.submittedPostAffiliateLinks?.length ?? 0) > 0 ? (
+              affiliateReport &&
+              (affiliateReport.submittedPostAffiliateLinks?.length ?? 0) > 0 ? (
               <p className="text-xs text-muted-foreground sm:text-right">
                 แสดง {Math.min(DASHBOARD_AFFILIATE_POSTS_LIMIT, affiliateReport.submittedPostAffiliateLinks.length)}{' '}
                 รายการล่าสุด
@@ -554,25 +569,23 @@ export function AdminDashboardCharts({
           <ChartContainer config={baseLocationChartConfig} className="aspect-auto h-[320px] w-full">
             <BarChart
               data={baseLocationData}
-              layout="vertical"
-              margin={{ top: 8, right: 24, left: 16, bottom: 0 }}
+              layout="horizontal"
+              margin={{ top: 20, right: 8, left: 0, bottom: 8 }}
               accessibilityLayer
             >
-              <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+              <CartesianGrid vertical={false} strokeDasharray="3 3" />
               <XAxis
-                type="number"
-                allowDecimals={false}
+                dataKey="location"
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
                 tick={{ fontSize: 11 }}
               />
               <YAxis
-                type="category"
-                dataKey="location"
+                allowDecimals={false}
                 tickLine={false}
                 axisLine={false}
-                width={110}
+                width={32}
                 tickMargin={8}
                 tick={{ fontSize: 11 }}
               />
@@ -590,16 +603,21 @@ export function AdminDashboardCharts({
               />
               <Bar
                 dataKey="count"
-                fill="hsl(188 94% 42%)"
-                radius={[0, 6, 6, 0]}
+                radius={[6, 6, 0, 0]}
                 animationDuration={700}
               >
+                {baseLocationData.map((row, idx) => (
+                  <Cell
+                    key={row.location}
+                    fill={row.location === 'อื่นๆ' ? '#a3a3a3' : CATEGORY_BAR_COLORS[idx % CATEGORY_BAR_COLORS.length]}
+                  />
+                ))}
                 <LabelList
                   dataKey="count"
-                  position="right"
+                  position="top"
                   offset={8}
                   fill="var(--foreground)"
-                  fontSize={12}
+                  fontSize={11}
                   formatter={(value: number) => value.toLocaleString()}
                 />
               </Bar>
