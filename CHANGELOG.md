@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.6.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.5.0...v2.6.0) (2026-05-22)
+
+
+### Features
+
+* refactor whitespace and indentation in AdminDashboard and component modules ([a0cbb21](https://github.com/kritsadaskt/asw-creatorclub/commit/a0cbb21e0242fc356f6d6e88042a3ebcb717c3eb))
+
 ## [2.5.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.4.0...v2.5.0) (2026-05-22)
 
 
