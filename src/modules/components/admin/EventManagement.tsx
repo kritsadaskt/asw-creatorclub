@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
@@ -12,23 +12,90 @@ import {
   Drawer,
   DrawerClose,
   DrawerContent,
+  DrawerDescription,
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
 } from '../ui/drawer';
-import type { Event } from '../../types';
+import type { Event, Project } from '../../types';
 import {
   deleteEvent,
   generateUUID,
+  getCreatorById,
   getCreators,
   getEventParticipants,
   getEvents,
+  getProjects,
   saveEvent,
   updateEventParticipant,
 } from '../../utils/storage';
 import type { CreatorProfile, EventParticipant } from '../../types';
-import { FaFileExcel } from 'react-icons/fa';
-import { FaQrcode } from 'react-icons/fa6';
+import {
+  FaFacebook,
+  FaFileExcel,
+  FaInstagram,
+  FaPhone,
+  FaQrcode,
+  FaTiktok,
+  FaXTwitter,
+  FaYoutube,
+} from 'react-icons/fa6';
+import { CreatorBadge } from '../ui/creator-badge';
+import { CreatorTypeNameByKey } from '../ui/utils';
+import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { getProfileImageUrl } from '../../utils/profileImage';
+import { Lemon8Icon } from '@/modules/utils/svg';
+
+type SocialPlatform = keyof CreatorProfile['socialAccounts'];
+
+const SOCIAL_ICON_MAP: Record<SocialPlatform, ReactNode> = {
+  facebook: <FaFacebook className="h-4 w-4 text-[#1877F2]" />,
+  instagram: <FaInstagram className="h-4 w-4 text-pink-500" />,
+  tiktok: <FaTiktok className="h-4 w-4 text-black" />,
+  youtube: <FaYoutube className="h-4 w-4 text-red-600" />,
+  twitter: <FaXTwitter className="h-4 w-4 text-black" />,
+  lemon8: <Lemon8Icon className="h-4 w-4 text-yellow-500" />,
+};
+
+function socialList(
+  socialAccounts: CreatorProfile['socialAccounts'],
+  followerCounts: CreatorProfile['followerCounts'],
+) {
+  const items = (Object.entries(socialAccounts) as Array<[SocialPlatform, string | undefined]>).filter(
+    ([, url]) => Boolean(url),
+  );
+  if (items.length === 0) {
+    return <p className="text-muted-foreground">ยังไม่มีข้อมูล</p>;
+  }
+  return (
+    <div className="flex flex-wrap gap-2">
+      {items.map(([platform, url]) => {
+        const followers = followerCounts?.[platform];
+        const followerLabel =
+          typeof followers === 'number' && Number.isFinite(followers) ? followers.toLocaleString() : 'ไม่ระบุ';
+        return (
+          <a
+            key={platform}
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-2.5 py-1 text-xs hover:bg-muted/50"
+            aria-label={platform}
+            title={platform}
+          >
+            {SOCIAL_ICON_MAP[platform]}
+            <span className="text-foreground">{followerLabel}</span>
+          </a>
+        );
+      })}
+    </div>
+  );
+}
+
+function isAswHouseholdType(typeRaw: string | undefined): boolean {
+  const type = (typeRaw ?? '').trim().toLowerCase();
+  return type === 'asw_household' || type === 'asw_houshold';
+}
 
 const PAGE_SIZE = 15;
 
@@ -60,6 +127,7 @@ export function EventManagement() {
   const [events, setEvents] = useState<Event[]>([]);
   const [participants, setParticipants] = useState<EventParticipant[]>([]);
   const [creators, setCreators] = useState<CreatorProfile[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -68,18 +136,23 @@ export function EventManagement() {
   const [form, setForm] = useState<EventFormState>(DEFAULT_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isFormDrawerOpen, setIsFormDrawerOpen] = useState(false);
+  const [isCreatorDrawerOpen, setIsCreatorDrawerOpen] = useState(false);
+  const [selectedCreator, setSelectedCreator] = useState<CreatorProfile | null>(null);
+  const [creatorLoading, setCreatorLoading] = useState(false);
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const [eventsData, participantsData, creatorsData] = await Promise.all([
+      const [eventsData, participantsData, creatorsData, projectsData] = await Promise.all([
         getEvents(),
         getEventParticipants(),
         getCreators(),
+        getProjects(),
       ]);
       setEvents(eventsData);
       setParticipants(participantsData);
       setCreators(creatorsData);
+      setProjects(projectsData);
     } catch (error) {
       console.error('Error loading events:', error);
       toast.error('ไม่สามารถโหลดข้อมูลอีเวนต์ได้');
@@ -141,6 +214,7 @@ export function EventManagement() {
       return {
         eventName: eventNameById.get(participant.eventId) || participant.eventId,
         creatorName: creator ? `${creator.name} ${creator.lastName ?? ''}`.trim() : '',
+        creatorType: CreatorTypeNameByKey(creator?.type ?? '') ?? '',
         creatorEmail: creator?.email ?? '',
         creatorPhone: creator?.phone ?? '',
         creatorId: participant.creatorId,
@@ -152,6 +226,7 @@ export function EventManagement() {
     const header = [
       'Event Name',
       'Creator Name',
+      'Creator Type',
       'Creator Email',
       'Creator Phone',
       'Creator ID',
@@ -164,6 +239,7 @@ export function EventManagement() {
         [
           row.eventName,
           row.creatorName,
+          row.creatorType,
           row.creatorEmail,
           row.creatorPhone,
           row.creatorId,
@@ -185,6 +261,35 @@ export function EventManagement() {
     anchor.click();
     document.body.removeChild(anchor);
     URL.revokeObjectURL(url);
+  };
+
+  const openCreatorDrawer = async (creatorId: string) => {
+    const cached = creatorById.get(creatorId);
+    if (cached) {
+      setSelectedCreator(cached);
+      setIsCreatorDrawerOpen(true);
+    }
+    try {
+      setCreatorLoading(true);
+      if (!cached) {
+        setIsCreatorDrawerOpen(true);
+      }
+      const creator = await getCreatorById(creatorId);
+      if (!creator) {
+        toast.error('ไม่พบข้อมูลครีเอเตอร์');
+        setSelectedCreator(null);
+        setIsCreatorDrawerOpen(false);
+        return;
+      }
+      setSelectedCreator(creator);
+    } catch (error) {
+      console.error('Error loading creator detail:', error);
+      toast.error('ไม่สามารถโหลดข้อมูลครีเอเตอร์ได้');
+      setSelectedCreator(null);
+      setIsCreatorDrawerOpen(false);
+    } finally {
+      setCreatorLoading(false);
+    }
   };
 
   const handleConfirmParticipation = async (participantId: string, isConfirmed: boolean) => {
@@ -346,7 +451,7 @@ export function EventManagement() {
                   <th className="px-4 py-3 text-left text-sm font-medium">วันที่</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">สถานที่</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">หน้า /event</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium">จัดการ</th>
+                  <th className="px-4 py-3 text-center text-sm font-medium">จัดการ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -359,9 +464,8 @@ export function EventManagement() {
                 ) : (
                   pagedEvents.map((event) => (
                     <tr key={event.id} className="hover:bg-muted/20">
-                        <td className="px-4 py-3 text-sm">
-                          <div className="font-medium">{event.name}</div>
-                          {event.desc ? <div className="mt-1 text-xs text-muted-foreground line-clamp-2">{event.desc}</div> : null}
+                        <td className="px-4 py-3 font-medium">
+                          <div className="font-medium">{event.name.replace(/<[^>]+>/g, '')}</div>
                         </td>
                         <td className="px-4 py-3 text-sm">{event.date}</td>
                         <td className="px-4 py-3 text-sm text-muted-foreground">{event.location || '-'}</td>
@@ -478,12 +582,25 @@ export function EventManagement() {
               ) : (
                 filteredParticipants.map((participant) => {
                   const creator = creatorById.get(participant.creatorId);
-                  const statusLabel = participant.isConfirm ? 'ยืนยันแล้ว' : 'รอยืนยัน';
-                  const statusClass = participant.isConfirm ? 'text-emerald-700' : 'text-amber-600';
                   return (
                     <tr key={participant.id} className="hover:bg-muted/20">
-                      <td className="px-4 py-3 text-sm">{eventNameById.get(participant.eventId) || participant.eventId}</td>
-                      <td className="px-4 py-3 text-sm">{creator ? `${creator.name} ${creator.lastName ?? ''}`.trim() : '-'}</td>
+                      <td className="px-4 py-3 text-sm">{(eventNameById.get(participant.eventId)?.replace(/<[^>]+>/g, '') || participant.eventId)}</td>
+                 
+                      <td className="px-4 py-3 text-sm">
+                        {creator ? (
+                          <button
+                            type="button"
+                            onClick={() => void openCreatorDrawer(participant.creatorId)}
+                            className="inline-flex flex-wrap items-center gap-1.5 text-left text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-sm"
+                          >
+                            <span>{`${creator.name} ${creator.lastName ?? ''}`.trim()}</span>
+                            <CreatorBadge type={creator.type ?? ''} />
+                          </button>
+                        ) : (
+                          '-'
+                        )}
+                      </td>
+
                       <td className="px-4 py-3 text-sm">{creator?.email || '-'}</td>
                       <td className="px-4 py-3 text-sm">{creator?.phone || '-'}</td>
                       <td className="px-4 py-3 text-sm">
@@ -516,6 +633,125 @@ export function EventManagement() {
           </table>
         </div>
       </div>
+
+      <Drawer
+        direction="right"
+        open={isCreatorDrawerOpen}
+        onOpenChange={(open) => {
+          setIsCreatorDrawerOpen(open);
+          if (!open) {
+            setSelectedCreator(null);
+          }
+        }}
+      >
+        <DrawerContent className="overflow-y-auto">
+          <DrawerHeader className="p-7">
+            <DrawerTitle>รายละเอียดครีเอเตอร์</DrawerTitle>
+            <DrawerDescription>ข้อมูลผู้สนใจเข้าร่วมอีเวนต์</DrawerDescription>
+          </DrawerHeader>
+          <div className="space-y-3 px-7 pb-7">
+            {creatorLoading && !selectedCreator ? (
+              <div className="inline-flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                กำลังโหลดข้อมูล...
+              </div>
+            ) : selectedCreator ? (
+              <>
+                <div className="mb-2 flex justify-center">
+                  {getProfileImageUrl(selectedCreator) ? (
+                    <ImageWithFallback
+                      src={getProfileImageUrl(selectedCreator)!}
+                      alt={selectedCreator.name}
+                      className="h-28 w-28 rounded-full border-4 border-primary/20 object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-28 w-28 items-center justify-center rounded-full border-4 border-primary/20 bg-primary/10">
+                      <span className="text-4xl text-primary">{selectedCreator.name.charAt(0).toUpperCase()}</span>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="text-muted-foreground">ชื่อ-นามสกุล</label>
+                  <p className="flex flex-wrap items-center gap-1.5 text-foreground">
+                    <span>
+                      {selectedCreator.name} {selectedCreator.lastName ?? ''}
+                    </span>
+                    <CreatorBadge type={selectedCreator.type ?? ''} />
+                  </p>
+                </div>
+                <div>
+                  <label className="text-muted-foreground">อีเมล</label>
+                  <p className="text-foreground">
+                    <a href={`mailto:${selectedCreator.email}`} className="text-primary hover:underline">
+                      {selectedCreator.email || '-'}
+                    </a>
+                  </p>
+                </div>
+                <div>
+                  <label className="text-muted-foreground">เบอร์โทรศัพท์</label>
+                  <p className="flex items-center gap-2 text-foreground">
+                    <FaPhone className="h-4 w-4 text-primary" />
+                    <a href={`tel:${selectedCreator.phone}`} className="text-primary hover:underline">
+                      {selectedCreator.phone || '-'}
+                    </a>
+                  </p>
+                </div>
+                {isAswHouseholdType(selectedCreator.type) && (
+                  <div>
+                    <label className="text-muted-foreground">โครงการ</label>
+                    <p className="text-foreground">
+                      {selectedCreator.projectName
+                        ? projects.find((p) => p.id === selectedCreator.projectName)?.name ||
+                          selectedCreator.projectName
+                        : 'ไม่ระบุ'}
+                    </p>
+                  </div>
+                )}
+                <div>
+                  <label className="text-muted-foreground">หมวดหมู่</label>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedCreator.categories && selectedCreator.categories.length > 0 ? (
+                      selectedCreator.categories.map((category) => (
+                        <div
+                          key={category}
+                          className="flex items-center gap-2 rounded-md bg-primary/10 px-2 py-1 text-primary"
+                        >
+                          {category}
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground">ยังไม่มีข้อมูล</p>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-muted-foreground">บัญชีโซเชียลมีเดีย</label>
+                  {socialList(selectedCreator.socialAccounts, selectedCreator.followerCounts)}
+                </div>
+              </>
+            ) : (
+              <p className="text-muted-foreground">ไม่พบข้อมูลครีเอเตอร์</p>
+            )}
+          </div>
+          <DrawerFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            {selectedCreator?.phone ? (
+              <Button
+                variant="outline"
+                center
+                onClick={() => {
+                  window.location.href = `tel:${selectedCreator.phone}`;
+                }}
+              >
+                <FaPhone className="h-5 w-5" />
+                ติดต่อ
+              </Button>
+            ) : null}
+            <DrawerClose asChild>
+              <Button variant="outline">ปิด</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
 
       <Drawer
         direction="right"
