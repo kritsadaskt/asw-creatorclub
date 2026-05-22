@@ -430,18 +430,18 @@ export function AdminDashboard() {
             typeof json.linksWithSubmittedPosts === 'number' ? json.linksWithSubmittedPosts : 0,
           submittedPostAffiliateLinks: Array.isArray(json.submittedPostAffiliateLinks)
             ? json.submittedPostAffiliateLinks.map((row) => ({
-                linkId: typeof row.linkId === 'string' ? row.linkId : '',
-                creatorId: typeof row.creatorId === 'string' ? row.creatorId : '',
-                displayName: typeof row.displayName === 'string' ? row.displayName : '—',
-                inviteType: typeof row.inviteType === 'string' ? row.inviteType : '',
-                campaignName: typeof row.campaignName === 'string' ? row.campaignName : '—',
-                affiliateUrl: typeof row.affiliateUrl === 'string' ? row.affiliateUrl : '',
-                postLinks: Array.isArray(row.postLinks)
-                  ? row.postLinks.filter((u): u is string => typeof u === 'string')
-                  : [],
-                projectName: typeof row.projectName === 'string' ? row.projectName : '—',
-                createdAt: typeof row.createdAt === 'string' ? row.createdAt : '',
-              }))
+              linkId: typeof row.linkId === 'string' ? row.linkId : '',
+              creatorId: typeof row.creatorId === 'string' ? row.creatorId : '',
+              displayName: typeof row.displayName === 'string' ? row.displayName : '—',
+              inviteType: typeof row.inviteType === 'string' ? row.inviteType : '',
+              campaignName: typeof row.campaignName === 'string' ? row.campaignName : '—',
+              affiliateUrl: typeof row.affiliateUrl === 'string' ? row.affiliateUrl : '',
+              postLinks: Array.isArray(row.postLinks)
+                ? row.postLinks.filter((u): u is string => typeof u === 'string')
+                : [],
+              projectName: typeof row.projectName === 'string' ? row.projectName : '—',
+              createdAt: typeof row.createdAt === 'string' ? row.createdAt : '',
+            }))
             : [],
           statsSyncedAt: typeof json.statsSyncedAt === 'string' ? json.statsSyncedAt : null,
         });
@@ -944,7 +944,7 @@ export function AdminDashboard() {
       <div>
         <label className="text-muted-foreground">อีเมล</label>
         <p className="text-foreground flex items-center gap-2">
-          <MailIcon className="w-4 h-4 text-primary" /> 
+          <MailIcon className="w-4 h-4 text-primary" />
           <a href={`mailto:${creator.email}`} className="text-primary hover:underline">{creator.email}</a>
         </p>
       </div>
@@ -952,7 +952,7 @@ export function AdminDashboard() {
       <div>
         <label className="text-muted-foreground">เบอร์โทรศัพท์</label>
         <p className="text-foreground flex items-center gap-2">
-          <FaPhone className="w-4 h-4 text-primary" /> 
+          <FaPhone className="w-4 h-4 text-primary" />
           <a href={`tel:${creator.phone}`} className="text-primary hover:underline">{creator.phone}</a>
         </p>
       </div>
@@ -976,7 +976,7 @@ export function AdminDashboard() {
               {category}
             </div>
           )) : <p className="text-muted-foreground">ยังไม่มีข้อมูล</p>}
-        </div> 
+        </div>
       </div>
 
       <div>
@@ -1122,230 +1122,230 @@ export function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="creators" className="mt-4 flex flex-col gap-6">
-        {/* Filters */}
-        <div className="bg-white rounded-xl shadow-sm border border-border p-6">
-          <h3 className="text-neutral-700 text-xl font-medium mb-2">ค้นหาและกรองข้อมูล</h3>
+          {/* Filters */}
+          <div className="bg-white rounded-xl shadow-sm border border-border p-6">
+            <h3 className="text-neutral-700 text-xl font-medium mb-2">ค้นหาและกรองข้อมูล</h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-            <div className="flex flex-col gap-1.5">
-              <label>ค้นหา (ชื่อ / อีเมล)</label>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="ค้นหา..."
-                className="px-4 py-2 bg-input-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label>หมวดหมู่</label>
-              <Select
-                options={categoryOptions}
-                value={categoryOptions.find((o) => o.value === selectedCategory)}
-                onChange={(option) => {
-                  setSelectedCategory(option?.value ?? 'ทั้งหมด');
-                }}
-                isClearable={false}
-                classNamePrefix="react-select"
-                placeholder="ทั้งหมด"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label>ผู้ติดตาม (follower)</label>
-              <Select
-                options={followerOptions}
-                value={followerOptions.find((o) => o.value === followerRange)}
-                onChange={(option) => {
-                  const value = option?.value ?? 'all';
-                  setFollowerRange(value);
-                  if (value !== 'custom') {
-                    setCustomFollowers('');
-                  }
-                }}
-                isClearable={false}
-                classNamePrefix="react-select"
-                placeholder="ทั้งหมด"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label>ประเภท</label>
-              <Select
-                options={creatorTypeOptions}
-                value={creatorTypeOptions.find((o) => o.value === selectedCreatorType)}
-                onChange={(option) => {
-                  setSelectedCreatorType((option?.value as string) ?? 'all');
-                }}
-                isClearable={false}
-                classNamePrefix="react-select"
-                placeholder="ทั้งหมด"
-              />
-            </div>
-          </div>
-
-          {/* Custom Followers Input */}
-          {followerRange === 'custom' && (
-            <div className="mt-4">
-              <div className="flex flex-col gap-1.5 max-w-xs">
-                <label>จำนวนผู้ติดตามขั้นต่ำ</label>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+              <div className="flex flex-col gap-1.5">
+                <label>ค้นหา (ชื่อ / อีเมล)</label>
                 <input
-                  type="number"
-                  value={customFollowers}
-                  onChange={(e) => setCustomFollowers(e.target.value)}
-                  placeholder="กรอกจำนวนผู้ติดตาม..."
-                  className="px-4 py-2.5 bg-input-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="ค้นหา..."
+                  className="px-4 py-2 bg-input-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label>หมวดหมู่</label>
+                <Select
+                  options={categoryOptions}
+                  value={categoryOptions.find((o) => o.value === selectedCategory)}
+                  onChange={(option) => {
+                    setSelectedCategory(option?.value ?? 'ทั้งหมด');
+                  }}
+                  isClearable={false}
+                  classNamePrefix="react-select"
+                  placeholder="ทั้งหมด"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label>ผู้ติดตาม (follower)</label>
+                <Select
+                  options={followerOptions}
+                  value={followerOptions.find((o) => o.value === followerRange)}
+                  onChange={(option) => {
+                    const value = option?.value ?? 'all';
+                    setFollowerRange(value);
+                    if (value !== 'custom') {
+                      setCustomFollowers('');
+                    }
+                  }}
+                  isClearable={false}
+                  classNamePrefix="react-select"
+                  placeholder="ทั้งหมด"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label>ประเภท</label>
+                <Select
+                  options={creatorTypeOptions}
+                  value={creatorTypeOptions.find((o) => o.value === selectedCreatorType)}
+                  onChange={(option) => {
+                    setSelectedCreatorType((option?.value as string) ?? 'all');
+                  }}
+                  isClearable={false}
+                  classNamePrefix="react-select"
+                  placeholder="ทั้งหมด"
                 />
               </div>
             </div>
-          )}
-        </div>
 
-        {/* Results */}
-        <div className="bg-white rounded-xl shadow-sm border border-border p-6">
-          <div className="flex flex-col gap-1 mb-4">
-            <h3 className="text-primary text-2xl font-medium mb-2">ครีเอเตอร์ทั้งหมด ({filteredCreators.length})</h3>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-              <button
-                type="button"
-                onClick={() => setApprovalFilter('all')}
-                className={cn(
-                  'hover:text-foreground transition-colors cursor-pointer',
-                  approvalFilter === 'all' && 'text-foreground font-medium',
-                )}
-              >
-                ทั้งหมด <span className="text-muted-foreground">({creatorStatusCounts.all})</span>
-              </button>
-              <span className="text-muted-foreground/60">|</span>
-              <button
-                type="button"
-                onClick={() => setApprovalFilter('pending')}
-                className={cn(
-                  'hover:text-foreground transition-colors cursor-pointer',
-                  approvalFilter === 'pending' && 'text-foreground font-medium',
-                )}
-              >
-                รออนุมัติ <span className="text-muted-foreground">({creatorStatusCounts.pending})</span>
-              </button>
-              <span className="text-muted-foreground/60">|</span>
-              <button
-                type="button"
-                onClick={() => setApprovalFilter('approved')}
-                className={cn(
-                  'hover:text-foreground transition-colors cursor-pointer',
-                  approvalFilter === 'approved' && 'text-foreground font-medium',
-                )}
-              >
-                อนุมัติแล้ว <span className="text-muted-foreground">({creatorStatusCounts.approved})</span>
-              </button>
-              <span className="text-muted-foreground/60">|</span>
-              <button
-                type="button"
-                onClick={() => setApprovalFilter('rejected')}
-                className={cn(
-                  'hover:text-foreground transition-colors cursor-pointer',
-                  approvalFilter === 'rejected' && 'text-foreground font-medium',
-                )}
-              >
-                ถูกปฏิเสธ <span className="text-muted-foreground">({creatorStatusCounts.rejected})</span>
-              </button>
-            </div>
+            {/* Custom Followers Input */}
+            {followerRange === 'custom' && (
+              <div className="mt-4">
+                <div className="flex flex-col gap-1.5 max-w-xs">
+                  <label>จำนวนผู้ติดตามขั้นต่ำ</label>
+                  <input
+                    type="number"
+                    value={customFollowers}
+                    onChange={(e) => setCustomFollowers(e.target.value)}
+                    placeholder="กรอกจำนวนผู้ติดตาม..."
+                    className="px-4 py-2.5 bg-input-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
-          {loading ? (
-            <p className="text-muted-foreground text-center py-8 flex items-center gap-2 justify-center">
-              <Loader2 className="w-8 h-8 animate-spin" />
-              กำลังโหลดข้อมูล
-            </p>
-          ) : filteredCreators.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">ไม่พบข้อมูล Creator</p>
-          ) : (
-            <>
-              <div className="overflow-x-auto overflow-y-visible">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">ชื่อ</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">อีเมล</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">โทรศัพท์</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">โซเชียล</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">สถานะ</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pagedCreators.map((creator) => (
-                      <tr
-                        key={creator.id}
-                        className="border-b border-border hover:bg-input-background/30 transition-colors"
-                      >
-                        <td className="py-3 px-4 text-sm text-foreground">
-                          <span className="inline-flex flex-wrap items-center gap-1.5">
-                            <span>
-                              {creator.name} {creator.lastName}
-                            </span>
-                            <CreatorBadge type={creator.type ?? ''} />
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-sm text-foreground">{creator.email}</td>
-                        <td className="py-3 px-4 text-sm text-foreground">{creator.phone || '-'}</td>
-                        <td className="py-3 px-4 text-sm text-foreground">{getSocialLinks(creator).length} ช่องทาง</td>
-                        <td className="py-3 px-4">{approvalStatusBadge(creator)}</td>
-                        <td className="py-3 px-4">
-                          <Button
-                            type="button"
-                            onClick={() => {
-                              setSelectedFgf(null);
-                              setFgfNestedCreator(null);
-                              setSelectedCreator(creator);
-                            }}
-                            variant="ghost"
-                            className="cursor-pointer rounded-full p-2"
-                            aria-label={`ดูรายละเอียด ${creator.name}`}
-                          >
-                            <ChevronRight className="w-4 h-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          {/* Results */}
+          <div className="bg-white rounded-xl shadow-sm border border-border p-6">
+            <div className="flex flex-col gap-1 mb-4">
+              <h3 className="text-primary text-2xl font-medium mb-2">ครีเอเตอร์ทั้งหมด ({filteredCreators.length})</h3>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                <button
+                  type="button"
+                  onClick={() => setApprovalFilter('all')}
+                  className={cn(
+                    'hover:text-foreground transition-colors cursor-pointer',
+                    approvalFilter === 'all' && 'text-foreground font-medium',
+                  )}
+                >
+                  ทั้งหมด <span className="text-muted-foreground">({creatorStatusCounts.all})</span>
+                </button>
+                <span className="text-muted-foreground/60">|</span>
+                <button
+                  type="button"
+                  onClick={() => setApprovalFilter('pending')}
+                  className={cn(
+                    'hover:text-foreground transition-colors cursor-pointer',
+                    approvalFilter === 'pending' && 'text-foreground font-medium',
+                  )}
+                >
+                  รออนุมัติ <span className="text-muted-foreground">({creatorStatusCounts.pending})</span>
+                </button>
+                <span className="text-muted-foreground/60">|</span>
+                <button
+                  type="button"
+                  onClick={() => setApprovalFilter('approved')}
+                  className={cn(
+                    'hover:text-foreground transition-colors cursor-pointer',
+                    approvalFilter === 'approved' && 'text-foreground font-medium',
+                  )}
+                >
+                  อนุมัติแล้ว <span className="text-muted-foreground">({creatorStatusCounts.approved})</span>
+                </button>
+                <span className="text-muted-foreground/60">|</span>
+                <button
+                  type="button"
+                  onClick={() => setApprovalFilter('rejected')}
+                  className={cn(
+                    'hover:text-foreground transition-colors cursor-pointer',
+                    approvalFilter === 'rejected' && 'text-foreground font-medium',
+                  )}
+                >
+                  ถูกปฏิเสธ <span className="text-muted-foreground">({creatorStatusCounts.rejected})</span>
+                </button>
               </div>
+            </div>
 
-              {filteredCreators.length > 0 && (
-                <div className="flex flex-col md:flex-row items-center justify-between gap-3 pt-4 text-sm text-muted-foreground">
-                  <div>
-                    แสดง {creatorFrom}–{creatorTo} จาก {filteredCreators.length} รายการ
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Button
-                      variant="outline"
-                      onClick={() => setCreatorPage((p) => Math.max(p - 1, 1))}
-                      disabled={safeCreatorPage === 1}
-                      className="px-3 py-1 text-sm flex items-center gap-2"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                      ก่อนหน้า
-                    </Button>
-                    <span>
-                      หน้า {safeCreatorPage} จาก {creatorTotalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      onClick={() => setCreatorPage((p) => Math.min(p + 1, creatorTotalPages))}
-                      disabled={safeCreatorPage >= creatorTotalPages}
-                      className="px-3 py-1 text-sm flex items-center gap-2"
-                    >
-                      ถัดไป
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
-                  </div>
+            {loading ? (
+              <p className="text-muted-foreground text-center py-8 flex items-center gap-2 justify-center">
+                <Loader2 className="w-8 h-8 animate-spin" />
+                กำลังโหลดข้อมูล
+              </p>
+            ) : filteredCreators.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">ไม่พบข้อมูล Creator</p>
+            ) : (
+              <>
+                <div className="overflow-x-auto overflow-y-visible">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">ชื่อ</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">อีเมล</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">โทรศัพท์</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">โซเชียล</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">สถานะ</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pagedCreators.map((creator) => (
+                        <tr
+                          key={creator.id}
+                          className="border-b border-border hover:bg-input-background/30 transition-colors"
+                        >
+                          <td className="py-3 px-4 text-sm text-foreground">
+                            <span className="inline-flex flex-wrap items-center gap-1.5">
+                              <span>
+                                {creator.name} {creator.lastName}
+                              </span>
+                              <CreatorBadge type={creator.type ?? ''} />
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-sm text-foreground">{creator.email}</td>
+                          <td className="py-3 px-4 text-sm text-foreground">{creator.phone || '-'}</td>
+                          <td className="py-3 px-4 text-sm text-foreground">{getSocialLinks(creator).length} ช่องทาง</td>
+                          <td className="py-3 px-4">{approvalStatusBadge(creator)}</td>
+                          <td className="py-3 px-4">
+                            <Button
+                              type="button"
+                              onClick={() => {
+                                setSelectedFgf(null);
+                                setFgfNestedCreator(null);
+                                setSelectedCreator(creator);
+                              }}
+                              variant="ghost"
+                              className="cursor-pointer rounded-full p-2"
+                              aria-label={`ดูรายละเอียด ${creator.name}`}
+                            >
+                              <ChevronRight className="w-4 h-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              )}
-            </>
-          )}
-        </div>
+
+                {filteredCreators.length > 0 && (
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-3 pt-4 text-sm text-muted-foreground">
+                    <div>
+                      แสดง {creatorFrom}–{creatorTo} จาก {filteredCreators.length} รายการ
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={() => setCreatorPage((p) => Math.max(p - 1, 1))}
+                        disabled={safeCreatorPage === 1}
+                        className="px-3 py-1 text-sm flex items-center gap-2"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        ก่อนหน้า
+                      </Button>
+                      <span>
+                        หน้า {safeCreatorPage} จาก {creatorTotalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        onClick={() => setCreatorPage((p) => Math.min(p + 1, creatorTotalPages))}
+                        disabled={safeCreatorPage >= creatorTotalPages}
+                        className="px-3 py-1 text-sm flex items-center gap-2"
+                      >
+                        ถัดไป
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
 
@@ -1369,17 +1369,17 @@ export function AdminDashboard() {
               <DrawerFooter>
                 <div className="w-full flex flex-col gap-2">
                   <div className="w-full flex flex-col md:flex-row gap-2 justify-center">
-                  <Button
-                    onClick={() => window.location.href = `tel:${selectedCreator.phone}`}
-                    variant="outline"
-                    center
-                  >
-                    <FaPhone className="w-5 h-5" />
-                    ติดต่อ
-                  </Button>
-                  <DrawerClose asChild>
-                    <Button variant="outline">ปิด</Button>
-                  </DrawerClose>
+                    <Button
+                      onClick={() => window.location.href = `tel:${selectedCreator.phone}`}
+                      variant="outline"
+                      center
+                    >
+                      <FaPhone className="w-5 h-5" />
+                      ติดต่อ
+                    </Button>
+                    <DrawerClose asChild>
+                      <Button variant="outline">ปิด</Button>
+                    </DrawerClose>
                   </div>
                 </div>
               </DrawerFooter>

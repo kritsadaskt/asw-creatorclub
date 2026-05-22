@@ -39,6 +39,11 @@ const badgeMap: Record<string, { label: string; className: string }> = {
     className:
       'inline-flex items-center shrink-0 px-1.5 py-0.5 rounded-md font-normal text-xs leading-none bg-pink-50 text-pink-700 border border-pink-200/80',
   },
+  pageant: {
+    label: CreatorTypeNameByKey('pageant'),
+    className:
+      'inline-flex items-center shrink-0 px-1.5 py-0.5 rounded-md font-normal text-xs leading-none bg-pink-50 text-pink-700 border border-pink-200/80',
+  },
 };
 
 /** Maps `profiles.type` (and legacy aliases) to a `badgeMap` key, or null when no badge (บุคคลทั่วไป / ไม่ระบุ). */
