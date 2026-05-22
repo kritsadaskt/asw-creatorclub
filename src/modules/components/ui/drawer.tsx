@@ -6,9 +6,19 @@ import { Drawer as DrawerPrimitive } from "vaul";
 import { cn } from "./utils";
 
 function Drawer({
+  direction,
+  handleOnly,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Root>) {
-  return <DrawerPrimitive.Root data-slot="drawer" {...props} />;
+  const isSidePanel = direction === "left" || direction === "right";
+  return (
+    <DrawerPrimitive.Root
+      data-slot="drawer"
+      direction={direction}
+      handleOnly={handleOnly ?? isSidePanel}
+      {...props}
+    />
+  );
 }
 
 function DrawerTrigger({
