@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.5.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.4.0...v2.5.0) (2026-05-22)
+
+
+### Features
+
+* update base location chart to group tail data and switch to horizontal layout ([795d07e](https://github.com/kritsadaskt/asw-creatorclub/commit/795d07ea784fdcd14a6dc8530d92d4febcc5cf5c))
+
+
+### Bug Fixes
+
+* เพิ่มประเภท "pageant" ในกราฟสัดส่วน Creator ([c8120b8](https://github.com/kritsadaskt/asw-creatorclub/commit/c8120b8866c39a20343d6d65d47113f8e9f26290))
+
 ## [2.4.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.3.5...v2.4.0) (2026-05-22)
 
 
