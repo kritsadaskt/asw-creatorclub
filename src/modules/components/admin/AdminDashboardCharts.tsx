@@ -76,6 +76,7 @@ const creatorTypeChartConfig = {
   staff: { label: 'พนักงาน', color: 'hsl(217 91% 60%)' },
   household: { label: 'ลูกบ้าน', color: 'hsl(142 71% 45%)' },
   general: { label: 'บุคคลทั่วไป', color: 'hsl(262 83% 58%)' },
+  pageant: { label: 'ผู้เข้าประกวด', color: 'hsla(333, 100%, 63%, 1.00)' },
 } satisfies ChartConfig;
 
 const baseLocationChartConfig = {
@@ -110,10 +111,11 @@ function categoryLabelEnglishOnly(raw: string): string {
   return left || text;
 }
 
-function normalizeCreatorType(typeRaw: string | undefined): 'staff' | 'household' | 'general' {
+function normalizeCreatorType(typeRaw: string | undefined): 'staff' | 'household' | 'general' | 'pageant' {
   const type = (typeRaw ?? '').trim().toLowerCase();
   if (type === 'assetwise_staff' || type === 'staff') return 'staff';
   if (type === 'household' || type === 'asw_household') return 'household';
+  if (type === 'pageant') return 'pageant';
   return 'general';
 }
 
@@ -188,7 +190,7 @@ export function AdminDashboardCharts({
   }, [approvedListed]);
 
   const creatorTypePieData = useMemo(() => {
-    const agg = { staff: 0, household: 0, general: 0 };
+    const agg = { staff: 0, household: 0, general: 0, pageant: 0 };
     for (const creator of approvedListed) {
       const key = normalizeCreatorType(creator.type);
       agg[key] += 1;
@@ -197,6 +199,7 @@ export function AdminDashboardCharts({
       { key: 'staff', name: 'พนักงาน', value: agg.staff, fill: creatorTypeChartConfig.staff.color },
       { key: 'household', name: 'ลูกบ้าน', value: agg.household, fill: creatorTypeChartConfig.household.color },
       { key: 'general', name: 'บุคคลทั่วไป', value: agg.general, fill: creatorTypeChartConfig.general.color },
+      { key: "pageant", name: 'ผู้เข้าประกวด', value: agg.pageant, fill: creatorTypeChartConfig.pageant.color }
     ];
   }, [approvedListed]);
 
@@ -335,8 +338,8 @@ export function AdminDashboardCharts({
           </div>
           <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
             {!affiliateReportLoading &&
-            affiliateReport &&
-            (affiliateReport.submittedPostAffiliateLinks?.length ?? 0) > 0 ? (
+              affiliateReport &&
+              (affiliateReport.submittedPostAffiliateLinks?.length ?? 0) > 0 ? (
               <p className="text-xs text-muted-foreground sm:text-right">
                 แสดง {Math.min(DASHBOARD_AFFILIATE_POSTS_LIMIT, affiliateReport.submittedPostAffiliateLinks.length)}{' '}
                 รายการล่าสุด
