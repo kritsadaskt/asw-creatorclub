@@ -209,9 +209,21 @@ export function AdminDashboardCharts({
       const key = (creator.baseLocation ?? '').trim() || 'ไม่ระบุพื้นที่';
       baseLocationCount.set(key, (baseLocationCount.get(key) ?? 0) + 1);
     }
-    return [...baseLocationCount.entries()]
+    const sorted = [...baseLocationCount.entries()]
       .map(([location, count]) => ({ location, count }))
       .sort((a, b) => b.count - a.count);
+
+    const top9 = sorted.slice(0, 9);
+    const othersCount = sorted.slice(9).reduce((sum, item) => sum + item.count, 0);
+
+    const chartItems = [...top9];
+    if (othersCount > 0) {
+      chartItems.push({
+        location: 'อื่นๆ',
+        count: othersCount,
+      });
+    }
+    return chartItems;
   }, [approvedListed]);
 
   const skeleton = (
@@ -557,25 +569,23 @@ export function AdminDashboardCharts({
           <ChartContainer config={baseLocationChartConfig} className="aspect-auto h-[320px] w-full">
             <BarChart
               data={baseLocationData}
-              layout="vertical"
-              margin={{ top: 8, right: 24, left: 16, bottom: 0 }}
+              layout="horizontal"
+              margin={{ top: 20, right: 8, left: 0, bottom: 8 }}
               accessibilityLayer
             >
-              <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+              <CartesianGrid vertical={false} strokeDasharray="3 3" />
               <XAxis
-                type="number"
-                allowDecimals={false}
+                dataKey="location"
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
                 tick={{ fontSize: 11 }}
               />
               <YAxis
-                type="category"
-                dataKey="location"
+                allowDecimals={false}
                 tickLine={false}
                 axisLine={false}
-                width={110}
+                width={32}
                 tickMargin={8}
                 tick={{ fontSize: 11 }}
               />
@@ -593,16 +603,21 @@ export function AdminDashboardCharts({
               />
               <Bar
                 dataKey="count"
-                fill="hsl(188 94% 42%)"
-                radius={[0, 6, 6, 0]}
+                radius={[6, 6, 0, 0]}
                 animationDuration={700}
               >
+                {baseLocationData.map((row, idx) => (
+                  <Cell
+                    key={row.location}
+                    fill={row.location === 'อื่นๆ' ? '#a3a3a3' : CATEGORY_BAR_COLORS[idx % CATEGORY_BAR_COLORS.length]}
+                  />
+                ))}
                 <LabelList
                   dataKey="count"
-                  position="right"
+                  position="top"
                   offset={8}
                   fill="var(--foreground)"
-                  fontSize={12}
+                  fontSize={11}
                   formatter={(value: number) => value.toLocaleString()}
                 />
               </Bar>
