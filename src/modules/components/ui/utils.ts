@@ -21,6 +21,8 @@ export function CreatorTypeNameByKey(key: string) {
       return 'นางสาวไทย';
     case 'mr_mrs_global':
       return 'Mr. & Mrs. Global Thailand';
+    case 'pageant':
+      return 'Pageant';
   }
   return key;
 }

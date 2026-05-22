@@ -115,7 +115,14 @@ function normalizeCreatorType(typeRaw: string | undefined): 'staff' | 'household
   const type = (typeRaw ?? '').trim().toLowerCase();
   if (type === 'assetwise_staff' || type === 'staff') return 'staff';
   if (type === 'household' || type === 'asw_household') return 'household';
-  if (type === 'pageant') return 'pageant';
+  if (
+    type === 'pageant' ||
+    type === 'mister_int' ||
+    type === 'miss_grand_thai' ||
+    type === 'miss_universe_thai'
+  ) {
+    return 'pageant';
+  }
   return 'general';
 }
 
@@ -199,7 +206,7 @@ export function AdminDashboardCharts({
       { key: 'staff', name: 'พนักงาน', value: agg.staff, fill: creatorTypeChartConfig.staff.color },
       { key: 'household', name: 'ลูกบ้าน', value: agg.household, fill: creatorTypeChartConfig.household.color },
       { key: 'general', name: 'บุคคลทั่วไป', value: agg.general, fill: creatorTypeChartConfig.general.color },
-      { key: "pageant", name: 'ผู้เข้าประกวด', value: agg.pageant, fill: creatorTypeChartConfig.pageant.color }
+      { key: 'pageant', name: 'ผู้เข้าประกวด', value: agg.pageant, fill: creatorTypeChartConfig.pageant.color }
     ];
   }, [approvedListed]);
 
