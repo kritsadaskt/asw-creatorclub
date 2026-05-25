@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.7.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.6.0...v2.7.0) (2026-05-25)
+
+
+### Features
+
+* เพิ่มตาราง Leads จาก CIS ([ea32c27](https://github.com/kritsadaskt/asw-creatorclub/commit/ea32c271547208b66a9dc9244f0f431a10f8a8ca))
+* เพิ่มตาราง Leads ที่ดึงมาจาก CIS ([16c057e](https://github.com/kritsadaskt/asw-creatorclub/commit/16c057e0931f65030890959c17d582d1aef8527f))
+* เพิ่มปุ่ม Line OA, Open Chat ที่หน้า Profile ([5270d32](https://github.com/kritsadaskt/asw-creatorclub/commit/5270d32fd5b3aa4a9cad2dead64488be39ee48ef))
+
 ## [2.6.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.5.0...v2.6.0) (2026-05-22)
 
 
