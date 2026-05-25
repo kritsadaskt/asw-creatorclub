@@ -58,6 +58,7 @@ import type { AdminAffiliateReportsResponse } from '@/modules/types/adminAffilia
 import type { ShlinkVisitStats } from '@/lib/shlink-server';
 import { Lemon8Icon } from '@/modules/utils/svg';
 import { CreatorBadge } from '../ui/creator-badge';
+import { UtmContactLogsTable } from './UtmContactLogsTable';
 
 /** react-select only on client — avoids SSR/hydration drift and mount swap vs skeleton. */
 function ReactSelectSkeleton() {
@@ -1094,12 +1095,15 @@ export function AdminDashboard() {
       <h2 className="mb-4">แดชบอร์ดผู้ดูแลระบบ</h2>
 
       <Tabs defaultValue="overview" className="w-full gap-4">
-        <TabsList className="w-full max-w-md grid grid-cols-2 h-auto p-1">
+        <TabsList className="w-full max-w-lg grid grid-cols-3 h-auto p-1">
           <TabsTrigger value="overview" className="py-2">
             ภาพรวม
           </TabsTrigger>
           <TabsTrigger value="creators" className="py-2">
             จัดการครีเอเตอร์
+          </TabsTrigger>
+          <TabsTrigger value="contact-logs" className="py-2">
+            Leads
           </TabsTrigger>
         </TabsList>
 
@@ -1346,6 +1350,10 @@ export function AdminDashboard() {
               </>
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="contact-logs" className="mt-4 flex flex-col gap-6">
+          <UtmContactLogsTable allowSearch={true} />
         </TabsContent>
       </Tabs>
 
