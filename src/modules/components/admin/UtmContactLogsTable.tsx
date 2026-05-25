@@ -17,7 +17,9 @@ import {
   Info
 } from 'lucide-react';
 import { Button } from '../shared/Button';
-import { getProjects } from '@/modules/utils/storage';
+import { filterExcludedContactLogLeads } from '@/lib/excluded-contact-log-leads';
+import { getCreatorById, getProjects } from '@/modules/utils/storage';
+import type { CreatorProfile } from '@/modules/types';
 import {
   Drawer,
   DrawerClose,
@@ -27,6 +29,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '../ui/drawer';
+import { LeadTypeByKey } from '../ui/utils';
 
 interface ContactLogItem {
   ContactLogID: number;
@@ -78,6 +81,9 @@ export function UtmContactLogsTable({
   // Selected log for detailed view drawer
   const [selectedLog, setSelectedLog] = useState<ContactLogItem | null>(null);
   const [isRawJsonOpen, setIsRawJsonOpen] = useState(false);
+  const [referrerCreator, setReferrerCreator] = useState<CreatorProfile | null>(null);
+  const [referrerCreatorLoading, setReferrerCreatorLoading] = useState(false);
+  const [referrerCreatorNotFound, setReferrerCreatorNotFound] = useState(false);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -145,12 +151,13 @@ export function UtmContactLogsTable({
         }
       }
 
-      setLogs(list);
+      const filteredList = filterExcludedContactLogLeads(list);
+      setLogs(filteredList);
 
-      if (list.length === 0) {
+      if (filteredList.length === 0) {
         toast.info('ไม่พบข้อมูลการลงทะเบียนที่ตรงกับเงื่อนไข');
       } else {
-        toast.success(`โหลดข้อมูลสำเร็จ ${list.length} รายการ`);
+        toast.success(`โหลดข้อมูลสำเร็จ ${filteredList.length} รายการ`);
       }
     } catch (err: any) {
       console.error('Error fetching contact logs:', err);
@@ -169,6 +176,42 @@ export function UtmContactLogsTable({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allowSearch, utmSource, utmCampaign, utmMedium]);
+
+  useEffect(() => {
+    const creatorId = selectedLog?.utm_content?.trim();
+    if (!creatorId) {
+      setReferrerCreator(null);
+      setReferrerCreatorLoading(false);
+      setReferrerCreatorNotFound(false);
+      return;
+    }
+
+    let cancelled = false;
+    setReferrerCreatorLoading(true);
+    setReferrerCreator(null);
+    setReferrerCreatorNotFound(false);
+
+    void (async () => {
+      try {
+        const creator = await getCreatorById(creatorId);
+        if (cancelled) return;
+        if (creator) {
+          setReferrerCreator(creator);
+        } else {
+          setReferrerCreatorNotFound(true);
+        }
+      } catch (err) {
+        console.error('Failed to load referrer creator:', err);
+        if (!cancelled) setReferrerCreatorNotFound(true);
+      } finally {
+        if (!cancelled) setReferrerCreatorLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedLog?.utm_content, selectedLog?.ContactLogID]);
 
   // Export to Excel using XLSX library
   const handleExportExcel = async () => {
@@ -422,7 +465,7 @@ export function UtmContactLogsTable({
                           )}
                         </td>
                         <td>
-                          {log.utm_campaign || '-'}
+                          {LeadTypeByKey(log.utm_campaign ?? '')}
                         </td>
                         <td className="py-4 px-4 text-sm text-muted-foreground">
                           {log.ContactDate ? new Date(log.ContactDate).toLocaleDateString('th-TH', {
@@ -500,10 +543,10 @@ export function UtmContactLogsTable({
               <DrawerHeader className="p-7 border-b border-border">
                 <DrawerTitle className="text-xl flex items-center gap-2">
                   <User className="w-5 h-5 text-primary" />
-                  รายละเอียด ผู้ลงทะเบียน UTM
+                  รายละเอียด Lead
                 </DrawerTitle>
                 <DrawerDescription>
-                  ดึงข้อมูลโดยตรงจากระบบ AssetWise CIS
+                  ข้อมูลจากระบบ CIS
                 </DrawerDescription>
               </DrawerHeader>
 
@@ -511,35 +554,52 @@ export function UtmContactLogsTable({
 
                 {/* Basic Info */}
                 <div className="bg-neutral-50 rounded-xl p-4 space-y-3.5 border border-border/50">
-                  <h4 className="font-semibold text-neutral-700 text-sm border-b border-border/70 pb-1.5">ข้อมูลส่วนตัว</h4>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <span className="block text-xs text-muted-foreground mb-0.5">ชื่อ-นามสกุล</span>
-                      <span className="text-sm font-medium text-foreground">{selectedLog.Fname} {selectedLog.Lname}</span>
+                      <span className="text-sm font-medium text-foreground">{selectedLog.CustomerFirstName} {selectedLog.CustomerLastName}</span>
                     </div>
                     <div>
                       <span className="block text-xs text-muted-foreground mb-0.5">LINE ID</span>
-                      <span className="text-sm font-medium text-foreground">{selectedLog.LineID || '-'}</span>
+                      <span className="text-sm font-medium text-foreground">{selectedLog.CustomerLineID || '-'}</span>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <span className="block text-xs text-muted-foreground mb-0.5">เบอร์โทรศัพท์</span>
-                      {selectedLog.Tel && selectedLog.Tel !== 'NULL' ? (
-                        <a href={`tel:${selectedLog.Tel}`} className="text-sm font-medium text-primary hover:underline flex items-center gap-1">
-                          <Phone className="w-3.5 h-3.5" /> {selectedLog.Tel}
-                        </a>
+                      {selectedLog.CustomerMobile && selectedLog.CustomerMobile !== 'NULL' ? (
+                        <span className='flex gap-1 items-center'>
+                          <Phone className="w-3.5 h-3.5" /> {selectedLog.CustomerMobile.replace('\'', '')}
+                        </span>
                       ) : <span className="text-sm text-muted-foreground">-</span>}
                     </div>
+                  </div>
+
+                  <hr className="border-border" />
+
+                  <div className="grid gap-4">
                     <div>
-                      <span className="block text-xs text-muted-foreground mb-0.5">อีเมล</span>
-                      {selectedLog.Email && selectedLog.Email !== 'NULL' ? (
-                        <a href={`mailto:${selectedLog.Email}`} className="text-sm font-medium text-primary hover:underline flex items-center gap-1 break-all">
-                          <Mail className="w-3.5 h-3.5" /> {selectedLog.Email}
-                        </a>
-                      ) : <span className="text-sm text-muted-foreground">-</span>}
+                      <span className="block text-xs text-muted-foreground mb-0.5">ผู้แนะนำ</span>
+                      {referrerCreatorLoading ? (
+                        <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          กำลังโหลด...
+                        </span>
+                      ) : referrerCreator ? (
+                        <span className="text-sm font-medium text-foreground">
+                          {[referrerCreator.name, referrerCreator.lastName].filter(Boolean).join(' ')}
+                        </span>
+                      ) : selectedLog.utm_content?.trim() ? (
+                        <span className="text-sm text-muted-foreground">
+                          {referrerCreatorNotFound
+                            ? `ไม่พบครีเอเตอร์ (ID: ${selectedLog.utm_content.trim()})`
+                            : '-'}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">ไม่สามารถดึงข้อมูลผู้แนะนำได้</span>
+                      )}
                     </div>
                   </div>
                 </div>

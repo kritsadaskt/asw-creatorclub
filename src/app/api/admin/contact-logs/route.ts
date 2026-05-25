@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { filterExcludedContactLogsResponse } from '@/lib/excluded-contact-log-leads';
 import { logServerError, requestLogContext } from '@/lib/log-server-error';
 import { getServerSession } from '@/modules/utils/auth';
 
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest) {
       payloadBody.utm_medium = utmMedium;
     }
 
-    console.log(`[contact-logs] Fetching logs from: ${endpointUrl} (POST) with payload:`, payloadBody);
+    // console.log(`[contact-logs] Fetching logs from: ${endpointUrl} (POST) with payload:`, payloadBody);
 
     const externalRes = await fetch(endpointUrl, {
       method: 'POST',
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
     });
 
     const responseText = await externalRes.text();
-    console.log(`[contact-logs] Received status ${externalRes.status} from external API. Response:`, responseText);
+    // console.log(`[contact-logs] Received status ${externalRes.status} from external API. Response:`, responseText);
     let responseData: unknown;
     try {
       responseData = responseText ? JSON.parse(responseText) : null;
@@ -91,7 +92,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true, data: responseData });
+    return NextResponse.json({
+      success: true,
+      data: filterExcludedContactLogsResponse(responseData),
+    });
   } catch (error) {
     console.error('[contact-logs] Server error:', error);
     await logServerError({

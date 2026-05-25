@@ -26,3 +26,25 @@ export function CreatorTypeNameByKey(key: string) {
   }
   return key;
 }
+
+export function LeadTypeByKey(key: string) {
+  switch (key) {
+    case 'creator_club_affiliate':
+      return 'Affiliate';
+    case 'friend_get_friend':
+      return 'Friend Get Friends';
+    default:
+      return 'Affiliate';
+  }
+}
+
+export function LeadCampaignByKey(key: string) {
+  switch (key) {
+    case 'creator_club_affiliate':
+      return 'Affiliate';
+    case 'friend_get_friend':
+      return 'Friend Get Friends';
+    default:
+      return 'Affiliate';
+  }
+}
