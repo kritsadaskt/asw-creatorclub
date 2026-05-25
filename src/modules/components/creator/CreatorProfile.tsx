@@ -355,7 +355,22 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
               กลับไปหน้าหลัก
             </a>
           </nav>
-          <small className="text-muted-foreground text-sm">version : {process.env.NEXT_PUBLIC_APP_VERSION}</small>
+
+          <p className="text-muted-foreground text-sm">ช่องทางติดต่อ</p>
+          <div className="grid grid-cols-2 gap-2">
+            <a href='https://lin.ee/ukTO0FG' target='_blank' className='w-full text-left p-2 text-xs rounded font-medium cursor-pointer bg-green-600 md:hover:bg-green-700 text-white flex items-center justify-center'>
+              Line OA
+            </a>
+            <a href='https://line.me/ti/g2/5x4meOiM_5Ye8rHJlKs3flrchJ6-Bm1AuT9myg?utm_source=invitation&utm_medium=link_copy&utm_campaign=default' target='_blank' className='w-full text-left p-2 text-xs rounded font-medium cursor-pointer bg-green-600 md:hover:bg-green-700 text-white flex items-center justify-center'>
+              Open Chat
+            </a>
+          </div>
+          <small className="text-muted-foreground text-xs">
+            <span className='text-destructive'>*</span>เข้า Open Chat ครั้งแรก ใช้รหัส <span className="font-bold">ASW2026</span></small>
+
+          <hr className="my-2 border-border w-full" />
+
+          <small className="text-muted-foreground text-sm">version : {process.env.NEXT_PUBLIC_APP_VERSION}</small>  
         </aside>
 
         {/* Main content */}
