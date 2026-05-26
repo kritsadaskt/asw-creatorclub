@@ -115,7 +115,7 @@ export function CreatorTools() {
       </div>
 
       <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="sm:max-w-xl" aria-describedby="report-problems-dialog-description">
           <DialogHeader>
             <DialogTitle>แจ้งปัญหาการใช้งาน</DialogTitle>
             <DialogDescription>

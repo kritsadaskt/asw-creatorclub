@@ -5,10 +5,17 @@ import { getServerSession } from '@/modules/utils/auth';
 
 export type { AffiliateFunnelStatsResponse } from '@/modules/types/affiliateFunnel';
 
-export async function GET(request: NextRequest) {
+type RouteParams = { params: Promise<{ id: string }> };
+
+export async function GET(request: NextRequest, { params }: RouteParams) {
   const session = getServerSession(request);
-  if (!session || session.role !== 'creator') {
+  if (!session || session.role !== 'admin') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { id: creatorId } = await params;
+  if (!creatorId) {
+    return NextResponse.json({ error: 'Missing creator id' }, { status: 400 });
   }
 
   const linkId = request.nextUrl.searchParams.get('linkId')?.trim();
@@ -17,16 +24,16 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const result = await getAffiliateLinkFunnelStats(session.id, linkId);
+    const result = await getAffiliateLinkFunnelStats(creatorId, linkId);
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: result.status });
     }
     return NextResponse.json(result.data, { status: 200 });
   } catch (error) {
-    console.error('affiliate funnel-stats error:', error);
+    console.error('admin affiliate-funnel-stats error:', error);
     await logServerError({
       environment: process.env.NODE_ENV ?? 'development',
-      source: 'api:affiliate/funnel-stats',
+      source: 'api:admin/creators/[id]/affiliate-funnel-stats',
       severity: 'error',
       error,
       context: requestLogContext(request),

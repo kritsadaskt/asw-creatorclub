@@ -58,6 +58,7 @@ import type { AdminAffiliateReportsResponse } from '@/modules/types/adminAffilia
 import type { ShlinkVisitStats } from '@/lib/shlink-server';
 import { Lemon8Icon } from '@/modules/utils/svg';
 import { CreatorBadge } from '../ui/creator-badge';
+import { AdminAffiliateLinkFunnelChart } from './AdminAffiliateLinkFunnelChart';
 import { UtmContactLogsTable } from './UtmContactLogsTable';
 
 /** react-select only on client — avoids SSR/hydration drift and mount swap vs skeleton. */
@@ -272,6 +273,7 @@ export function AdminDashboard() {
   const [affiliateLinkClicksLoading, setAffiliateLinkClicksLoading] = useState(false);
   const [affiliateLinkClicksEnabled, setAffiliateLinkClicksEnabled] = useState(true);
   const [affiliateLinkClicksSyncedAt, setAffiliateLinkClicksSyncedAt] = useState<string | null>(null);
+  const [openAffiliateLinkAccordion, setOpenAffiliateLinkAccordion] = useState<string | undefined>();
   const [decisionDialog, setDecisionDialog] = useState<{
     open: boolean;
     creator: CreatorProfile | null;
@@ -605,6 +607,10 @@ export function AdminDashboard() {
 
     void loadCreatorAffiliateLinks();
   }, [affiliateDrawerCreator]);
+
+  useEffect(() => {
+    setOpenAffiliateLinkAccordion(undefined);
+  }, [affiliateDrawerCreator?.id]);
 
   const loadCreators = async () => {
     try {
@@ -1005,7 +1011,7 @@ export function AdminDashboard() {
         <label className="text-muted-foreground">Affiliate Links</label>
         {formatStatsSyncedAtBangkok(affiliateLinkClicksSyncedAt) && (
           <p className="mt-1 text-xs text-muted-foreground">
-            ยอดคลิก sync ล่าสุด: {formatStatsSyncedAtBangkok(affiliateLinkClicksSyncedAt)} (เวลาไทย)
+            ข้อมูลล่าสุดเมื่อ {formatStatsSyncedAtBangkok(affiliateLinkClicksSyncedAt)}
           </p>
         )}
         <div className="mt-2 rounded-lg border border-border">
@@ -1017,7 +1023,12 @@ export function AdminDashboard() {
           ) : creatorAffiliateLinks.length === 0 ? (
             <div className="p-4 text-muted-foreground">ยังไม่มีลิงก์ Affiliate</div>
           ) : (
-            <Accordion type="single" collapsible>
+            <Accordion
+              type="single"
+              collapsible
+              value={openAffiliateLinkAccordion}
+              onValueChange={setOpenAffiliateLinkAccordion}
+            >
               {creatorAffiliateLinks.map((link) => (
                 <AccordionItem key={link.id} value={link.id}>
                   <AccordionTrigger className="hover:no-underline px-4">
@@ -1067,6 +1078,12 @@ export function AdminDashboard() {
                         ))
                       )}
                     </div>
+                    {affiliateDrawerCreator && openAffiliateLinkAccordion === link.id && (
+                      <AdminAffiliateLinkFunnelChart
+                        creatorId={affiliateDrawerCreator.id}
+                        linkId={link.id}
+                      />
+                    )}
                   </AccordionContent>
                 </AccordionItem>
               ))}
