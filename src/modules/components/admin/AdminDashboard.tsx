@@ -58,7 +58,7 @@ import type { AdminAffiliateReportsResponse } from '@/modules/types/adminAffilia
 import type { ShlinkVisitStats } from '@/lib/shlink-server';
 import { Lemon8Icon } from '@/modules/utils/svg';
 import { CreatorBadge } from '../ui/creator-badge';
-import { AdminAffiliateLinkFunnelChart } from './AdminAffiliateLinkFunnelChart';
+import { AffiliateLinkFunnelStatsCards } from '../shared/AffiliateLinkFunnelStatsCards';
 import { UtmContactLogsTable } from './UtmContactLogsTable';
 
 /** react-select only on client — avoids SSR/hydration drift and mount swap vs skeleton. */
@@ -1078,10 +1078,14 @@ export function AdminDashboard() {
                         ))
                       )}
                     </div>
+                    <div className="h-4"></div>
                     {affiliateDrawerCreator && openAffiliateLinkAccordion === link.id && (
-                      <AdminAffiliateLinkFunnelChart
+                      <AffiliateLinkFunnelStatsCards
                         creatorId={affiliateDrawerCreator.id}
                         linkId={link.id}
+                        title="สถิติลิงก์ (คลิก → ลงทะเบียน)"
+                        showSyncedAt={false}
+                        className="mt-0 bg-transparent p-0 border-0"
                       />
                     )}
                   </AccordionContent>

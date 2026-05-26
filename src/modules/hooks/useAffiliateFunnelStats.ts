@@ -2,11 +2,20 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { BASE_PATH } from '@/lib/publicPath';
+import {
+  affiliateFunnelConversionLabel,
+  affiliateFunnelStageNumericValue,
+} from '@/lib/affiliate-funnel-format';
 import type { AffiliateFunnelStatsResponse, AffiliateFunnelStage } from '@/modules/types/affiliateFunnel';
-import type { FunnelChartStage } from '@/modules/types/funnelChart';
-import { funnelConversionLabel, funnelStageNumericValue } from '@/modules/components/shared/funnel-chart-draw';
 
-const DEFAULT_STAGE_KEYS = ['clicks', 'registrations'] as const;
+const DEFAULT_STAGE_KEYS = ['clicks', 'registrations', 'bookings', 'transfers'] as const;
+
+const STAGE_ORDER: Record<string, number> = {
+  clicks: 0,
+  registrations: 1,
+  bookings: 2,
+  transfers: 3,
+};
 
 type Options = {
   linkId: string;
@@ -39,14 +48,14 @@ export function useAffiliateFunnelStats({
 
         const res = await fetch(url, { credentials: 'include' });
         if (!res.ok) {
-          setError('ไม่สามารถโหลดสถิติ Funnel ได้');
+          setError('ไม่สามารถโหลดสถิติได้');
           return;
         }
         const data = (await res.json()) as AffiliateFunnelStatsResponse;
         if (cancelled) return;
-        const filtered = (Array.isArray(data.stages) ? data.stages : []).filter((s) =>
-          stageKeys.includes(s.key),
-        );
+        const filtered = (Array.isArray(data.stages) ? data.stages : [])
+          .filter((s) => stageKeys.includes(s.key))
+          .sort((a, b) => (STAGE_ORDER[a.key] ?? 99) - (STAGE_ORDER[b.key] ?? 99));
         setStages(filtered);
         setStatsSyncedAt(typeof data.statsSyncedAt === 'string' ? data.statsSyncedAt : null);
         setRegistrationsNote(
@@ -55,8 +64,8 @@ export function useAffiliateFunnelStats({
             : null,
         );
       } catch (e) {
-        console.error('Error loading affiliate funnel:', e);
-        if (!cancelled) setError('ไม่สามารถโหลดสถิติ Funnel ได้');
+        console.error('Error loading affiliate link stats:', e);
+        if (!cancelled) setError('ไม่สามารถโหลดสถิติได้');
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -68,19 +77,9 @@ export function useAffiliateFunnelStats({
     };
   }, [linkId, creatorId, stageKeys.join(',')]);
 
-  const funnelStages: FunnelChartStage[] = useMemo(
-    () =>
-      stages.map((s) => ({
-        label: s.label,
-        value: s.value,
-        available: s.available,
-      })),
-    [stages],
-  );
-
   const clicksValue = useMemo(() => {
     const clicks = stages.find((s) => s.key === 'clicks');
-    return funnelStageNumericValue({
+    return affiliateFunnelStageNumericValue({
       value: clicks?.value ?? null,
       available: clicks?.available ?? true,
     });
@@ -88,7 +87,7 @@ export function useAffiliateFunnelStats({
 
   const registrationsValue = useMemo(() => {
     const regs = stages.find((s) => s.key === 'registrations');
-    return funnelStageNumericValue({
+    return affiliateFunnelStageNumericValue({
       value: regs?.value ?? null,
       available: regs?.available ?? true,
     });
@@ -97,13 +96,13 @@ export function useAffiliateFunnelStats({
   const conversionText = useMemo(() => {
     const regs = stages.find((s) => s.key === 'registrations');
     if (!regs?.available || regs.value == null) return null;
-    return funnelConversionLabel(clicksValue, regs.value);
+    return affiliateFunnelConversionLabel(clicksValue, regs.value);
   }, [clicksValue, stages]);
 
   return {
     loading,
     error,
-    funnelStages,
+    stages,
     statsSyncedAt,
     registrationsNote,
     conversionText,

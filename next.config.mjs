@@ -7,7 +7,6 @@ const packageJson = require('./package.json');
 const nextConfig = {
   basePath: '/creatorclub',
   reactStrictMode: true,
-  transpilePackages: ['funnel-graph-js'],
   env: {
     NEXT_PUBLIC_APP_VERSION: packageJson.version,
   },

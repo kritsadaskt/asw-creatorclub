@@ -5,7 +5,10 @@ import {
 
 const CIS_CONTACT_LOG_ENDPOINT = 'https://api.assetwise.co.th/api/Customer/GetContactLogRegister';
 
+export const CIS_CONTACT_LOG_UTM_SOURCES = ['creatorclub', 'creator_club_affiliate'] as const;
+
 export type CisContactLogRow = ContactLogLike & {
+  ContactLogID?: number | string;
   ProjectID?: number | string;
   utm_content?: string;
   utm_source?: string;
@@ -67,6 +70,42 @@ export async function fetchCisContactLogRegister(params: {
   }
 
   return parseCisContactLogList(responseData);
+}
+
+function mergeContactLogRows(lists: CisContactLogRow[][]): CisContactLogRow[] {
+  const seen = new Set<string>();
+  const merged: CisContactLogRow[] = [];
+
+  for (const list of lists) {
+    for (const row of list) {
+      const id = row.ContactLogID;
+      const key =
+        id != null && id !== ''
+          ? String(id)
+          : `${row.Email ?? ''}|${row.Tel ?? ''}|${row.RefDate ?? ''}|${row.utm_source ?? ''}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(row);
+    }
+  }
+
+  return merged;
+}
+
+/** All Creator Club CIS leads (both fixed utm_source values, no campaign filter). */
+export async function fetchCreatorClubContactLogs(): Promise<CisContactLogRow[] | null> {
+  const results = await Promise.all(
+    CIS_CONTACT_LOG_UTM_SOURCES.map((utmSource) => fetchCisContactLogRegister({ utmSource })),
+  );
+
+  if (results.every((list) => list == null)) return null;
+
+  return mergeContactLogRows(results.filter((list): list is CisContactLogRow[] => list != null));
+}
+
+/** Count CIS registrations attributed to a creator across all affiliate links. */
+export function countCreatorRegistrations(logs: CisContactLogRow[], creatorId: string): number {
+  return countAffiliateLinkRegistrations(logs, creatorId, null);
 }
 
 /** Count CIS registrations attributed to one affiliate link (creator + optional CIS project). */

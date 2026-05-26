@@ -1,5 +1,13 @@
 import { useState, useEffect, useRef, type ChangeEvent } from 'react';
-import { Camera, Link2, Loader2, MousePointerClick } from 'lucide-react';
+import {
+  CalendarCheck,
+  Camera,
+  ClipboardList,
+  Handshake,
+  Link2,
+  Loader2,
+  MousePointerClick,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
@@ -13,12 +21,17 @@ import {
 } from '../../utils/storage';
 import { BASE_PATH } from '@/lib/publicPath';
 import { formatStatsSyncedAtBangkok } from '@/lib/format-stats-synced-at';
+import {
+  affiliateFunnelStageHasNoData,
+  formatAffiliateFunnelStageValue,
+} from '@/lib/affiliate-funnel-format';
 import { getProfileImageUrl } from '../../utils/profileImage';
 import { AffiliateGenerator } from './AffiliateGenerator';
 import { supabase } from '../../utils/supabase';
 import { hashPassword, validatePassword, validatePasswordConfirm } from '../../utils/password';
 import Select from 'react-select';
 import SocialAccounts from '../layout/SocialAccounts';
+import { cn } from '../ui/utils';
 import { FaArrowLeft, FaCopy, FaEdit, FaSave, FaUndo } from 'react-icons/fa';
 
 interface CreatorProfileProps {
@@ -47,7 +60,24 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
   const [affiliateLinkCount, setAffiliateLinkCount] = useState(0);
   const [affiliateTotalClicks, setAffiliateTotalClicks] = useState(0);
   const [affiliateStatsSyncedAt, setAffiliateStatsSyncedAt] = useState<string | null>(null);
+  const [affiliateRegistrations, setAffiliateRegistrations] = useState<number | null>(null);
+  const [affiliateBookings] = useState(0);
+  const [affiliateTransfers] = useState(0);
   const profileImageInputRef = useRef<HTMLInputElement>(null);
+
+  const formatProfileStatValue = (
+    value: number | null,
+    available: boolean,
+    key?: 'bookings' | 'transfers',
+  ) =>
+    formatAffiliateFunnelStageValue({
+      key,
+      value,
+      available,
+    });
+
+  const profileStatNoData = (value: number | null, available: boolean) =>
+    affiliateFunnelStageHasNoData({ value, available });
 
   useEffect(() => {
     loadProfile();
@@ -121,12 +151,27 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
           setAffiliateTotalClicks(totalClicks);
           setAffiliateStatsSyncedAt(typeof data.statsSyncedAt === 'string' ? data.statsSyncedAt : null);
         }
+
+        const leadRes = await fetch(`${BASE_PATH}/api/affiliate/creator-lead-stats`, {
+          credentials: 'include',
+        });
+        if (!cancelled && leadRes.ok) {
+          const leadData = (await leadRes.json()) as {
+            registrations?: number | null;
+          };
+          setAffiliateRegistrations(
+            typeof leadData.registrations === 'number' ? leadData.registrations : null,
+          );
+        } else if (!cancelled) {
+          setAffiliateRegistrations(null);
+        }
       } catch (error) {
         console.error('Error loading affiliate stats:', error);
         if (!cancelled) {
           setAffiliateLinkCount(0);
           setAffiliateTotalClicks(0);
           setAffiliateStatsSyncedAt(null);
+          setAffiliateRegistrations(null);
         }
       } finally {
         if (!cancelled) setAffiliateStatsLoading(false);
@@ -573,25 +618,89 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
             </>
           ) : (
             <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white rounded-xl border border-border p-5 shadow-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                    <Link2 className="w-4 h-4 text-primary" />
-                    <span className="text-sm">Link ทั้งหมด</span>
-                  </div>
-                  <p className="text-2xl font-semibold text-foreground tabular-nums">
-                    {affiliateStatsLoading ? '...' : affiliateLinkCount.toLocaleString('th-TH')}
-                  </p>
-                </div>
-                <div className="bg-white rounded-xl border border-border p-5 shadow-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                    <MousePointerClick className="w-4 h-4 text-primary" />
-                    <span className="text-sm">คลิกทั้งหมด</span>
-                  </div>
-                  <p className="text-2xl font-semibold text-foreground tabular-nums">
-                    {affiliateStatsLoading ? '...' : affiliateTotalClicks.toLocaleString('th-TH')}
-                  </p>
-                </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                {(
+                  [
+                    {
+                      key: 'links',
+                      label: 'Link ทั้งหมด',
+                      icon: Link2,
+                      loading: affiliateStatsLoading,
+                      value: affiliateLinkCount,
+                      available: true,
+                    },
+                    {
+                      key: 'clicks',
+                      label: 'คลิกทั้งหมด',
+                      icon: MousePointerClick,
+                      loading: affiliateStatsLoading,
+                      value: affiliateTotalClicks,
+                      available: true,
+                    },
+                    {
+                      key: 'registrations',
+                      label: 'ลงทะเบียน',
+                      icon: ClipboardList,
+                      loading: affiliateStatsLoading,
+                      value: affiliateRegistrations,
+                      available: affiliateRegistrations !== null,
+                    },
+                    {
+                      key: 'bookings',
+                      label: 'จอง',
+                      icon: CalendarCheck,
+                      loading: affiliateStatsLoading,
+                      value: affiliateBookings,
+                      available: true,
+                    },
+                    {
+                      key: 'transfers',
+                      label: 'โอน',
+                      icon: Handshake,
+                      loading: affiliateStatsLoading,
+                      value: affiliateTransfers,
+                      available: true,
+                    },
+                  ] as const
+                ).map((stat) => {
+                  const Icon = stat.icon;
+                  const noData = !stat.loading && profileStatNoData(stat.value, stat.available);
+                  return (
+                    <div
+                      key={stat.key}
+                      className={cn(
+                        'rounded-xl border border-border p-4 shadow-sm sm:p-5',
+                        noData ? 'bg-neutral-100' : 'bg-white',
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          'mb-2 flex items-center gap-2',
+                          noData ? 'text-neutral-500' : 'text-muted-foreground',
+                        )}
+                      >
+                        <Icon className={cn('h-4 w-4', noData ? 'text-neutral-400' : 'text-primary')} />
+                        <span className="text-sm">{stat.label}</span>
+                      </div>
+                      <p
+                        className={cn(
+                          'text-2xl font-semibold tabular-nums',
+                          noData ? 'text-neutral-400' : 'text-foreground',
+                        )}
+                      >
+                        {stat.loading
+                          ? '...'
+                          : formatProfileStatValue(
+                              stat.value,
+                              stat.available,
+                              stat.key === 'bookings' || stat.key === 'transfers'
+                                ? stat.key
+                                : undefined,
+                            )}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
               {formatStatsSyncedAtBangkok(affiliateStatsSyncedAt) && (
                 <p className="text-xs text-muted-foreground">
