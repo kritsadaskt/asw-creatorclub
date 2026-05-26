@@ -59,6 +59,7 @@ import type { ShlinkVisitStats } from '@/lib/shlink-server';
 import { Lemon8Icon } from '@/modules/utils/svg';
 import { CreatorBadge } from '../ui/creator-badge';
 import { AffiliateLinkFunnelStatsCards } from '../shared/AffiliateLinkFunnelStatsCards';
+import { CreatorAffiliatePerformanceStats } from '../shared/CreatorAffiliatePerformanceStats';
 import { UtmContactLogsTable } from './UtmContactLogsTable';
 
 /** react-select only on client — avoids SSR/hydration drift and mount swap vs skeleton. */
@@ -155,7 +156,7 @@ function ProfileAnalystAiSection({ creator }: { creator: CreatorProfile }) {
   if (legacy) {
     return (
       <div className="rounded-lg border border-border p-4 space-y-2">
-        <h4 className="text-sm font-medium text-foreground">ผลวิเคราะห์ด้วย AI</h4>
+        <h4 className="font-medium text-muted-foreground">ผลวิเคราะห์ด้วย AI</h4>
         <p className="text-sm text-foreground whitespace-pre-wrap break-words">{legacy}</p>
       </div>
     );
@@ -164,7 +165,7 @@ function ProfileAnalystAiSection({ creator }: { creator: CreatorProfile }) {
   if (!ai) {
     return (
       <div>
-        <h4 className="text-sm font-medium text-foreground mb-1">ผลวิเคราะห์ด้วย AI</h4>
+        <h4 className="font-medium text-muted-foreground mb-1">ผลวิเคราะห์ด้วย AI</h4>
         <p className="text-sm text-muted-foreground">ยังไม่มีข้อมูล</p>
       </div>
     );
@@ -976,10 +977,10 @@ export function AdminDashboard() {
       )}
 
       <div>
-        <label className="text-muted-foreground">หมวดหมู่</label>
+        <label className="text-muted-foreground block mb-1">หมวดหมู่</label>
         <div className="flex gap-2">
           {creator.categories && creator.categories.length > 0 ? creator.categories.map((category) => (
-            <div key={category} className="flex items-center gap-2 px-2 py-1 rounded-md bg-primary/10 text-primary">
+            <div key={category} className="flex text-[14px] items-center gap-2 px-2 py-1 rounded-md bg-primary/10 text-primary">
               {category}
             </div>
           )) : <p className="text-muted-foreground">ยังไม่มีข้อมูล</p>}
@@ -987,11 +988,18 @@ export function AdminDashboard() {
       </div>
 
       <div>
-        <label className="text-muted-foreground">บัญชีโซเชียลมีเดีย</label>
+        <label className="text-muted-foreground block mb-1">บัญชีโซเชียลมีเดีย</label>
         {socialList(creator.socialAccounts, creator.followerCounts)}
       </div>
 
       <ProfileAnalystAiSection creator={creator} />
+
+      <CreatorAffiliatePerformanceStats
+        creatorId={creator.id}
+        audience="admin"
+        title="Performance Affiliate"
+        showSyncedAt
+      />
 
       {creator.approvalStatus === 3 && (
         <>
