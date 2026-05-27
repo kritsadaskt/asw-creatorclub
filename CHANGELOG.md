@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.8.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.7.0...v2.8.0) (2026-05-27)
+
+
+### Features
+
+* add stat cards for creator performance ([36cafbc](https://github.com/kritsadaskt/asw-creatorclub/commit/36cafbc7a39c7c206504a89e85c280de3ecb8889))
+* adjusted styles ([1e4cc04](https://github.com/kritsadaskt/asw-creatorclub/commit/1e4cc04570e04312708b9abd900b491f62b0a81d))
+
 ## [2.7.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.6.0...v2.7.0) (2026-05-25)
 
 
