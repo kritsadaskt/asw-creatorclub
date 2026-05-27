@@ -21,7 +21,7 @@ import {
   DrawerTitle,
 } from '../ui/drawer';
 import { FaRegTrashAlt } from 'react-icons/fa';
-import { AffiliateClickTrendChart } from './AffiliateClickTrendChart';
+import { AffiliateLinkFunnelStatsCards } from '../shared/AffiliateLinkFunnelStatsCards';
 
 interface AffiliateGeneratorProps {
   creatorId: string;
@@ -452,10 +452,8 @@ export function AffiliateGenerator({ creatorId, showBackButton = true }: Affilia
 
               <div className="space-y-1">
                 <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                  <h4 className="text-lg font-medium text-foreground mb-4">สถิติ Affiliate Link</h4>
-                  {/* Affiliate Graph */}
-                  <div className='flex w-full'>
-                    <AffiliateClickTrendChart linkId={selectedLink.id} />
+                  <div className="flex w-full">
+                    <AffiliateLinkFunnelStatsCards linkId={selectedLink.id} className="w-full" />
                   </div>
                 </div>
               </div>

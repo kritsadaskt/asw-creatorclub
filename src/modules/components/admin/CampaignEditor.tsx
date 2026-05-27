@@ -785,7 +785,7 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
                   </div>
                 </div>
                 <div>
-                  <label className="text-muted-foreground">บัญชีโซเชียลมีเดีย</label>
+                  <label className="text-muted-foreground mb-1">บัญชีโซเชียลมีเดีย</label>
                   {socialList(selectedCreator.socialAccounts, selectedCreator.followerCounts)}
                 </div>
               </>

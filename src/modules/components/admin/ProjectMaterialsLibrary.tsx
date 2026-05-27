@@ -322,7 +322,7 @@ export function ProjectMaterialsLibrary({ projectId }: { projectId: string }) {
           if (!open) setEditing(null);
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md" aria-describedby="edit-material-dialog-description">
           <DialogHeader>
             <DialogTitle>แก้ไขสื่อ</DialogTitle>
           </DialogHeader>
