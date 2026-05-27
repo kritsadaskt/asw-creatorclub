@@ -1,20 +1,18 @@
 import { useState, useEffect, useRef, type ChangeEvent } from 'react';
-import { Camera, Link2, Loader2, MousePointerClick } from 'lucide-react';
+import { Camera, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
 import { CreatorProfile as CreatorProfileType } from '../../types';
 import {
   CREATOR_PROFILE_UPDATED_EVENT,
-  getAffiliateLinksByCreator,
   getCreatorById,
   saveCreator,
   uploadCreatorProfileImage,
 } from '../../utils/storage';
-import { BASE_PATH } from '@/lib/publicPath';
-import { formatStatsSyncedAtBangkok } from '@/lib/format-stats-synced-at';
 import { getProfileImageUrl } from '../../utils/profileImage';
 import { AffiliateGenerator } from './AffiliateGenerator';
+import { CreatorAffiliatePerformanceStats } from '../shared/CreatorAffiliatePerformanceStats';
 import { supabase } from '../../utils/supabase';
 import { hashPassword, validatePassword, validatePasswordConfirm } from '../../utils/password';
 import Select from 'react-select';
@@ -24,8 +22,6 @@ import { FaArrowLeft, FaCopy, FaEdit, FaSave, FaUndo } from 'react-icons/fa';
 interface CreatorProfileProps {
   creatorId: string;
 }
-
-type ShlinkStatEntry = { total: number; nonBots?: number } | null;
 
 type CategorySelectOption = { value: string; label: string };
 
@@ -43,10 +39,6 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
   const [categoryOptions, setCategoryOptions] = useState<CategorySelectOption[]>([]);
-  const [affiliateStatsLoading, setAffiliateStatsLoading] = useState(false);
-  const [affiliateLinkCount, setAffiliateLinkCount] = useState(0);
-  const [affiliateTotalClicks, setAffiliateTotalClicks] = useState(0);
-  const [affiliateStatsSyncedAt, setAffiliateStatsSyncedAt] = useState<string | null>(null);
   const profileImageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -80,65 +72,6 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
 
     void loadCategoryOptions();
   }, []);
-
-  useEffect(() => {
-    if (activeTab !== 'affiliate') return;
-
-    let cancelled = false;
-
-    const loadAffiliateStats = async () => {
-      try {
-        setAffiliateStatsLoading(true);
-        const links = await getAffiliateLinksByCreator(creatorId);
-        if (cancelled) return;
-
-        setAffiliateLinkCount(links.length);
-
-        const res = await fetch(`${BASE_PATH}/api/affiliate/shlink-stats`, {
-          credentials: 'include',
-        });
-
-        if (!res.ok) {
-          if (!cancelled) {
-            setAffiliateTotalClicks(0);
-            setAffiliateStatsSyncedAt(null);
-          }
-          return;
-        }
-
-        const data = (await res.json()) as {
-          stats?: Record<string, ShlinkStatEntry>;
-          statsSyncedAt?: string | null;
-        };
-
-        const statsByLinkId = data.stats ?? {};
-        const totalClicks = links.reduce((sum, link) => {
-          const total = statsByLinkId[link.id]?.total ?? 0;
-          return sum + (Number.isFinite(total) ? total : 0);
-        }, 0);
-
-        if (!cancelled) {
-          setAffiliateTotalClicks(totalClicks);
-          setAffiliateStatsSyncedAt(typeof data.statsSyncedAt === 'string' ? data.statsSyncedAt : null);
-        }
-      } catch (error) {
-        console.error('Error loading affiliate stats:', error);
-        if (!cancelled) {
-          setAffiliateLinkCount(0);
-          setAffiliateTotalClicks(0);
-          setAffiliateStatsSyncedAt(null);
-        }
-      } finally {
-        if (!cancelled) setAffiliateStatsLoading(false);
-      }
-    };
-
-    void loadAffiliateStats();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeTab, creatorId]);
 
   const loadProfile = async () => {
     try {
@@ -573,31 +506,12 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
             </>
           ) : (
             <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white rounded-xl border border-border p-5 shadow-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                    <Link2 className="w-4 h-4 text-primary" />
-                    <span className="text-sm">Link ทั้งหมด</span>
-                  </div>
-                  <p className="text-2xl font-semibold text-foreground tabular-nums">
-                    {affiliateStatsLoading ? '...' : affiliateLinkCount.toLocaleString('th-TH')}
-                  </p>
-                </div>
-                <div className="bg-white rounded-xl border border-border p-5 shadow-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                    <MousePointerClick className="w-4 h-4 text-primary" />
-                    <span className="text-sm">คลิกทั้งหมด</span>
-                  </div>
-                  <p className="text-2xl font-semibold text-foreground tabular-nums">
-                    {affiliateStatsLoading ? '...' : affiliateTotalClicks.toLocaleString('th-TH')}
-                  </p>
-                </div>
-              </div>
-              {formatStatsSyncedAtBangkok(affiliateStatsSyncedAt) && (
-                <p className="text-xs text-muted-foreground">
-                  ตัวเลขคลิก sync ล่าสุด: {formatStatsSyncedAtBangkok(affiliateStatsSyncedAt)} (เวลาไทย)
-                </p>
-              )}
+              <CreatorAffiliatePerformanceStats
+                creatorId={creatorId}
+                audience="creator"
+                title="Performance Affiliate"
+                showSyncedAt
+              />
               <AffiliateGenerator creatorId={creatorId} showBackButton={false} />
             </div>
           )}
