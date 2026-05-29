@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.8.3](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.8.2...v2.8.3) (2026-05-29)
+
+
+### Bug Fixes
+
+* ปรับแก้คำผิดเพิ่มเติม ([08f950e](https://github.com/kritsadaskt/asw-creatorclub/commit/08f950efada601f0e0db97a3e5659fae4e0f525e))
+
 ### [2.8.2](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.8.1...v2.8.2) (2026-05-29)
 
 
