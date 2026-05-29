@@ -122,7 +122,7 @@ export function CreatorAffiliatePerformanceStats({
         },
         {
           key: 'transfers',
-          label: 'โอน',
+          label: 'โอนกรรมสิทธิ์ห',
           icon: Handshake,
           value: performance.transfers,
           available: true,
