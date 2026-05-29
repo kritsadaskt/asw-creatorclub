@@ -103,7 +103,7 @@ export function AffiliateLinkFunnelStatsCards({
           )}
 
           {registrationsNote && (
-            <p className="rounded-md border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+            <p className="rounded-md border sr-only border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">
               ลงทะเบียน: {registrationsNote}
             </p>
           )}
