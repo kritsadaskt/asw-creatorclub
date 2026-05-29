@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.8.1](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.8.0...v2.8.1) (2026-05-29)
+
+
+### Bug Fixes
+
+* แก้ Label โอน > โอนกรรมสิทธิ์ ([74f153c](https://github.com/kritsadaskt/asw-creatorclub/commit/74f153cd8427307b82757a6c6d907e85a6d0fd33))
+
 ## [2.8.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.7.0...v2.8.0) (2026-05-27)
 
 
