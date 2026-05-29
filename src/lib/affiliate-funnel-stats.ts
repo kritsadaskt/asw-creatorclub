@@ -162,7 +162,7 @@ export async function getAffiliateLinkFunnelStats(
           available: registrations !== null,
         },
         { key: 'bookings', label: 'จอง', value: null, available: false },
-        { key: 'transfers', label: 'โอน', value: null, available: false },
+        { key: 'transfers', label: 'โอนกรรมสิทธิ์', value: null, available: false },
       ],
       statsSyncedAt,
       registrationsUnavailableReason,
