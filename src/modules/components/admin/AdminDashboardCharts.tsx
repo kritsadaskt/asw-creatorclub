@@ -220,8 +220,8 @@ export function AdminDashboardCharts({
       .map(([location, count]) => ({ location, count }))
       .sort((a, b) => b.count - a.count);
 
-    const top9 = sorted.slice(0, 9);
-    const othersCount = sorted.slice(9).reduce((sum, item) => sum + item.count, 0);
+    const top9 = sorted.slice(0, 6);
+    const othersCount = sorted.slice(6).reduce((sum, item) => sum + item.count, 0);
 
     const chartItems = [...top9];
     if (othersCount > 0) {

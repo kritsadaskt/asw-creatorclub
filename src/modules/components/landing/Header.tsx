@@ -215,7 +215,8 @@ export function Header({
   navTabs,
   fixed = true,
 }: HeaderProps) {
-  const { handleLogout: sessionLogout } = useSession();
+  const { handleLogout: sessionLogout, handleLogin: sessionLogin } = useSession();
+  const loginHandler = onLogin ?? sessionLogin;
   const pathname = usePathname();
   const router = useRouter();
   /** Path without basePath for reliable active matching */
@@ -303,7 +304,7 @@ export function Header({
 
   const handleLoginFromModal = (id: string, loginRole: 'creator' | 'admin' | 'marketing') => {
     void loadFromSession();
-    onLogin?.(id, loginRole);
+    loginHandler(id, loginRole);
   };
 
   const hasNavTabs = navTabs && navTabs.length > 0;
@@ -444,7 +445,7 @@ export function Header({
       {/* Spacer so fixed header doesn't overlap content */}
       {fixed && <div className="h-16" />}
 
-      {showLoginModal && onLogin && (
+      {showLoginModal && (
         <LoginModal
           onClose={() => setShowLoginModal(false)}
           onLogin={handleLoginFromModal}

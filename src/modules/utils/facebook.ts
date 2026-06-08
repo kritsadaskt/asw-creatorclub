@@ -6,12 +6,26 @@ const FACEBOOK_APP_ID = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID ?? '';
 const FACEBOOK_GRAPH_PICTURE_BASE = 'https://graph.facebook.com';
 const PROFILE_IMAGES_BUCKET = 'profile-images';
 
+/** Opt-in via env — FB login UI is disabled site-wide until this is set to "true". */
+export function isFacebookLoginEnabled(): boolean {
+  if (process.env.NEXT_PUBLIC_FACEBOOK_LOGIN_ENABLED !== 'true') {
+    return false;
+  }
+  if (!FACEBOOK_APP_ID.trim()) {
+    return false;
+  }
+  if (typeof window !== 'undefined' && !window.isSecureContext) {
+    return false;
+  }
+  return true;
+}
+
 /**
  * Initialize Facebook SDK
- * Should be called once when the app loads
+ * Should be called once when the app loads (only when FB login is enabled)
  */
 export const initFacebookSDK = (): Promise<void> => {
-  if (typeof window === 'undefined') {
+  if (typeof window === 'undefined' || !isFacebookLoginEnabled()) {
     return Promise.resolve();
   }
 
@@ -49,6 +63,10 @@ export const initFacebookSDK = (): Promise<void> => {
  */
 export const loginWithFacebook = (): Promise<FacebookLoginResponse> => {
   return new Promise((resolve, reject) => {
+    if (!isFacebookLoginEnabled()) {
+      reject(new Error('Facebook login is not enabled'));
+      return;
+    }
     if (!window.FB) {
       reject(new Error('Facebook SDK not initialized'));
       return;
@@ -108,7 +126,7 @@ export const logoutFromFacebook = (): Promise<void> => {
  */
 export const checkFacebookLoginStatus = (): Promise<boolean> => {
   return new Promise((resolve) => {
-    if (!window.FB) {
+    if (!isFacebookLoginEnabled() || !window.FB) {
       resolve(false);
       return;
     }
