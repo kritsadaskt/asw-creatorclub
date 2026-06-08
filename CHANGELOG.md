@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.8.5](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.8.4...v2.8.5) (2026-06-08)
+
+
+### Bug Fixes
+
+* redirect /event to Register page ([23c18be](https://github.com/kritsadaskt/asw-creatorclub/commit/23c18be87bac52b60272dac83534d64dfe20300d))
+
 ### [2.8.4](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.8.3...v2.8.4) (2026-06-08)
 
 
