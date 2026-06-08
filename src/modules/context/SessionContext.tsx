@@ -14,7 +14,7 @@ import type { UserRole } from '@/modules/types';
 import { clearSession, getSession, setSession } from '@/modules/utils/auth';
 import { logout as storageLogout } from '@/modules/utils/storage';
 import { installLocalStorageSafeGuard } from '@/modules/utils/localStorageSafe';
-import { initFacebookSDK } from '@/modules/utils/facebook';
+import { initFacebookSDK, isFacebookLoginEnabled } from '@/modules/utils/facebook';
 
 type SessionContextValue = {
   currentUserId: string | null;
@@ -44,9 +44,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     installLocalStorageSafeGuard();
-    initFacebookSDK().catch((err) => {
-      console.warn('Failed to initialize Facebook SDK:', err);
-    });
+    if (isFacebookLoginEnabled()) {
+      initFacebookSDK().catch((err) => {
+        console.warn('Failed to initialize Facebook SDK:', err);
+      });
+    }
   }, []);
 
   const handleLogin = useCallback(
