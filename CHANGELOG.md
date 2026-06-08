@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.8.4](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.8.3...v2.8.4) (2026-06-08)
+
+
+### Bug Fixes
+
+* แก้ปุ่ม login ในหน้า terms กดไม่ได้ ([a9c73aa](https://github.com/kritsadaskt/asw-creatorclub/commit/a9c73aa89e088e409a1e0cb864db9b232840e2ee))
+* ลดจำนวน Bar ในกราฟจำนวนครีเอเตอร์ตามพื้นที่ เพราะ Label ไม่แสดง ([08d281f](https://github.com/kritsadaskt/asw-creatorclub/commit/08d281f3ebf0464b5a86cd01effb976893ffc247))
+
 ### [2.8.3](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.8.2...v2.8.3) (2026-05-29)
 
 
