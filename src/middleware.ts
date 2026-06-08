@@ -4,8 +4,23 @@ import type { NextRequest } from 'next/server';
 const SESSION_COOKIE_NAME = 'asw_session';
 type SessionPayload = { role?: string };
 
+function redirectToRegisterSection(request: NextRequest) {
+  const url = request.nextUrl.clone();
+  url.pathname = '/';
+  url.hash = 'register-section';
+  return NextResponse.redirect(url);
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  const isEventRoute =
+    pathname === '/event' ||
+    pathname === '/event/' ||
+    (pathname.startsWith('/event/') && !pathname.startsWith('/event/check-in'));
+  if (isEventRoute) {
+    return redirectToRegisterSection(request);
+  }
 
   const isCreatorsRoute = pathname.startsWith('/creators');
   const isAdminRoute = pathname.startsWith('/admin');
@@ -37,6 +52,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/creators/:path*', '/admin/:path*'],
+  matcher: ['/event', '/event/:path*', '/creators/:path*', '/admin/:path*'],
 };
 
