@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.8.6](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.8.5...v2.8.6) (2026-06-09)
+
+
+### Bug Fixes
+
+* ปรับ dashboard Label ผู้เข้าประกวด ([93316a1](https://github.com/kritsadaskt/asw-creatorclub/commit/93316a13dc9a8cb8ae6ce9c8d9823f50c0eb22d5))
+
 ### [2.8.5](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.8.4...v2.8.5) (2026-06-08)
 
 
