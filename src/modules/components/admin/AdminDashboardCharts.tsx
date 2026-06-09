@@ -118,8 +118,9 @@ function normalizeCreatorType(typeRaw: string | undefined): 'staff' | 'household
   if (
     type === 'pageant' ||
     type === 'mister_int' ||
-    type === 'miss_grand_thai' ||
-    type === 'miss_universe_thai'
+    type === 'miss_world_th' ||
+    type === 'miss_th' ||
+    type === 'mr_mrs_global'
   ) {
     return 'pageant';
   }

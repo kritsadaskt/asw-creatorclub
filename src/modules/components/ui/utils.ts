@@ -20,7 +20,7 @@ export function CreatorTypeNameByKey(key: string) {
     case 'miss_th':
       return 'นางสาวไทย';
     case 'mr_mrs_global':
-      return 'Mr. & Mrs. Global Thailand';
+      return 'Mr. & Miss Global Thailand';
     case 'pageant':
       return 'Pageant';
   }
