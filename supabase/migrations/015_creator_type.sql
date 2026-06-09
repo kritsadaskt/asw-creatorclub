@@ -14,7 +14,7 @@ VALUES
   (3, 'miss_world_th', 'Miss World Thailand', 'Miss World Thailand'),
   (4, 'mister_int', 'Mister International', 'Mister International'),
   (5, 'miss_th', 'นางสาวไทย', 'Miss Thailand'),
-  (6, 'mr_mrs_global', 'Mr. & Mrs. Global Thailand', 'Mr. & Mrs. Global Thailand')
+  (6, 'mr_mrs_global', 'Mr. & Miss Global Thailand', 'Mr. & Miss Global Thailand')
 ON CONFLICT (key) DO UPDATE SET
   name_th = EXCLUDED.name_th,
   name_en = EXCLUDED.name_en;
