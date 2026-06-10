@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.8.7](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.8.6...v2.8.7) (2026-06-10)
+
+
+### Bug Fixes
+
+* add Creator's categories to Event participant listed in admin ([a18e20a](https://github.com/kritsadaskt/asw-creatorclub/commit/a18e20a89ede57cad1ba0202eebc32a737852d44))
+
 ### [2.8.6](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.8.5...v2.8.6) (2026-06-09)
 
 
