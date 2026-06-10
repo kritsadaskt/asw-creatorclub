@@ -217,6 +217,8 @@ export function EventManagement() {
         creatorType: CreatorTypeNameByKey(creator?.type ?? '') ?? '',
         creatorEmail: creator?.email ?? '',
         creatorPhone: creator?.phone ?? '',
+        creatorCategories:
+          creator?.categories && creator.categories.length > 0 ? creator.categories.join(', ') : '',
         creatorId: participant.creatorId,
         submitAt: participant.submitAt,
         status: statusLabel,
@@ -229,6 +231,7 @@ export function EventManagement() {
       'Creator Type',
       'Creator Email',
       'Creator Phone',
+      'Creator Category',
       'Creator ID',
       'Submit At',
       'Status',
@@ -242,6 +245,7 @@ export function EventManagement() {
           row.creatorType,
           row.creatorEmail,
           row.creatorPhone,
+          row.creatorCategories,
           row.creatorId,
           row.submitAt,
           row.status,
@@ -568,14 +572,14 @@ export function EventManagement() {
                 <th className="px-4 py-3 text-left text-sm font-medium">ชื่อ</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">อีเมล</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">โทรศัพท์</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">ลงทะเบียนเมื่อ</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">หมวดหมู่</th>
                 <th className="px-4 py-3 text-left text-sm font-medium"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredParticipants.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
                     ไม่พบข้อมูลผู้สนใจเข้าร่วม
                   </td>
                 </tr>
@@ -604,13 +608,9 @@ export function EventManagement() {
                       <td className="px-4 py-3 text-sm">{creator?.email || '-'}</td>
                       <td className="px-4 py-3 text-sm">{creator?.phone || '-'}</td>
                       <td className="px-4 py-3 text-sm">
-                        {new Date(participant.submitAt).toLocaleString('th-TH', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                        {creator?.categories && creator.categories.length > 0
+                          ? creator.categories.join(', ')
+                          : '-'}
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <div className="inline-flex items-center gap-2">
