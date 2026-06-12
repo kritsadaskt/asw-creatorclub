@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.10.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.9.0...v2.10.0) (2026-06-12)
+
+
+### Features
+
+* เพิ่มรายละเอียด link ของ creator ในหน้า mission ([f17b018](https://github.com/kritsadaskt/asw-creatorclub/commit/f17b0183392c430edab05361894d391c1c1b1b5a))
+
 ## [2.9.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.8.7...v2.9.0) (2026-06-12)
 
 
