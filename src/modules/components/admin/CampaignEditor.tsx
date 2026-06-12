@@ -3,7 +3,7 @@
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, GripVertical, Loader2, Plus, User, X } from 'lucide-react';
+import { ArrowLeft, GripVertical, LinkIcon, Loader2, MousePointerClick, Plus, User, X } from 'lucide-react';
 import { toast } from 'sonner';
 import Select, { type StylesConfig } from 'react-select';
 import {
@@ -16,8 +16,15 @@ import {
 import { FaFacebook, FaInstagram, FaPhone, FaTiktok, FaXTwitter, FaYoutube } from 'react-icons/fa6';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
-import type { Campaign, CreatorProfile, Project } from '../../types';
-import { getCampaignByKey, getCreatorById, getProjects, saveCampaign } from '../../utils/storage';
+import type { AffiliateLink, Campaign, CreatorProfile, Project } from '../../types';
+import {
+  getAffiliateLinksByCreatorAndCampaign,
+  getCampaignByKey,
+  getCreatorById,
+  getProjects,
+  saveCampaign,
+} from '../../utils/storage';
+import type { ShlinkVisitStats } from '@/lib/shlink-server';
 import { CreatorBadge } from '../ui/creator-badge';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { getProfileImageUrl } from '../../utils/profileImage';
@@ -142,6 +149,10 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
   const [creatorLoading, setCreatorLoading] = useState(false);
   const [isCreatorDrawerOpen, setIsCreatorDrawerOpen] = useState(false);
   const [selectedCreator, setSelectedCreator] = useState<CreatorProfile | null>(null);
+  const [creatorMissionLinks, setCreatorMissionLinks] = useState<AffiliateLink[]>([]);
+  const [missionLinksLoading, setMissionLinksLoading] = useState(false);
+  const [missionLinkClicks, setMissionLinkClicks] = useState<Record<string, ShlinkVisitStats | null>>({});
+  const [missionLinkClicksLoading, setMissionLinkClicksLoading] = useState(false);
   const [report, setReport] = useState<{
     linkCount: number;
     creatorCount: number;
@@ -189,6 +200,8 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
     try {
       setCreatorLoading(true);
       setIsCreatorDrawerOpen(true);
+      setCreatorMissionLinks([]);
+      setMissionLinkClicks({});
       const creator = await getCreatorById(creatorId);
       if (!creator) {
         toast.error('ไม่พบข้อมูลครีเอเตอร์');
@@ -204,6 +217,54 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
       setCreatorLoading(false);
     }
   };
+
+  useEffect(() => {
+    const loadCreatorMissionLinks = async () => {
+      if (!selectedCreator || !campaign?.id) {
+        setCreatorMissionLinks([]);
+        setMissionLinkClicks({});
+        return;
+      }
+
+      try {
+        setMissionLinksLoading(true);
+        setMissionLinkClicksLoading(true);
+        const [links, clickStatsRes] = await Promise.all([
+          getAffiliateLinksByCreatorAndCampaign(selectedCreator.id, campaign.id),
+          fetch(`${API_BASE_PATH}/api/admin/creators/${selectedCreator.id}/affiliate-clicks`, {
+            credentials: 'same-origin',
+          }),
+        ]);
+        setCreatorMissionLinks(links);
+
+        const clickStatsJson = (await clickStatsRes.json().catch(() => ({}))) as {
+          stats?: Record<string, ShlinkVisitStats | null>;
+        };
+        if (clickStatsRes.ok) {
+          const linkIds = new Set(links.map((link) => link.id));
+          const filteredStats: Record<string, ShlinkVisitStats | null> = {};
+          for (const [linkId, stats] of Object.entries(clickStatsJson.stats ?? {})) {
+            if (linkIds.has(linkId)) {
+              filteredStats[linkId] = stats;
+            }
+          }
+          setMissionLinkClicks(filteredStats);
+        } else {
+          setMissionLinkClicks({});
+        }
+      } catch (error) {
+        console.error('Error loading creator mission links:', error);
+        toast.error('ไม่สามารถโหลดลิงก์ใน Mission นี้ได้');
+        setCreatorMissionLinks([]);
+        setMissionLinkClicks({});
+      } finally {
+        setMissionLinksLoading(false);
+        setMissionLinkClicksLoading(false);
+      }
+    };
+
+    void loadCreatorMissionLinks();
+  }, [API_BASE_PATH, campaign?.id, selectedCreator]);
 
   const removeSelectedProject = (projectId: string) => {
     setSelectedProjectIds((prev) => prev.filter((id) => id !== projectId));
@@ -706,6 +767,8 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
           setIsCreatorDrawerOpen(open);
           if (!open) {
             setSelectedCreator(null);
+            setCreatorMissionLinks([]);
+            setMissionLinkClicks({});
           }
         }}
       >
@@ -787,6 +850,84 @@ export function CampaignEditor({ campaignKey }: CampaignEditorProps) {
                 <div>
                   <label className="text-muted-foreground mb-1">บัญชีโซเชียลมีเดีย</label>
                   {socialList(selectedCreator.socialAccounts, selectedCreator.followerCounts)}
+                </div>
+                <div>
+                  <label className="text-muted-foreground">
+                    ลิงก์ใน Mission นี้ ({creatorMissionLinks.length})
+                  </label>
+                  <div className="mt-2 rounded-lg border border-border">
+                    {missionLinksLoading ? (
+                      <div className="flex items-center gap-2 p-4 text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        กำลังโหลดลิงก์...
+                      </div>
+                    ) : creatorMissionLinks.length === 0 ? (
+                      <p className="p-4 text-muted-foreground">ยังไม่มีลิงก์ใน Mission นี้</p>
+                    ) : (
+                      <ul className="divide-y divide-border">
+                        {creatorMissionLinks.map((link) => {
+                          const projectName = link.projectId
+                            ? projects.find((project) => project.id === link.projectId)?.name ?? 'ไม่ระบุโครงการ'
+                            : 'ไม่ระบุโครงการ';
+                          const clicks = missionLinkClicks[link.id]?.total;
+
+                          return (
+                            <li key={link.id} className="space-y-1.5 p-3">
+                              <a
+                                href={link.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="break-all text-sm text-primary hover:underline"
+                                title={link.url}
+                              >
+                                {link.url}
+                              </a>
+                              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                                <span>{projectName}</span>
+                                <span className="inline-flex items-center gap-1">
+                                  {missionLinkClicksLoading ? (
+                                    <>
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                      กำลังโหลดคลิก...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <MousePointerClick className="h-3 w-3" />
+                                      {typeof clicks === 'number' ? clicks.toLocaleString() : 'N/A'} คลิก
+                                    </>
+                                  )}
+                                </span>
+                                <span>
+                                  {new Date(link.createdAt).toLocaleDateString('th-TH', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                  })}
+                                </span>
+                              </div>
+                              {link.postLinks && link.postLinks.length > 0 && (
+                                <div className="space-y-1 border-t border-border/60 pt-2">
+                                  <p className="text-xs font-medium text-foreground">ลิงก์โพสต์ที่ส่งมา</p>
+                                  {link.postLinks.map((postLink, index) => (
+                                    <a
+                                      key={`${link.id}-post-${index}`}
+                                      href={postLink}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-start gap-1.5 break-all text-xs text-primary hover:underline"
+                                    >
+                                      <LinkIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                                      {postLink}
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
                 </div>
               </>
             ) : (

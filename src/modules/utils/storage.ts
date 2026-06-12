@@ -568,6 +568,25 @@ export const getAffiliateLinksByCreator = async (creatorId: string): Promise<Aff
   return (data || []).map(mapDbToAffiliateLink);
 };
 
+export const getAffiliateLinksByCreatorAndCampaign = async (
+  creatorId: string,
+  campaignId: string,
+): Promise<AffiliateLink[]> => {
+  const { data, error } = await supabase
+    .from('affiliate_links')
+    .select('*')
+    .eq('creator_id', creatorId)
+    .eq('campaign_id', campaignId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error getting affiliate links by Creator and campaign:', error);
+    throw error;
+  }
+
+  return (data || []).map(mapDbToAffiliateLink);
+};
+
 // Helper function to map database row to AffiliateLink
 const mapDbToAffiliateLink = (row: any): AffiliateLink => ({
   id: row.id,
