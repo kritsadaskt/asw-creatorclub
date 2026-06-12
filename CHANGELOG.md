@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.9.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.8.7...v2.9.0) (2026-06-12)
+
+
+### Features
+
+* hotfix - fade website color to dark 90% ([83605aa](https://github.com/kritsadaskt/asw-creatorclub/commit/83605aafa391aa770863e76d55db65fc644a32ec))
+
 ### [2.8.7](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.8.6...v2.8.7) (2026-06-10)
 
 
