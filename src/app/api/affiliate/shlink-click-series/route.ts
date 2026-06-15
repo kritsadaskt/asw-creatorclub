@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAffiliateLinkDailyClicksInRange } from '@/lib/affiliate-link-click-cache';
-import { getServerSession } from '@/modules/utils/auth';
+import { requireApprovedCreatorSession } from '@/lib/require-approved-creator';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import {
   fetchShlinkShortUrlMeta,
@@ -45,12 +45,10 @@ function buildPointsFromDailyMap(
 }
 
 export async function GET(request: NextRequest) {
-  const session = getServerSession(request);
-  if (!session || session.role !== 'creator') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const auth = await requireApprovedCreatorSession(request);
+  if (!auth.ok) return auth.response;
 
-  const creatorId = session.id;
+  const creatorId = auth.session.id;
   const apiKey = process.env.SHLINK_API_KEY;
   const linkId = request.nextUrl.searchParams.get('linkId')?.trim();
   const daysParam = Number(request.nextUrl.searchParams.get('days') || '30');

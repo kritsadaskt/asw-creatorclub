@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
 import { CreatorProfile } from '../../types';
-import { getCreatorByEmail, getCreatorByFacebookId, setCurrentUser, generateUUID, getProjects } from '../../utils/storage';
+import { getCreatorByEmail, getCreatorByFacebookId, generateUUID, getProjects } from '../../utils/storage';
 import { loginWithFacebook, getFacebookUserInfo, fetchAndUploadFacebookProfileImage } from '../../utils/facebook';
 import { hashPassword, validatePassword, validatePasswordConfirm } from '../../utils/password';
 import { UserPlus, Eye, EyeOff } from 'lucide-react';
@@ -12,6 +13,7 @@ import Select from 'react-select';
 import { Lemon8Icon } from '../../utils/svg';
 import SocialAccounts from '../layout/SocialAccounts';
 import { BASE_PATH } from '@/lib/publicPath';
+import { creatorApprovalBlockMessage, isCreatorLoginAllowed } from '@/lib/creator-approval';
 import { formatGenericErrorToast } from '../../utils/toast-error';
 import { Switch } from '../ui/switch';
 import Link from 'next/link';
@@ -86,6 +88,7 @@ export function RegisterSection({
   inviteType,
   creatorTypesFromServer,
 }: RegisterSectionProps) {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -428,11 +431,10 @@ export function RegisterSection({
       }
 
       if (existingCreator) {
-        // User already registered, just log them in
-        setCurrentUser(existingCreator.id, 'creator');
-        toast.success('เข้าสู่ระบบสำเร็จ!', {
-          description: `ยินดีต้อนรับกลับ ${existingCreator.name}`,
-        });
+        if (!isCreatorLoginAllowed(existingCreator.approvalStatus)) {
+          setError(creatorApprovalBlockMessage(existingCreator.approvalStatus));
+          return;
+        }
         onLogin(existingCreator.id, 'creator');
         return;
       }
@@ -619,12 +621,11 @@ export function RegisterSection({
       // Clear pending Facebook data
       sessionStorage.removeItem('pendingFacebookId');
       sessionStorage.removeItem('pendingFacebookPicture');
-      
-      setCurrentUser(newCreator.id, 'creator');
+
       toast.success('ลงทะเบียนสำเร็จ!', {
-        description: 'ยินดีต้อนรับเข้าสู่ AssetWise Creators Club'
+        description: 'บัญชีของคุณอยู่ระหว่างรอการอนุมัติ',
       });
-      onLogin(newCreator.id, 'creator', '/thank-you');
+      router.push('/thank-you');
     } catch (err) {
       console.error('Error:', err);
       setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');

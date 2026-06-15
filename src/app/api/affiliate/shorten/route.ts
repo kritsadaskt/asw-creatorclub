@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logServerError, requestLogContext } from '@/lib/log-server-error';
+import { requireApprovedCreatorSession } from '@/lib/require-approved-creator';
 import { getShlinkBaseUrl } from '@/lib/shlink-server';
 
 export async function POST(request: NextRequest) {
+  const auth = await requireApprovedCreatorSession(request);
+  if (!auth.ok) return auth.response;
+
   const apiKey = process.env.SHLINK_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: 'Shlink API key not configured' }, { status: 503 });
   }
 
-  let creatorId: string;
+  const creatorId = auth.session.id;
   let projectUrl: string;
   let projectId: string | undefined;
   let campaignId: string | undefined;
@@ -21,7 +25,6 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    creatorId = body.creatorId;
     projectUrl = body.projectUrl;
     projectId = typeof body.projectId === 'string' ? body.projectId : undefined;
     campaignId = typeof body.campaignId === 'string' ? body.campaignId : undefined;
@@ -32,9 +35,6 @@ export async function POST(request: NextRequest) {
     utmContent = body.utmContent ?? body.utmId;
     utmOverride = body.utmOverride && typeof body.utmOverride === 'object' ? body.utmOverride : null;
 
-    if (!creatorId || typeof creatorId !== 'string') {
-      return NextResponse.json({ error: 'creatorId is required' }, { status: 400 });
-    }
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }

@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAffiliateLinkFunnelStats } from '@/lib/affiliate-funnel-stats';
 import { logServerError, requestLogContext } from '@/lib/log-server-error';
-import { getServerSession } from '@/modules/utils/auth';
+import { requireApprovedCreatorSession } from '@/lib/require-approved-creator';
 
 export type { AffiliateFunnelStatsResponse } from '@/modules/types/affiliateFunnel';
 
 export async function GET(request: NextRequest) {
-  const session = getServerSession(request);
-  if (!session || session.role !== 'creator') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const auth = await requireApprovedCreatorSession(request);
+  if (!auth.ok) return auth.response;
 
   const linkId = request.nextUrl.searchParams.get('linkId')?.trim();
   if (!linkId) {
@@ -17,7 +15,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const result = await getAffiliateLinkFunnelStats(session.id, linkId);
+    const result = await getAffiliateLinkFunnelStats(auth.session.id, linkId);
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: result.status });
     }

@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
+import { creatorApprovalBlockMessage } from '@/lib/creator-approval';
 import Link from 'next/link';
 import { CampaignLayout } from '../layout/CampaignLayout';
 import { fetchAffiliateProjects, type AffiliateProject } from '../../utils/affiliate';
@@ -44,7 +46,6 @@ import {
   saveAffiliateLinkIfUrlNewForCreator,
 } from '@/modules/utils/storage';
 import type { AffiliateMaterial, Campaign } from '@/modules/types';
-import { toast } from 'sonner';
 import { StatusLabel } from '../ui/status-label';
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || '';
@@ -74,8 +75,9 @@ export function CampaignAffiliatePage({ campaignKey }: AffiliatePageProps) {
 }
 
 function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
-  const { currentUserId, handleLogin: sessionLogin } = useSession();
+  const { currentUserId, handleLogin: sessionLogin, isCreatorApproved, approvalStatus } = useSession();
   const isLoggedIn = !!currentUserId;
+  const canGetAffiliateLink = isLoggedIn && isCreatorApproved;
   const isCampaignMode = !!campaignKey;
   const [projects, setProjects] = useState<AffiliateProject[]>([]);
   const [activeCampaigns, setActiveCampaigns] = useState<Campaign[]>([]);
@@ -177,7 +179,7 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
 
   // Generate referral short link when drawer opens (pass project — state from setSelectedProject is not updated until after this handler runs)
   const generateReferralLink = async (project: AffiliateProject) => {
-    if (!currentUserId) return;
+    if (!currentUserId || !isCreatorApproved) return;
     setIsShorteningLink(true);
     setShortUrl(null);
     const effectiveUtmSource = selectedCampaign?.utmSource || 'creator_club_affiliate';
@@ -203,9 +205,9 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
     try {
       const res = await fetch(`${BASE_PATH}/api/affiliate/shorten`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          creatorId: currentUserId,
           projectUrl: project.materialsUrl,
           projectId: project.id,
           campaignId: selectedCampaign?.id,
@@ -310,6 +312,22 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
       default:
         return <FileText className="w-4 h-4 text-gray-500" />;
     }
+  };
+
+  const handleGetLinkClick = (project: AffiliateProject) => {
+    if (!isLoggedIn) {
+      setIsLoginModalOpen(true);
+      return;
+    }
+    if (!canGetAffiliateLink) {
+      toast.error(
+        approvalStatus != null
+          ? creatorApprovalBlockMessage(approvalStatus)
+          : 'ยังไม่สามารถสร้างลิงก์ได้',
+      );
+      return;
+    }
+    openDrawer(project);
   };
 
   const openDrawer = (project: AffiliateProject) => {
@@ -531,13 +549,7 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
                                 <div className="flex lg:hidden">
                                   <button
                                     type="button"
-                                    onClick={() => {
-                                      if (!isLoggedIn) {
-                                        setIsLoginModalOpen(true);
-                                        return;
-                                      }
-                                      openDrawer(project);
-                                    }}
+                                    onClick={() => handleGetLinkClick(project)}
                                     className="inline-flex items-center justify-center rounded-lg border border-primary px-3 py-1.5 font-medium text-primary hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
                                   >
                                     Get Link
@@ -555,13 +567,7 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
                             <div className="flex justify-center">
                               <button
                                 type="button"
-                                onClick={() => {
-                                  if (!isLoggedIn) {
-                                    setIsLoginModalOpen(true);
-                                    return;
-                                  }
-                                  openDrawer(project);
-                                }}
+                                onClick={() => handleGetLinkClick(project)}
                                 className="inline-flex items-center justify-center rounded-lg border border-primary px-3 py-1.5 font-medium text-primary hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
                               >
                                 Get Link <ArrowRight className="w-3.5 h-3.5" />

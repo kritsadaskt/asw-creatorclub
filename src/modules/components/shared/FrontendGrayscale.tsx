@@ -2,16 +2,33 @@
 
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { BASE_PATH } from '@/lib/publicPath';
 
-function isAdminPath(pathname: string): boolean {
-  return pathname === '/admin' || pathname.startsWith('/admin/');
+/** Paths (without basePath) that use the frontend grayscale overlay. */
+const GRAYSCALE_PATHS = ['/', '/affiliate', '/friendgetfriends'] as const;
+
+function normalizePath(pathname: string): string {
+  const withoutBase = pathname.startsWith(BASE_PATH)
+    ? pathname.slice(BASE_PATH.length) || '/'
+    : pathname;
+  if (withoutBase.endsWith('/') && withoutBase.length > 1) {
+    return withoutBase.slice(0, -1);
+  }
+  return withoutBase;
+}
+
+function isGrayscalePath(pathname: string): boolean {
+  const path = normalizePath(pathname);
+  return GRAYSCALE_PATHS.some(
+    (allowed) => path === allowed || (allowed !== '/' && path.startsWith(`${allowed}/`)),
+  );
 }
 
 const BODY_CLASS = 'site-grayscale';
 
 export function FrontendGrayscale({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? '';
-  const applyGrayscale = !isAdminPath(pathname);
+  const applyGrayscale = isGrayscalePath(pathname);
 
   useEffect(() => {
     if (applyGrayscale) {

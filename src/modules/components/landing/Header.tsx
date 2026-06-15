@@ -54,6 +54,7 @@ function HeaderUserDropdownMenu({
   avatarUrl,
   displayName,
   role,
+  creatorApproved,
   onAvatarLoadError,
   onLogout,
   router,
@@ -61,6 +62,7 @@ function HeaderUserDropdownMenu({
   avatarUrl: string | null;
   displayName: string | null;
   role: 'creator' | 'admin' | 'marketing' | null;
+  creatorApproved: boolean;
   onAvatarLoadError: () => void;
   onLogout: () => void;
   router: HeaderNavRouter;
@@ -118,7 +120,7 @@ function HeaderUserDropdownMenu({
             </DropdownMenuItem>
           </>
         )}
-        {role === 'creator' && (
+        {role === 'creator' && creatorApproved && (
           <DropdownMenuItem
             onClick={() => {
               router.push('/profile');
@@ -215,7 +217,7 @@ export function Header({
   navTabs,
   fixed = true,
 }: HeaderProps) {
-  const { handleLogout: sessionLogout, handleLogin: sessionLogin } = useSession();
+  const { handleLogout: sessionLogout, handleLogin: sessionLogin, isCreatorApproved } = useSession();
   const loginHandler = onLogin ?? sessionLogin;
   const pathname = usePathname();
   const router = useRouter();
@@ -314,6 +316,7 @@ export function Header({
       avatarUrl={avatarUrl}
       displayName={displayName}
       role={role}
+      creatorApproved={isCreatorApproved}
       onAvatarLoadError={() => setAvatarUrl(null)}
       onLogout={handleLogout}
       router={router}
