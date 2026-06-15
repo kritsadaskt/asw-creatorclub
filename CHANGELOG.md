@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.10.1](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.10.0...v2.10.1) (2026-06-15)
+
+
+### Bug Fixes
+
+* แก้ Layout Hydration ([6ea69fa](https://github.com/kritsadaskt/asw-creatorclub/commit/6ea69faf22ab5cda3dc735d42b5b0e302b9c99d6))
+* แก้ปัญหากล่อง login อยุ่กลาง document หลังจากเฟดสีเว็บ ([21b1fa4](https://github.com/kritsadaskt/asw-creatorclub/commit/21b1fa4e6cd2ede2d46f65c7a8d7c01362b8d8c0))
+
 ## [2.10.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.9.0...v2.10.0) (2026-06-12)
 
 
