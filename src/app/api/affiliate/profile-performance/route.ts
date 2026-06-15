@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCreatorAffiliatePerformance } from '@/lib/creator-affiliate-performance';
 import { logServerError, requestLogContext } from '@/lib/log-server-error';
-import { getServerSession } from '@/modules/utils/auth';
+import { requireApprovedCreatorSession } from '@/lib/require-approved-creator';
 
 export type { CreatorAffiliatePerformance } from '@/lib/creator-affiliate-performance';
 
 export async function GET(request: NextRequest) {
-  const session = getServerSession(request);
-  if (!session || session.role !== 'creator') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const auth = await requireApprovedCreatorSession(request);
+  if (!auth.ok) return auth.response;
 
   try {
-    const body = await getCreatorAffiliatePerformance(session.id);
+    const body = await getCreatorAffiliatePerformance(auth.session.id);
     return NextResponse.json(body, { status: 200 });
   } catch (error) {
     console.error('affiliate profile-performance error:', error);

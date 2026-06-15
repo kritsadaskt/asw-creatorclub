@@ -7,14 +7,13 @@ import {
   saveCreator, 
   getCreatorByEmail, 
   getCreatorByFacebookId,
-  setCurrentUser, 
   generateUUID,
   authenticateCreator 
 } from '../../utils/storage';
 import { loginWithFacebook, getFacebookUserInfo } from '../../utils/facebook';
 import { hashPassword, validatePassword, validatePasswordConfirm } from '../../utils/password';
-import { setSession } from '../../utils/auth';
 import { BASE_PATH } from '@/lib/publicPath';
+import { creatorApprovalBlockMessage, isCreatorLoginAllowed } from '@/lib/creator-approval';
 import { formatGenericErrorToast } from '../../utils/toast-error';
 import { loginAdminOrMarketingWithSupabase } from '../../utils/admin-marketing-auth';
 
@@ -65,16 +64,10 @@ export function LoginRegister({ onLogin }: LoginRegisterProps) {
       }
 
       if (creator) {
-        if (creator.approvalStatus === 0) {
-          setError('บัญชีนี้ถูกปฏิเสธการอนุมัติและไม่สามารถเข้าสู่ระบบได้');
+        if (!isCreatorLoginAllowed(creator.approvalStatus)) {
+          setError(creatorApprovalBlockMessage(creator.approvalStatus));
           return;
         }
-        // User exists, log them in
-        setCurrentUser(creator.id, 'creator');
-        setSession({ id: creator.id, role: 'creator' });
-        toast.success('เข้าสู่ระบบสำเร็จ!', {
-          description: `ยินดีต้อนรับ ${creator.name}`,
-        });
         onLogin(creator.id, 'creator');
       } else if (isLogin) {
         // Login mode but user not found
@@ -109,11 +102,6 @@ export function LoginRegister({ onLogin }: LoginRegisterProps) {
       if (isLogin) {
         const adminOrMkt = await loginAdminOrMarketingWithSupabase(email.trim(), password);
         if (adminOrMkt.status === 'ok') {
-          setCurrentUser(adminOrMkt.id, adminOrMkt.role);
-          setSession({ id: adminOrMkt.id, role: adminOrMkt.role });
-          toast.success('เข้าสู่ระบบสำเร็จ!', {
-            description: `ยินดีต้อนรับ ${adminOrMkt.name}`,
-          });
           onLogin(adminOrMkt.id, adminOrMkt.role);
           return;
         }
@@ -125,16 +113,11 @@ export function LoginRegister({ onLogin }: LoginRegisterProps) {
         // Login with password
         const creator = await authenticateCreator(email, password);
         if (creator) {
-          setCurrentUser(creator.id, 'creator');
-          setSession({ id: creator.id, role: 'creator' });
-          toast.success('เข้าสู่ระบบสำเร็จ!', {
-            description: `ยินดีต้อนรับ ${creator.name}`
-          });
           onLogin(creator.id, 'creator');
         } else {
           const existingCreator = await getCreatorByEmail(email);
-          if (existingCreator?.approvalStatus === 0) {
-            setError('บัญชีนี้ถูกปฏิเสธการอนุมัติและไม่สามารถเข้าสู่ระบบได้');
+          if (existingCreator && !isCreatorLoginAllowed(existingCreator.approvalStatus)) {
+            setError(creatorApprovalBlockMessage(existingCreator.approvalStatus));
           } else if (existingCreator && existingCreator.facebookId && !existingCreator.passwordHash) {
             setError('บัญชีนี้ลงทะเบียนด้วย Facebook กรุณาเข้าสู่ระบบด้วย Facebook');
           } else {
@@ -187,12 +170,9 @@ export function LoginRegister({ onLogin }: LoginRegisterProps) {
         await saveCreator(newCreator);
         await sendRegistrationPendingEmail(newCreator);
         sessionStorage.removeItem('pendingFacebookId');
-        setCurrentUser(newCreator.id, 'creator');
-        setSession({ id: newCreator.id, role: 'creator' });
         toast.success('ลงทะเบียนสำเร็จ!', {
-          description: 'ยินดีต้อนรับเข้าสู่ระบบ'
+          description: 'บัญชีของคุณอยู่ระหว่างรอการอนุมัติ',
         });
-        onLogin(newCreator.id, 'creator');
       }
     } catch (err) {
       console.error('Error:', err);

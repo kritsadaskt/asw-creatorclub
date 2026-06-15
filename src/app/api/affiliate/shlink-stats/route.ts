@@ -6,7 +6,7 @@ import {
   rowToVisitStats,
 } from '@/lib/affiliate-link-click-cache';
 import { mapWithConcurrency } from '@/lib/concurrency';
-import { getServerSession } from '@/modules/utils/auth';
+import { requireApprovedCreatorSession } from '@/lib/require-approved-creator';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import {
   fetchShlinkShortUrlMeta,
@@ -27,12 +27,10 @@ export type ShlinkStatsResponse = {
 const LIVE_CONCURRENCY = 8;
 
 export async function GET(request: NextRequest) {
-  const session = getServerSession(request);
-  if (!session || session.role !== 'creator') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const auth = await requireApprovedCreatorSession(request);
+  if (!auth.ok) return auth.response;
 
-  const creatorId = session.id;
+  const creatorId = auth.session.id;
   const apiKey = process.env.SHLINK_API_KEY;
 
   try {

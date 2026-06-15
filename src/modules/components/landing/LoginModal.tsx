@@ -9,14 +9,13 @@ import { Input } from '../shared/Input';
 import {
   getCreatorByEmail,
   getCreatorByFacebookId,
-  setCurrentUser,
   authenticateCreator,
   saveCreator,
 } from '../../utils/storage';
 import { loginWithFacebook, getFacebookUserInfo, fetchAndUploadFacebookProfileImage } from '../../utils/facebook';
 import { isFacebookProfileImageUrl } from '../../utils/profileImage';
-import { setSession } from '../../utils/auth';
 import { formatGenericErrorToast } from '../../utils/toast-error';
+import { creatorApprovalBlockMessage, isCreatorLoginAllowed } from '@/lib/creator-approval';
 import { loginAdminOrMarketingWithSupabase } from '../../utils/admin-marketing-auth';
 
 interface LoginModalProps {
@@ -50,8 +49,8 @@ export function LoginModal({ onClose, onLogin }: LoginModalProps) {
       }
 
       if (creator) {
-        if (creator.approvalStatus === 0) {
-          setError('บัญชีนี้ถูกปฏิเสธการอนุมัติและไม่สามารถเข้าสู่ระบบได้');
+        if (!isCreatorLoginAllowed(creator.approvalStatus)) {
+          setError(creatorApprovalBlockMessage(creator.approvalStatus));
           return;
         }
         // Re-host Facebook profile image if current one is from Facebook (lookaside or Graph URL often 404 in browser)
@@ -64,11 +63,6 @@ export function LoginModal({ onClose, onLogin }: LoginModalProps) {
             await saveCreator({ ...creator, profileImage: newUrl });
           }
         }
-        setCurrentUser(creator.id, 'creator');
-        setSession({ id: creator.id, role: 'creator' });
-        toast.success('เข้าสู่ระบบสำเร็จ!', {
-          description: `ยินดีต้อนรับ ${creator.name}`,
-        });
         onLogin(creator.id, 'creator');
         onClose();
       } else {
@@ -96,11 +90,6 @@ export function LoginModal({ onClose, onLogin }: LoginModalProps) {
       // Admin/Marketing login from Supabase Authentication.
       const adminOrMkt = await loginAdminOrMarketingWithSupabase(email.trim(), password);
       if (adminOrMkt.status === 'ok') {
-        setCurrentUser(adminOrMkt.id, adminOrMkt.role);
-        setSession({ id: adminOrMkt.id, role: adminOrMkt.role });
-        toast.success('เข้าสู่ระบบสำเร็จ!', {
-          description: `ยินดีต้อนรับ ${adminOrMkt.name}`,
-        });
         onLogin(adminOrMkt.id, adminOrMkt.role);
         onClose();
         return;
@@ -113,18 +102,13 @@ export function LoginModal({ onClose, onLogin }: LoginModalProps) {
       // Creator login with password
       const creator = await authenticateCreator(email, password);
       if (creator) {
-        setCurrentUser(creator.id, 'creator');
-        setSession({ id: creator.id, role: 'creator' });
-        toast.success('เข้าสู่ระบบสำเร็จ!', {
-          description: `ยินดีต้อนรับ ${creator.name}`,
-        });
         onLogin(creator.id, 'creator');
         onClose();
       } else {
         // Check if user exists but registered via Facebook
         const existingCreator = await getCreatorByEmail(email);
-        if (existingCreator?.approvalStatus === 0) {
-          setError('บัญชีนี้ถูกปฏิเสธการอนุมัติและไม่สามารถเข้าสู่ระบบได้');
+        if (existingCreator && !isCreatorLoginAllowed(existingCreator.approvalStatus)) {
+          setError(creatorApprovalBlockMessage(existingCreator.approvalStatus));
         } else if (existingCreator && existingCreator.facebookId && !existingCreator.passwordHash) {
           setError('บัญชีนี้ลงทะเบียนด้วย Facebook กรุณาเข้าสู่ระบบด้วย Facebook');
         } else {

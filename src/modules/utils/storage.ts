@@ -15,6 +15,8 @@ import { supabase } from './supabase';
 import { verifyPassword } from './password';
 import { getSession, setSession, clearSession } from './auth';
 import { sanitizeSocialAccounts } from './social-url';
+import { BASE_PATH } from '@/lib/publicPath';
+import { isCreatorLoginAllowed } from '@/lib/creator-approval';
 import {
   buildCreatorCategoryMaps,
   resolveIdsFromLabels,
@@ -454,8 +456,8 @@ export const authenticateCreator = async (
   if (!creator || !creator.passwordHash) {
     return null; // User not found or registered via Facebook
   }
-  if (creator.approvalStatus === 0) {
-    return null; // Rejected users cannot login
+  if (!isCreatorLoginAllowed(creator.approvalStatus)) {
+    return null;
   }
 
   const isValid = await verifyPassword(password, creator.passwordHash);
@@ -465,22 +467,26 @@ export const authenticateCreator = async (
 // ===== Affiliate Link Operations =====
 
 export const saveAffiliateLink = async (link: AffiliateLink): Promise<void> => {
-  const { error } = await supabase
-    .from('affiliate_links')
-    .insert({
+  const res = await fetch(`${BASE_PATH}/api/affiliate/links`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
       id: link.id,
-      creator_id: link.creatorId,
-      campaign_name: link.campaignName,
-      project_id: link.projectId,
-      campaign_id: link.campaignId,
       url: link.url,
-      post_links: link.postLinks ?? [],
-      created_at: link.createdAt
-    });
+      projectId: link.projectId,
+      campaignName: link.campaignName,
+      campaignId: link.campaignId,
+      postLinks: link.postLinks ?? [],
+      createdAt: link.createdAt,
+    }),
+  });
 
-  if (error) {
-    console.error('Error saving affiliate link:', error);
-    throw error;
+  if (!res.ok) {
+    const payload = (await res.json().catch(() => ({}))) as { error?: string };
+    const message = payload.error || 'Failed to save affiliate link';
+    console.error('Error saving affiliate link:', message);
+    throw new Error(message);
   }
 };
 
@@ -495,19 +501,6 @@ export const saveAffiliateLinkIfUrlNewForCreator = async (params: {
   const normalizedUrl = params.url.trim();
   if (!normalizedUrl) return;
 
-  const { data: existing, error: selectError } = await supabase
-    .from('affiliate_links')
-    .select('id')
-    .eq('creator_id', params.creatorId)
-    .eq('url', normalizedUrl)
-    .maybeSingle();
-
-  if (selectError) {
-    console.error('Error checking affiliate link duplicate:', selectError);
-    throw selectError;
-  }
-  if (existing) return;
-
   await saveAffiliateLink({
     id: generateUUID(),
     creatorId: params.creatorId,
@@ -521,21 +514,23 @@ export const saveAffiliateLinkIfUrlNewForCreator = async (params: {
 };
 
 export const updateAffiliateLink = async (link: AffiliateLink): Promise<void> => {
-  const { error } = await supabase
-    .from('affiliate_links')
-    .update({
-      campaign_name: link.campaignName,
-      project_id: link.projectId ?? null,
-      campaign_id: link.campaignId ?? null,
+  const res = await fetch(`${BASE_PATH}/api/affiliate/links/${link.id}`, {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      campaignName: link.campaignName,
       url: link.url,
-      post_links: link.postLinks ?? [],
-    })
-    .eq('id', link.id)
-    .eq('creator_id', link.creatorId);
+      projectId: link.projectId ?? null,
+      postLinks: link.postLinks ?? [],
+    }),
+  });
 
-  if (error) {
-    console.error('Error updating affiliate link:', error);
-    throw error;
+  if (!res.ok) {
+    const payload = (await res.json().catch(() => ({}))) as { error?: string };
+    const message = payload.error || 'Failed to update affiliate link';
+    console.error('Error updating affiliate link:', message);
+    throw new Error(message);
   }
 };
 
