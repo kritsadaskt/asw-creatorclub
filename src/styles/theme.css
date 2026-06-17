@@ -193,13 +193,3 @@
   background-position: top, center;
   background-repeat: no-repeat, no-repeat;
 }
-
-body.site-grayscale::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 30;
-  pointer-events: none;
-  -webkit-backdrop-filter: grayscale(90%);
-  backdrop-filter: grayscale(90%);
-}
