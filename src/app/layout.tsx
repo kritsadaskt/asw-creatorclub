@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
-import { FrontendGrayscale } from '@/modules/components/shared/FrontendGrayscale';
 import { SessionProvider } from '@/modules/context/SessionContext';
 import '@/styles/index.css';
 
@@ -72,9 +71,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           />
         </noscript>
         <div id="fb-root" />
-        <SessionProvider>
-          <FrontendGrayscale>{children}</FrontendGrayscale>
-        </SessionProvider>
+        <SessionProvider>{children}</SessionProvider>
       </body>
     </html>
   );
