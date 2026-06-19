@@ -551,8 +551,8 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
                                   <StatusBadge className="hidden md:flex" status={project.projectStatus ?? null} />
                                 </h4>
                                 <div className="commission-m-box lg:hidden">
-                                  <p className="text-neutral-500">
-                                    ค่าแนะนำ
+                                  <p className="text-neutral-500 text-xs">
+                                    ค่าแนะนำเริ่มต้น
                                   </p>
                                   <p className="text-accent text-xl font-medium">
                                     {project.startComm + ' บาท'}
