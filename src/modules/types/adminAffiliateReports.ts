@@ -28,6 +28,7 @@ export type AdminAffiliateSubmittedPostLinkRow = {
 };
 
 export type AdminAffiliateReportsResponse = {
+  /** All non-admin creators with affiliate links; client sorts and slices to top 10. */
   topCreators: AdminAffiliateTopCreatorRow[];
   topProjects: AdminAffiliateTopProjectRow[];
   shlinkConfigured: boolean;

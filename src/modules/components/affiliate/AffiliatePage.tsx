@@ -115,6 +115,13 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
         const matchesStatus =
           statusValue === null || (p.projectStatus ?? '') === statusValue;
         return matchesSearch && matchesStatus;
+      })
+      .sort((a, b) => {
+        const aCis =
+          a.cis_id != null && Number.isFinite(a.cis_id) ? a.cis_id : Number.POSITIVE_INFINITY;
+        const bCis =
+          b.cis_id != null && Number.isFinite(b.cis_id) ? b.cis_id : Number.POSITIVE_INFINITY;
+        return aCis - bCis;
       });
   }, [projects, searchQuery, statusFilter]);
 
@@ -523,9 +530,9 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
                     <tbody className="divide-y divide-border">
                       {paginatedProjects.map((project) => (
                         <tr key={project.id} className="hover:bg-muted/30">
-                          <td className="px-4 md:px-6 py-4">
+                          <td className="p-2 md:px-6 md:py-4">
                             <div className="flex items-center gap-4 lg:gap-7">
-                              <div className="w-45 h-auto rounded-md bg-muted overflow-hidden flex items-center justify-center text-xs text-muted-foreground aspect-square flex-shrink-0 relative">
+                              <div className="w-45 h-auto rounded-md bg-muted overflow-hidden flex items-center justify-center text-xs text-muted-foreground aspect-[3/4] flex-shrink-0 relative">
                                 {project.imageUrl || project.thumbUrl ? (
                                   // eslint-disable-next-line @next/next/no-img-element
                                   <div className="w-full h-full" style={{ backgroundImage: `url(${project.imageUrl || project.thumbUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
@@ -543,9 +550,23 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
                                   { project.name }
                                   <StatusBadge className="hidden md:flex" status={project.projectStatus ?? null} />
                                 </h4>
-                                <p className="text-neutral-500 hidden md:block mb-3">
+                                <div className="commission-m-box lg:hidden">
+                                  <p className="text-neutral-500">
+                                    ค่าแนะนำ
+                                  </p>
+                                  <p className="text-accent text-xl font-medium">
+                                    {project.startComm + ' บาท'}
+                                  </p>  
+                                </div>
+
+                                <p className="text-neutral-500 text-xs mb-3 md:hidden">
+                                  {project.description?.slice(0, 50)}...
+                                </p>
+
+                                <p className="text-neutral-500 mb-3 hidden md:block">
                                   {project.description}
                                 </p>
+                                
                                 <div className="flex lg:hidden">
                                   <button
                                     type="button"
@@ -559,7 +580,7 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
                             </div>
                           </td>
                           <td className="px-4 md:px-6 py-4 align-center hidden lg:table-cell">
-                            <div className="text-muted-foreground max-w-xs text-center">
+                            <div className="text-accent text-xl font-medium max-w-xs text-center">
                               {project.commission || 'จะประกาศค่าแนะนำเร็วๆ นี้'}
                             </div>
                           </td>
