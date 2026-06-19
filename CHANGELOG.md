@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.10.2](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.10.1...v2.10.2) (2026-06-19)
+
+
+### Bug Fixes
+
+* remove grayscale filter from frontend ([70b4c32](https://github.com/kritsadaskt/asw-creatorclub/commit/70b4c32ca71d9b0611367fd7686acbe25c154130))
+* update package.json ([d6480e5](https://github.com/kritsadaskt/asw-creatorclub/commit/d6480e5506f8aa4c4cb9b2cc2e36bf5cc8099627))
+* update paclage-lock ([17718c5](https://github.com/kritsadaskt/asw-creatorclub/commit/17718c54a2b82302a474a80e5c5e45eb9d74bca4))
+* แก้บั๊ก user ที่ยัง pending หรือ login ค้างไว้สามารถเข้าหน้า dashboard และ get link ได้ ([d71a69e](https://github.com/kritsadaskt/asw-creatorclub/commit/d71a69e820e7469b0e4f3a0baa79efe5442c9067))
+* แก้ปัญหาออกเลขเวอร์ชันไม่ได้ ([18f971f](https://github.com/kritsadaskt/asw-creatorclub/commit/18f971f5c4b68441f993ec8e082325aeec6f9792))
+* ปรับ grayscale เฉพาะหน้า FE ([abd839a](https://github.com/kritsadaskt/asw-creatorclub/commit/abd839ab2edf82241103d86a8d4105459516a658))
+
 ### [2.10.1](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.10.0...v2.10.1) (2026-06-15)
 
 
