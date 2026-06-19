@@ -66,7 +66,9 @@ export function AdminAffiliateReports({ data, loading, error, onSelectCreator }:
       if (creatorSortBy === 'clicks') {
         return (b.totalClicks ?? 0) - (a.totalClicks ?? 0);
       }
-      return b.linkCount - a.linkCount;
+      const linkDiff = b.linkCount - a.linkCount;
+      if (linkDiff !== 0) return linkDiff;
+      return (b.totalClicks ?? 0) - (a.totalClicks ?? 0);
     });
     return sorted.slice(0, 10);
   }, [data, creatorSortBy]);
