@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.10.3](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.10.2...v2.10.3) (2026-06-19)
+
+
+### Bug Fixes
+
+* update package.lock ([e2c05f6](https://github.com/kritsadaskt/asw-creatorclub/commit/e2c05f6e13c255a348c71649511fcbea2095f9d1))
+* แก้บั๊ก user ที่ยัง pending หรือ login ค้างไว้สามารถเข้าหน้า dashboard และ get link ได้ ([02360e9](https://github.com/kritsadaskt/asw-creatorclub/commit/02360e9c82037bd378ede38e1b4669882a043c81))
+* ปรับ mobile layout ของ FGF ([87c31fa](https://github.com/kritsadaskt/asw-creatorclub/commit/87c31fae6268a4d9fa9ab26ece7071fd94f1218c))
+* ปรับหน้า aff project listed ([699b94d](https://github.com/kritsadaskt/asw-creatorclub/commit/699b94de83bce7460e57ade17179360219a2c885))
+* เพิ่ม option เรียงอันดับ creator จากยอดลิ้งก์ หรือคลิกรวม ([5121790](https://github.com/kritsadaskt/asw-creatorclub/commit/5121790e1c2ff7fca0f13e3c696d7edb999baab4))
+
 ### [2.10.2](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.10.1...v2.10.2) (2026-06-19)
 
 
