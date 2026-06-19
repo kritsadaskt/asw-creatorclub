@@ -1,9 +1,10 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { AdminAffiliateReportsResponse } from '@/modules/types/adminAffiliateReports';
 import { CreatorBadge } from '../ui/creator-badge';
+import { ToggleGroup, ToggleGroupItem } from '../ui/toggle-group';
 import { cn } from '../ui/utils';
 import { formatStatsSyncedAtBangkok } from '@/lib/format-stats-synced-at';
 
@@ -15,14 +16,18 @@ type Props = {
   onSelectCreator?: (creatorId: string) => void | Promise<void>;
 };
 
+type CreatorSortBy = 'links' | 'clicks';
+
 function TableShell({
   title,
   description,
+  headerAction,
   children,
   className,
 }: {
   title: string;
   description?: string;
+  headerAction?: ReactNode;
   children: ReactNode;
   className?: string;
 }) {
@@ -34,14 +39,43 @@ function TableShell({
         className,
       )}
     >
-      <h3 className="mb-1 text-neutral-700 text-lg font-medium">{title}</h3>
-      {description ? <p className="mb-4 text-sm text-muted-foreground">{description}</p> : <div className="mb-4" />}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h3 className="text-neutral-700 text-lg font-medium">{title}</h3>
+          {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
+        </div>
+        {headerAction}
+      </div>
       {children}
     </div>
   );
 }
 
 export function AdminAffiliateReports({ data, loading, error, onSelectCreator }: Props) {
+  const [creatorSortBy, setCreatorSortBy] = useState<CreatorSortBy>('links');
+
+  const showClicksColumn = Boolean(
+    data &&
+      (data.shlinkConfigured ||
+        (typeof data.statsSyncedAt === 'string' && data.statsSyncedAt.length > 0)),
+  );
+
+  const rankedCreators = useMemo(() => {
+    if (!data) return [];
+    const sorted = [...data.topCreators].sort((a, b) => {
+      if (creatorSortBy === 'clicks') {
+        return (b.totalClicks ?? 0) - (a.totalClicks ?? 0);
+      }
+      return b.linkCount - a.linkCount;
+    });
+    return sorted.slice(0, 10);
+  }, [data, creatorSortBy]);
+
+  const creatorSortDescription =
+    creatorSortBy === 'clicks'
+      ? 'เรียงตามยอดคลิกรวม (มากสุดก่อน)'
+      : 'เรียงตามจำนวนลิงก์ที่สร้าง (มากสุดก่อน)';
+
   if (loading) {
     return (
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -70,10 +104,8 @@ export function AdminAffiliateReports({ data, loading, error, onSelectCreator }:
     return null;
   }
 
-  const { topCreators, topProjects, shlinkConfigured, statsSyncedAt } = data;
+  const { topProjects, shlinkConfigured, statsSyncedAt } = data;
   const syncedLabel = formatStatsSyncedAtBangkok(statsSyncedAt ?? null);
-  const showClicksColumn =
-    shlinkConfigured || (typeof statsSyncedAt === 'string' && statsSyncedAt.length > 0);
 
   return (
     <div className="space-y-4">
@@ -93,11 +125,38 @@ export function AdminAffiliateReports({ data, loading, error, onSelectCreator }:
           title="10 อันดับครีเอเตอร์"
           description={
             onSelectCreator
-              ? 'เรียงตามจำนวนลิงก์ที่สร้าง (มากสุดก่อน) พร้อมยอดคลิกรวม — คลิกชื่อเพื่อดูรายละเอียด'
-              : 'เรียงตามจำนวนลิงก์ที่สร้าง (มากสุดก่อน) พร้อมยอดคลิกรวม'
+              ? `${creatorSortDescription} — คลิกชื่อเพื่อดูรายละเอียด`
+              : creatorSortDescription
+          }
+          headerAction={
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              size="sm"
+              value={creatorSortBy}
+              onValueChange={(value) => {
+                if (value === 'links' || value === 'clicks') {
+                  setCreatorSortBy(value);
+                }
+              }}
+              aria-label="เรียงลำดับครีเอเตอร์"
+              className="shrink-0"
+            >
+              <ToggleGroupItem value="links" aria-label="เรียงตามจำนวนลิงก์" className='px-4'>
+                จำนวนลิงก์
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="clicks"
+                aria-label="เรียงตามยอดคลิกรวม"
+                disabled={!showClicksColumn}
+                className='px-4'
+              >
+                คลิกรวม
+              </ToggleGroupItem>
+            </ToggleGroup>
           }
         >
-          {topCreators.length === 0 ? (
+          {rankedCreators.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6 text-center">ยังไม่มีข้อมูลลิงก์</p>
           ) : (
             <div className="overflow-x-auto">
@@ -111,7 +170,7 @@ export function AdminAffiliateReports({ data, loading, error, onSelectCreator }:
                   </tr>
                 </thead>
                 <tbody>
-                  {topCreators.map((row, idx) => (
+                  {rankedCreators.map((row, idx) => (
                     <tr key={row.creatorId} className="border-b border-border/80">
                       <td className="py-2.5 pr-3 text-muted-foreground">{idx + 1}</td>
                       <td className="py-2.5 pr-3 text-foreground align-top">

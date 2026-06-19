@@ -227,34 +227,9 @@ export async function GET(request: NextRequest) {
 
     const linksWithSubmittedPosts = submittedPostAffiliateLinks.length;
 
-    const sortedCreators = [...creatorLinkCount.entries()]
-      .filter(([creatorId]) => !adminCreatorIds.has(creatorId))
-      .sort((a, b) => b[1] - a[1]);
     const creatorEntriesExcludingAdmin = [...creatorLinkCount.entries()].filter(
       ([creatorId]) => !adminCreatorIds.has(creatorId),
     );
-
-    const topCreatorEntries = sortedCreators.slice(0, 10);
-    const topCreatorIds = topCreatorEntries.map(([id]) => id);
-
-    const nameByCreatorId = new Map<string, string>();
-    const inviteTypeByCreatorId = new Map<string, string>();
-    if (topCreatorIds.length > 0) {
-      const { data: profiles, error: profError } = await supabaseAdmin
-        .from('profiles')
-        .select('id, name, lastname, type')
-        .in('id', topCreatorIds);
-
-      if (profError) {
-        console.error('affiliate-reports profiles:', profError);
-      } else {
-        for (const p of profiles ?? []) {
-          const r = p as { id: string; name?: string | null; lastname?: string | null; type?: string | null };
-          nameByCreatorId.set(r.id, displayNameFromProfile(r.name, r.lastname));
-          inviteTypeByCreatorId.set(r.id, (r.type ?? '').trim());
-        }
-      }
-    }
 
     const apiKey = process.env.SHLINK_API_KEY;
     const shlinkConfigured = Boolean(apiKey);
@@ -328,18 +303,35 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const topCreators: AdminAffiliateTopCreatorRow[] = [];
-    for (const [creatorId, linkCount] of topCreatorEntries) {
-      const displayName = nameByCreatorId.get(creatorId) ?? creatorId.slice(0, 8);
-      const inviteType = inviteTypeByCreatorId.get(creatorId) ?? '';
-      topCreators.push({
+    const rankingCreatorIds = creatorEntriesExcludingAdmin.map(([id]) => id);
+    const nameByCreatorId = new Map<string, string>();
+    const inviteTypeByCreatorId = new Map<string, string>();
+    if (rankingCreatorIds.length > 0) {
+      const { data: profiles, error: profError } = await supabaseAdmin
+        .from('profiles')
+        .select('id, name, lastname, type')
+        .in('id', rankingCreatorIds);
+
+      if (profError) {
+        console.error('affiliate-reports profiles:', profError);
+      } else {
+        for (const p of profiles ?? []) {
+          const r = p as { id: string; name?: string | null; lastname?: string | null; type?: string | null };
+          nameByCreatorId.set(r.id, displayNameFromProfile(r.name, r.lastname));
+          inviteTypeByCreatorId.set(r.id, (r.type ?? '').trim());
+        }
+      }
+    }
+
+    const topCreators: AdminAffiliateTopCreatorRow[] = creatorEntriesExcludingAdmin.map(
+      ([creatorId, linkCount]) => ({
         creatorId,
-        displayName,
-        inviteType,
+        displayName: nameByCreatorId.get(creatorId) ?? creatorId.slice(0, 8),
+        inviteType: inviteTypeByCreatorId.get(creatorId) ?? '',
         linkCount,
         totalClicks: hasClickSource ? (clicksByCreator.get(creatorId) ?? 0) : null,
-      });
-    }
+      }),
+    );
 
     const projectRanked = [...projectAgg.entries()]
       .map(([projectId, agg]) => ({
