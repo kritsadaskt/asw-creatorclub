@@ -28,7 +28,15 @@ const buildApprovalEmailHtml = (creator: CreatorProfile) => {
               <table width="750" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #ffffff; border-radius: 16px;">
                 <tr>
                   <td align="center">
-                    <img style="max-width: 100%;" src="https://assetwise.co.th/wp-content/uploads/2026/03/asw-creatorclub_approved_email_1080px.jpg" alt="CONGRATULATIONS! คุณได้รับคัดเลือกให้เข้าร่วม AssetWise Creator Club" />
+                    <a title="AssetWise Creator Club - Line Openchat"
+                      href="https://line.me/ti/g2/5x4meOiM_5Ye8rHJlKs3flrchJ6-Bm1AuT9myg?utm_source=invitation&utm_medium=link_copy&utm_campaign=default&utm_content=comfirmation_email"
+                    >
+                      <img
+                        style="max-width: 100%"
+                        src="https://assetwise.co.th/wp-content/uploads/2026/03/asw-creatorclub_approved_email_1080px.jpg"
+                        alt="CONGRATULATIONS! คุณได้รับคัดเลือกให้เข้าร่วม AssetWise Creator Club"
+                      />
+                    </a>
                   </td>
                 </tr>
               </table>
