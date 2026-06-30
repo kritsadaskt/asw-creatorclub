@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.10.4](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.10.3...v2.10.4) (2026-06-30)
+
+
+### Bug Fixes
+
+* เพิ่ม link ไป Openchat ใน email ([f3493d5](https://github.com/kritsadaskt/asw-creatorclub/commit/f3493d5f37a53ad191997875a74adcaee795163e))
+
 ### [2.10.3](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.10.2...v2.10.3) (2026-06-19)
 
 
