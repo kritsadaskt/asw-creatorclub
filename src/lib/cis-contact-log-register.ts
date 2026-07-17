@@ -5,7 +5,7 @@ import {
 
 const CIS_CONTACT_LOG_ENDPOINT = 'https://api.assetwise.co.th/api/Customer/GetContactLogRegister';
 
-export const CIS_CONTACT_LOG_UTM_SOURCES = ['creatorclub', 'creator_club_affiliate'] as const;
+export const CIS_CONTACT_LOG_UTM_SOURCES = ['creator_club_affiliate', 'creatorclub'] as const;
 
 export type CisContactLogRow = ContactLogLike & {
   ContactLogID?: number | string;

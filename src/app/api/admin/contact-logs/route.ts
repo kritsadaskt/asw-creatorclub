@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { fetchCreatorClubContactLogs } from '@/lib/cis-contact-log-register';
 import { filterExcludedContactLogsResponse } from '@/lib/excluded-contact-log-leads';
 import { logServerError, requestLogContext } from '@/lib/log-server-error';
 import { getServerSession } from '@/modules/utils/auth';
@@ -8,7 +9,7 @@ import { getServerSession } from '@/modules/utils/auth';
  *
  * Fetches UTM customer registration logs from the external AssetWise CIS API.
  * Query Parameters:
- *  - utm_source (required)
+ *  - utm_source (optional)
  *  - utm_campaign (optional)
  *  - utm_medium (optional)
  */
@@ -25,7 +26,26 @@ export async function GET(request: NextRequest) {
     const utmMedium = searchParams.get('utm_medium')?.trim();
 
     if (!utmSource) {
-      return NextResponse.json({ error: 'Missing required parameter: utm_source' }, { status: 400 });
+      const logs = await fetchCreatorClubContactLogs();
+      if (logs == null) {
+        return NextResponse.json(
+          { error: 'Failed to fetch contact logs from external API' },
+          { status: 502 },
+        );
+      }
+
+      const filteredLogs = logs.filter((row) => {
+        const matchesCampaign =
+          !utmCampaign || String(row.utm_campaign ?? '').trim() === utmCampaign;
+        const matchesMedium =
+          !utmMedium || String(row.utm_medium ?? '').trim() === utmMedium;
+        return matchesCampaign && matchesMedium;
+      });
+
+      return NextResponse.json({
+        success: true,
+        data: filteredLogs,
+      });
     }
 
     // Determine the CIS API endpoint based on UAT or Production environment settings

@@ -31,6 +31,8 @@ import {
 } from '../ui/drawer';
 import { LeadTypeByKey } from '../ui/utils';
 
+const DEFAULT_UTM_SOURCES = ['creator_club_affiliate', 'creatorclub'] as const;
+
 interface ContactLogItem {
   ContactLogID: number;
   Fname: string;
@@ -61,7 +63,7 @@ interface UtmContactLogsTableProps {
 }
 
 export function UtmContactLogsTable({
-  utmSource = 'creatorclub',
+  utmSource = '',
   utmCampaign = '',
   utmMedium = '',
   allowSearch = true
@@ -111,18 +113,15 @@ export function UtmContactLogsTable({
   // Fetch logs function
   const fetchLogs = async (sourceValue = searchSource, campaignValue = searchCampaign, mediumValue = searchMedium) => {
     const trimmedSource = sourceValue.trim();
-    if (!trimmedSource) {
-      toast.error('กรุณาระบุ utm_source (Required)');
-      return;
-    }
-
     setLoading(true);
     setError(null);
     setCurrentPage(1); // Reset pagination
 
     try {
       const params = new URLSearchParams();
-      params.set('utm_source', trimmedSource);
+      if (trimmedSource) {
+        params.set('utm_source', trimmedSource);
+      }
       if (campaignValue.trim()) {
         params.set('utm_campaign', campaignValue.trim());
       }
@@ -169,11 +168,9 @@ export function UtmContactLogsTable({
     }
   };
 
-  // Auto-fetch on mount if allowSearch is false and utmSource is provided
+  // Auto-fetch on mount so the admin sees both default sources immediately.
   useEffect(() => {
-    if (!allowSearch && utmSource) {
-      fetchLogs(utmSource, utmCampaign, utmMedium);
-    }
+    fetchLogs(utmSource, utmCampaign, utmMedium);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allowSearch, utmSource, utmCampaign, utmMedium]);
 
@@ -252,7 +249,8 @@ export function UtmContactLogsTable({
       utils.book_append_sheet(workbook, worksheet, 'UTM Leads');
 
       const campaignSuffix = searchCampaign.trim() ? `_${searchCampaign.trim()}` : '';
-      const filename = `${new Date().toISOString().split('T')[0]}_utm_leads_${searchSource.trim()}${campaignSuffix}.xlsx`;
+      const sourceLabel = searchSource.trim() || DEFAULT_UTM_SOURCES.join('_');
+      const filename = `${new Date().toISOString().split('T')[0]}_utm_leads_${sourceLabel}${campaignSuffix}.xlsx`;
 
       writeFile(workbook, filename);
       toast.success('ส่งออกข้อมูลเป็น Excel เรียบร้อยแล้ว');
@@ -273,6 +271,7 @@ export function UtmContactLogsTable({
     setSearchMedium(utmMedium);
     setLogs([]);
     setError(null);
+    void fetchLogs(utmSource, utmCampaign, utmMedium);
   };
 
   // Client-side pagination calculations
@@ -294,21 +293,12 @@ export function UtmContactLogsTable({
             ค้นหาและคัดกรอง ข้อมูลลงทะเบียน UTM
           </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-neutral-600">
-                utm_source <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={searchSource}
-                onChange={(e) => setSearchSource(e.target.value)}
-                placeholder="ระบุ utm_source (เช่น facebook, tiktok)"
-                required
-                className="px-4 py-2 bg-neutral-50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
-              />
-            </div>
+          <div className="mb-4 rounded-lg border border-border bg-neutral-50 px-4 py-3 text-sm text-muted-foreground">
+            ดึงข้อมูลอัตโนมัติจาก utm_source: <code className="mx-1 rounded bg-white px-1.5 py-0.5 text-xs text-foreground">creator_club_affiliate</code>
+            และ <code className="mx-1 rounded bg-white px-1.5 py-0.5 text-xs text-foreground">creatorclub</code>
+          </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-neutral-600">utm_campaign</label>
               <input
@@ -345,7 +335,7 @@ export function UtmContactLogsTable({
             <Button
               type="submit"
               variant="primary"
-              disabled={loading || !searchSource.trim()}
+              disabled={loading}
               center
             >
               {loading ? (
@@ -373,7 +363,7 @@ export function UtmContactLogsTable({
             </h3>
             {!allowSearch && (
               <p className="text-sm text-muted-foreground mt-1">
-                กรองตาม utm_campaign: <code className="bg-neutral-100 px-1.5 py-0.5 rounded text-neutral-800 font-mono text-xs">{utmCampaign}</code>
+                ดึงข้อมูลจาก <code className="bg-neutral-100 px-1.5 py-0.5 rounded text-neutral-800 font-mono text-xs">{DEFAULT_UTM_SOURCES.join(', ')}</code>
               </p>
             )}
           </div>
@@ -394,7 +384,7 @@ export function UtmContactLogsTable({
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => fetchLogs(utmSource, utmCampaign, utmMedium)}
+                onClick={() => fetchLogs(utmSource, utmCampaign, utmMedium)}
                   disabled={loading}
                   center
                 >
@@ -427,7 +417,7 @@ export function UtmContactLogsTable({
             <Info className="w-12 h-12 mx-auto text-neutral-300 mb-3" />
             <p className="font-medium text-neutral-500">
               {allowSearch
-                ? 'กรุณากรอก utm_source และกดปุ่มค้นหาข้อมูล'
+                ? 'ยังไม่พบข้อมูลที่ตรงกับเงื่อนไข'
                 : 'ไม่พบข้อมูลผู้ลงทะเบียนสำหรับแคมเปญนี้'}
             </p>
           </div>
