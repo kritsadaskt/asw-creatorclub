@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.10.5](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.10.4...v2.10.5) (2026-07-17)
+
+
+### Bug Fixes
+
+* ปรับ Leads table ให้ดึงข้อมูลจาก utm แบบไม่ต้องกรอกเอง ([db08d52](https://github.com/kritsadaskt/asw-creatorclub/commit/db08d525bbd0bce3981a40d45c96649bf00370e0))
+
 ### [2.10.4](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.10.3...v2.10.4) (2026-06-30)
 
 
