@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
+import { FileDown, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { BASE_PATH } from '@/lib/publicPath';
 import type { AdminAffiliateSubmittedPostLinkRow } from '@/modules/types/adminAffiliateReports';
+import { exportSubmittedAffiliatePostsToCsv } from '@/modules/utils/exportSubmittedAffiliatePosts';
+import { Button } from '../shared/Button';
 import { AdminAffiliateSubmittedPostsTable } from './AdminAffiliateSubmittedPostsTable';
 
 export function AdminAffiliatePostsPage() {
@@ -85,6 +88,20 @@ export function AdminAffiliatePostsPage() {
     };
   }, []);
 
+  const handleExportCsv = () => {
+    if (rows.length === 0) {
+      toast.info('ยังไม่มีข้อมูลให้ส่งออก');
+      return;
+    }
+    try {
+      exportSubmittedAffiliatePostsToCsv(rows);
+      toast.success('ส่งออก CSV เรียบร้อยแล้ว');
+    } catch (err) {
+      console.error('export submitted posts csv', err);
+      toast.error('ไม่สามารถส่งออก CSV ได้');
+    }
+  };
+
   return (
     <div className="container px-4 py-8 md:px-6">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -94,12 +111,25 @@ export function AdminAffiliatePostsPage() {
             ลิงก์ Affiliate ที่ครีเอเตอกรอกลิงก์โพสต์กลับเข้าระบบแล้ว เรียงจากล่าสุดก่อน
           </p>
         </div>
-        <Link
-          href="/admin/dashboard"
-          className="inline-flex shrink-0 items-center justify-center rounded-lg border border-border bg-white px-4 py-2 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted/50"
-        >
-          กลับแดชบอร์ด
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="success"
+            onClick={handleExportCsv}
+            disabled={loading || rows.length === 0}
+            className="gap-2"
+            center
+          >
+            <FileDown className="h-4 w-4" />
+            Export CSV
+          </Button>
+          <Link
+            href="/admin/dashboard"
+            className="inline-flex shrink-0 items-center justify-center rounded-lg border border-border bg-white px-4 py-2 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted/50"
+          >
+            กลับแดชบอร์ด
+          </Link>
+        </div>
       </div>
 
       {loading ? (
