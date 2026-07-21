@@ -32,7 +32,10 @@ import {
 } from '../ui/chart';
 import { cn } from '../ui/utils';
 import type { AdminAffiliateReportsResponse } from '@/modules/types/adminAffiliateReports';
+import { exportSubmittedAffiliatePostsToCsv } from '@/modules/utils/exportSubmittedAffiliatePosts';
 import Link from 'next/link';
+import { FileDown } from 'lucide-react';
+import { toast } from 'sonner';
 import { AdminAffiliateSubmittedPostsTable } from './AdminAffiliateSubmittedPostsTable';
 
 /** Affiliate post-links preview rows on dashboard (API returns newest first). */
@@ -365,6 +368,32 @@ export function AdminDashboardCharts({
                 รายการล่าสุด
               </p>
             ) : null}
+            <button
+              type="button"
+              disabled={
+                affiliateReportLoading ||
+                !affiliateReport ||
+                (affiliateReport.submittedPostAffiliateLinks?.length ?? 0) === 0
+              }
+              onClick={() => {
+                const exportRows = affiliateReport?.submittedPostAffiliateLinks ?? [];
+                if (exportRows.length === 0) {
+                  toast.info('ยังไม่มีข้อมูลให้ส่งออก');
+                  return;
+                }
+                try {
+                  exportSubmittedAffiliatePostsToCsv(exportRows);
+                  toast.success('ส่งออก CSV เรียบร้อยแล้ว');
+                } catch (err) {
+                  console.error('export submitted posts csv', err);
+                  toast.error('ไม่สามารถส่งออก CSV ได้');
+                }
+              }}
+              className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <FileDown className="h-4 w-4" />
+              Export CSV
+            </button>
             <Link
               href="/admin/affiliate-posts"
               className="inline-flex shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
