@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.10.6](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.10.5...v2.10.6) (2026-07-21)
+
+
+### Bug Fixes
+
+* add export btn for posts link ([2d845cb](https://github.com/kritsadaskt/asw-creatorclub/commit/2d845cbf4a2de0f54c2f6c58b0e9c4e1f9121fb0))
+
 ### [2.10.5](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.10.4...v2.10.5) (2026-07-17)
 
 
