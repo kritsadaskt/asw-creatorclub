@@ -6,18 +6,26 @@ import { Input } from '../shared/Input';
 import { CreatorProfile as CreatorProfileType } from '../../types';
 import {
   CREATOR_PROFILE_UPDATED_EVENT,
+  getCreatorByFacebookId,
   getCreatorById,
   saveCreator,
   uploadCreatorProfileImage,
 } from '../../utils/storage';
 import { getProfileImageUrl } from '../../utils/profileImage';
+import {
+  isFacebookLoginEnabled,
+  loginWithFacebook,
+  getFacebookUserInfo,
+} from '../../utils/facebook';
 import { AffiliateGenerator } from './AffiliateGenerator';
 import { CreatorAffiliatePerformanceStats } from '../shared/CreatorAffiliatePerformanceStats';
 import { supabase } from '../../utils/supabase';
 import { hashPassword, validatePassword, validatePasswordConfirm } from '../../utils/password';
+import { formatGenericErrorToast } from '../../utils/toast-error';
 import Select from 'react-select';
 import SocialAccounts from '../layout/SocialAccounts';
 import { FaArrowLeft, FaCopy, FaEdit, FaSave, FaUndo } from 'react-icons/fa';
+import { FaFacebook } from 'react-icons/fa6';
 
 interface CreatorProfileProps {
   creatorId: string;
@@ -37,9 +45,12 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordSaving, setPasswordSaving] = useState(false);
+  const [facebookLinking, setFacebookLinking] = useState(false);
+  const [hasPassword, setHasPassword] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
   const [categoryOptions, setCategoryOptions] = useState<CategorySelectOption[]>([]);
   const profileImageInputRef = useRef<HTMLInputElement>(null);
+  const facebookLoginEnabled = isFacebookLoginEnabled();
 
   useEffect(() => {
     loadProfile();
@@ -79,6 +90,9 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
       const creator = await getCreatorById(creatorId);
       if (creator) {
         setProfile(creator);
+        setHasPassword(
+          typeof creator.passwordHash === 'string' && creator.passwordHash.length > 0,
+        );
         setProfileImageError(false);
       } else {
         toast.error('ไม่พบข้อมูลโปรไฟล์');
@@ -145,6 +159,7 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
       }
 
       setProfile({ ...profile, passwordHash });
+      setHasPassword(true);
       setNewPassword('');
       setConfirmPassword('');
       toast.success('ตั้งรหัสผ่านสำเร็จ! คุณสามารถเข้าสู่ระบบด้วยอีเมลและรหัสผ่านได้แล้ว');
@@ -153,6 +168,106 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
       toast.error('ไม่สามารถตั้งรหัสผ่านได้');
     } finally {
       setPasswordSaving(false);
+    }
+  };
+
+  const handleLinkFacebook = async () => {
+    if (!profile || !facebookLoginEnabled) return;
+
+    try {
+      setFacebookLinking(true);
+      await loginWithFacebook();
+      const fbUser = await getFacebookUserInfo();
+
+      const existing = await getCreatorByFacebookId(fbUser.id);
+      if (existing && existing.id !== profile.id) {
+        toast.error('บัญชี Facebook นี้ถูกผูกกับผู้ใช้อื่นแล้ว');
+        return;
+      }
+
+      if (existing && existing.id === profile.id) {
+        setProfile({ ...profile, facebookId: fbUser.id });
+        toast.success('บัญชี Facebook ถูกผูกอยู่แล้ว');
+        return;
+      }
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ facebook_id: fbUser.id })
+        .eq('id', profile.id);
+
+      if (updateError) {
+        console.error('Error linking Facebook:', updateError);
+        toast.error('ไม่สามารถผูกบัญชี Facebook ได้');
+        return;
+      }
+
+      setProfile({ ...profile, facebookId: fbUser.id });
+      toast.success('ผูกบัญชี Facebook สำเร็จ');
+    } catch (err) {
+      console.error('Error linking Facebook:', err);
+      if (err instanceof Error && err.message.includes('cancelled')) {
+        return;
+      }
+      toast.error(formatGenericErrorToast('ไม่สามารถผูกบัญชี Facebook ได้', err));
+    } finally {
+      setFacebookLinking(false);
+    }
+  };
+
+  const handleUnlinkFacebook = async () => {
+    if (!profile || !profile.facebookId) return;
+
+    // Re-check from DB — client profile may not always include passwordHash
+    const { data: pwRow, error: pwError } = await supabase
+      .from('profiles')
+      .select('password_hash')
+      .eq('id', profile.id)
+      .maybeSingle();
+
+    if (pwError) {
+      console.error('Error checking password before unlink:', pwError);
+      toast.error('ไม่สามารถตรวจสอบรหัสผ่านได้');
+      return;
+    }
+
+    const passwordExists =
+      typeof pwRow?.password_hash === 'string' && pwRow.password_hash.length > 0;
+
+    if (!passwordExists) {
+      toast.error('กรุณาตั้งรหัสผ่านก่อนยกเลิกการผูก Facebook');
+      setHasPassword(false);
+      return;
+    }
+
+    setHasPassword(true);
+
+    const confirmed = window.confirm(
+      'ต้องการยกเลิกการผูกบัญชี Facebook ใช่หรือไม่? คุณจะเข้าสู่ระบบด้วยอีเมลและรหัสผ่านได้ตามปกติ',
+    );
+    if (!confirmed) return;
+
+    try {
+      setFacebookLinking(true);
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ facebook_id: null })
+        .eq('id', profile.id);
+
+      if (updateError) {
+        console.error('Error unlinking Facebook:', updateError);
+        toast.error('ไม่สามารถยกเลิกการผูก Facebook ได้');
+        return;
+      }
+
+      setProfile({ ...profile, facebookId: undefined });
+      toast.success('ยกเลิกการผูกบัญชี Facebook แล้ว');
+    } catch (err) {
+      console.error('Error unlinking Facebook:', err);
+      toast.error(formatGenericErrorToast('ไม่สามารถยกเลิกการผูก Facebook ได้', err));
+    } finally {
+      setFacebookLinking(false);
     }
   };
 
@@ -467,8 +582,49 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                 />
               </div>
 
+              {facebookLoginEnabled && (
+                <div className="mt-6 space-y-3 border-t border-border pt-6">
+                  <h3 className="text-primary font-bold">บัญชี Facebook</h3>
+                  {profile.facebookId ? (
+                    <>
+                      <p className="text-sm text-muted-foreground">
+                        บัญชีนี้ผูกกับ Facebook แล้ว คุณสามารถเข้าสู่ระบบด้วย Facebook ได้
+                      </p>
+                      {!hasPassword && (
+                        <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                          หากยังไม่มีรหัสผ่าน กรุณาตั้งรหัสผ่านก่อนยกเลิกการผูก Facebook
+                        </p>
+                      )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleUnlinkFacebook}
+                        disabled={facebookLinking}
+                      >
+                        {facebookLinking ? 'กำลังดำเนินการ...' : 'ยกเลิกการผูก Facebook'}
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-muted-foreground">
+                        ผูกบัญชี Facebook เพื่อเข้าสู่ระบบได้รวดเร็วขึ้น โดยไม่ต้องกรอกรหัสผ่าน
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleLinkFacebook}
+                        disabled={facebookLinking}
+                        className="inline-flex items-center justify-center gap-2 bg-[#1877F2] hover:bg-[#166FE5] text-white font-medium py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <FaFacebook className="w-5 h-5" />
+                        {facebookLinking ? 'กำลังเชื่อมต่อ...' : 'ผูกบัญชี Facebook'}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+
               {/* Password section for Facebook-only accounts */}
-              {profile.facebookId && !profile.passwordHash && (
+              {profile.facebookId && !hasPassword && (
                 <div className="mt-6 space-y-3 border-t border-border pt-6">
                   <h3 className="text-primary font-bold">ตั้งรหัสผ่านสำหรับเข้าสู่ระบบด้วยอีเมล</h3>
                   <p className="text-sm text-muted-foreground">
