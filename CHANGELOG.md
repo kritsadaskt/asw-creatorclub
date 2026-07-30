@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.10.7](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.10.6...v2.10.7) (2026-07-30)
+
+
+### Bug Fixes
+
+* เรียงลำดับ vreator categories ใน dropfown ใหม่ ([136dfdc](https://github.com/kritsadaskt/asw-creatorclub/commit/136dfdc0f050a07677e5a79e730e9793b603a4ee))
+
 ### [2.10.6](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.10.5...v2.10.6) (2026-07-21)
 
 
