@@ -50,8 +50,9 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
       try {
         const { data, error } = await supabase
           .from('creator_categories')
-          .select('id,th_label,en_label')
+          .select('id,th_label,en_label,order')
           .eq('is_active', true)
+          .order('order', { ascending: true, nullsFirst: false })
           .order('id', { ascending: true });
 
         if (error) {
