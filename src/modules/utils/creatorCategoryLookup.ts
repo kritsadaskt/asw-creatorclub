@@ -3,6 +3,8 @@ export type CreatorCategoryRow = {
   id: number;
   th_label: string;
   en_label: string;
+  /** Display / dropdown sort key (`creator_categories.order`). */
+  order?: number | null;
 };
 
 export function normalizeCreatorCategoryLabel(raw: string): string {
