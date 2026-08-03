@@ -27,7 +27,7 @@ export default function ThankYouPage() {
           <p className="mt-3 text-muted-foreground flex items-center gap-2 justify-center">
             <a href="https://line.me/" title="AssetWise Crator Club" className="flex items-center gap-2">
               <img src="https://assetwise.co.th/wp-content/uploads/2026/03/lineoa-icon.png" width={20} height={20} alt="AssetWise Crator Club" />
-              <span>@AssetWiseCratorclub</span>
+              <span>@asw.creatorclub</span>
             </a>
             <a href="tel:021680000" title="ติดต่อ AssetWise" className="flex items-center gap-2">
               <img src="https://assetwise.co.th/wp-content/uploads/2026/03/tel-icon.png" width={20} height={20} alt="ติดต่อ AssetWise" />

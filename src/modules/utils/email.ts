@@ -96,7 +96,7 @@ const buildRegistrationPendingEmailHtml = (recipient: RegistrationPendingEmailIn
                     <p style="margin: 24px 0 0; font-size: 13px; color: #6b7280; text-align: center;">
                       <a href="https://line.me/" title="AssetWise Crator Club" style="margin-right: 16px;">
                         <img src="https://assetwise.co.th/wp-content/uploads/2026/03/lineoa-icon.png" style="width: 20px; height: 20px; margin-right: 8px;" alt="AssetWise Crator Club" />
-                        <span>@AssetWiseCratorclub</span>
+                        <span>@asw.creatorclub</span>
                       </a>
                       <a href="tel:021680000" title="ติดต่อ AssetWise" style="margin-right: 16px;">
                         <img src="https://assetwise.co.th/wp-content/uploads/2026/03/tel-icon.png" style="width: 20px; height: 20px; margin-right: 8px;" alt="ติดต่อ AssetWise" />
