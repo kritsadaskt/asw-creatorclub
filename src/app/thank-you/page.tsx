@@ -25,7 +25,7 @@ export default function ThankYouPage() {
             ท่านสามารถสอบถามข้อมูลเรื่อง AssetWise CREATOR CLUB ผ่านช่องทาง
           </p>
           <p className="mt-3 text-muted-foreground flex items-center gap-2 justify-center">
-            <a href="https://lin.ee/ukTO0FG" title="AssetWise Creator Club" className="flex items-center gap-2">
+            <a href="https://lin.ee/ukTO0FG" target="_blank" title="AssetWise Creator Club" className="flex items-center gap-2">
               <img src="https://assetwise.co.th/wp-content/uploads/2026/03/lineoa-icon.png" width={20} height={20} alt="AssetWise Creator Club" />
               <span>@asw.creatorclub</span>
             </a>
