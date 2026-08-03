@@ -1319,6 +1319,7 @@ export function AdminDashboard() {
                               <span>
                                 {creator.name} {creator.lastName}
                               </span>
+                              <span>{creator.type}</span>
                               <CreatorBadge type={creator.type ?? ''} />
                             </span>
                           </td>
