@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.10.8](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.10.7...v2.10.8) (2026-08-03)
+
+
+### Bug Fixes
+
+* add Partner badge ([40ae6da](https://github.com/kritsadaskt/asw-creatorclub/commit/40ae6da05a39b6832f69b7da728282c8d898bf7d))
+* remove unnecc code ([87c6cea](https://github.com/kritsadaskt/asw-creatorclub/commit/87c6cea87ec5d431db89dc9b3a143222848c8440))
+* แก้ line@ channel ([13aa219](https://github.com/kritsadaskt/asw-creatorclub/commit/13aa2194673dbe6c7cc58079acec5776d719054f))
+
 ### [2.10.7](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.10.6...v2.10.7) (2026-07-30)
 
 
