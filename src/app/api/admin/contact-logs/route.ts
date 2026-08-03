@@ -34,17 +34,13 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const filteredLogs = logs.filter((row) => {
-        const matchesCampaign =
-          !utmCampaign || String(row.utm_campaign ?? '').trim() === utmCampaign;
-        const matchesMedium =
-          !utmMedium || String(row.utm_medium ?? '').trim() === utmMedium;
-        return matchesCampaign && matchesMedium;
-      });
+      // TEMP: return all fetched Creator Club logs (skip campaign/medium post-filter).
+      void utmCampaign;
+      void utmMedium;
 
       return NextResponse.json({
         success: true,
-        data: filteredLogs,
+        data: logs,
       });
     }
 

@@ -28,27 +28,21 @@ export function contactLogFullName(row: ContactLogLike): string {
 }
 
 export function isExcludedContactLogLead(row: ContactLogLike): boolean {
-  const full = contactLogFullName(row);
-  if (!full) return false;
-  return EXCLUDED_CONTACT_LOG_FULL_NAMES.has(full);
+  // TEMP: show all CIS leads — re-enable name exclusion when done debugging.
+  void row;
+  return false;
+  // const full = contactLogFullName(row);
+  // if (!full) return false;
+  // return EXCLUDED_CONTACT_LOG_FULL_NAMES.has(full);
 }
 
 export function filterExcludedContactLogLeads<T extends ContactLogLike>(rows: T[]): T[] {
-  return rows.filter((row) => !isExcludedContactLogLead(row));
+  // TEMP: pass through all rows (no exclusion).
+  return rows;
 }
 
 /** Filters test leads out of CIS API envelope shapes returned by contact-logs. */
 export function filterExcludedContactLogsResponse(data: unknown): unknown {
-  if (!data || typeof data !== 'object') return data;
-  if (Array.isArray(data)) {
-    return filterExcludedContactLogLeads(data as ContactLogLike[]);
-  }
-  const obj = data as Record<string, unknown>;
-  if (Array.isArray(obj.Data)) {
-    return { ...obj, Data: filterExcludedContactLogLeads(obj.Data as ContactLogLike[]) };
-  }
-  if (Array.isArray(obj.data)) {
-    return { ...obj, data: filterExcludedContactLogLeads(obj.data as ContactLogLike[]) };
-  }
+  // TEMP: pass through CIS response unchanged.
   return data;
 }

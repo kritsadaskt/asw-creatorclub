@@ -57,7 +57,7 @@ export async function fetchCisContactLogRegister(params: {
       Authorization: `Basic ${token}`,
     },
     body: JSON.stringify(payloadBody),
-  });
+  });  
 
   if (!res.ok) return null;
 
