@@ -23,6 +23,8 @@ export function CreatorTypeNameByKey(key: string) {
       return 'Mr. & Miss Global Thailand';
     case 'pageant':
       return 'Pageant';
+    case 'asw_partners':
+      return 'Partner';
   }
   return key;
 }
