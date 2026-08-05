@@ -336,11 +336,11 @@ export function AdminDashboard() {
 
   const followerOptions: Array<{ value: string; label: string }> = [
     { value: 'all', label: 'ทั้งหมด' },
-    { value: '0-1k', label: '0 - 1,000' },
-    { value: '1k-10k', label: '1,000 - 10,000' },
-    { value: '10k-50k', label: '10,000 - 50,000' },
-    { value: '50k-100k', label: '50,000 - 100,000' },
-    { value: '100k-500k', label: '100,000 - 500,000' },
+    { value: '0-1k', label: '0 - 999' },
+    { value: '1k-10k', label: '1,000 - 9,999' },
+    { value: '10k-50k', label: '10,000 - 49,999' },
+    { value: '50k-100k', label: '50,000 - 99,999' },
+    { value: '100k-500k', label: '100,000 - 499,999' },
     { value: '500k+', label: '500,000+' },
     { value: 'custom', label: 'กำหนดเอง' },
   ];
