@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.10.9](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.10.8...v2.10.9) (2026-08-05)
+
+
+### Bug Fixes
+
+* update ink in thank-you page ([b63dea7](https://github.com/kritsadaskt/asw-creatorclub/commit/b63dea7f9f90f21a73ab517026f35eef77befe6d))
+* แก้ link OA ([bb437eb](https://github.com/kritsadaskt/asw-creatorclub/commit/bb437eb7dc2ea50a4d52fdfc99f55491d5538eaa))
+* ปรับตัวเลขใน dropdown ให้ไม่ overlap กันในแต่ละช่วง ([b4ca7d4](https://github.com/kritsadaskt/asw-creatorclub/commit/b4ca7d49e5d17838858bee67d217ab61c7229efd))
+
 ### [2.10.8](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.10.7...v2.10.8) (2026-08-03)
 
 
