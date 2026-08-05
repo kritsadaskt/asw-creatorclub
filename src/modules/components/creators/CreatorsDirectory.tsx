@@ -43,37 +43,37 @@ const socialPlatformOptions: Array<{ value: 'all' | SocialPlatform; label: strin
 
 const socialFollowerOptions: Array<{ value: string; label: string }> = [
   { value: 'all', label: 'ทั้งหมด' },
-  { value: '0-1k', label: '0 - 1,000' },
-  { value: '1k-10k', label: '1,000 - 10,000' },
-  { value: '10k-50k', label: '10,000 - 50,000' },
-  { value: '50k-100k', label: '50,000 - 100,000' },
-  { value: '100k-500k', label: '100,000 - 500,000' },
+  { value: '0-1k', label: '0 - 999' },
+  { value: '1k-10k', label: '1,000 - 9,999' },
+  { value: '10k-50k', label: '10,000 - 49,999' },
+  { value: '50k-100k', label: '50,000 - 99,999' },
+  { value: '100k-500k', label: '100,000 - 499,999' },
   { value: '500k+', label: '500,000+' },
 ];
 
 const budgetRangeOptions: Array<{ value: string; label: string }> = [
   { value: 'all', label: 'ทั้งหมด' },
-  { value: '0-1k', label: '0 - 1,000' },
-  { value: '1k-5k', label: '1,000 - 5,000' },
-  { value: '5k-10k', label: '5,000 - 10,000' },
-  { value: '10k-30k', label: '10,000 - 30,000' },
+  { value: '0-1k', label: '0 - 999' },
+  { value: '1k-5k', label: '1,000 - 4,999' },
+  { value: '5k-10k', label: '5,000 - 9,999' },
+  { value: '10k-30k', label: '10,000 - 29,999' },
   { value: '30k+', label: '30,000+' },
 ];
 
 const ranges: { [key: string]: { min: number; max?: number } } = {
-  '0-1k': { min: 0, max: 1000 },
-  '1k-10k': { min: 1000, max: 10000 },
-  '10k-50k': { min: 10000, max: 50000 },
-  '50k-100k': { min: 50000, max: 100000 },
-  '100k-500k': { min: 100000, max: 500000 },
+  '0-1k': { min: 0, max: 999 },
+  '1k-10k': { min: 1000, max: 9999 },
+  '10k-50k': { min: 10000, max: 49999 },
+  '50k-100k': { min: 50000, max: 99999 },
+  '100k-500k': { min: 100000, max: 499999 },
   '500k+': { min: 500000 },
 };
 
 const budgetRanges: { [key: string]: { min: number; max?: number } } = {
-  '0-1k': { min: 0, max: 1000 },
-  '1k-5k': { min: 1000, max: 5000 },
-  '5k-10k': { min: 5000, max: 10000 },
-  '10k-30k': { min: 10000, max: 30000 },
+  '0-1k': { min: 0, max: 999 },
+  '1k-5k': { min: 1000, max: 4999 },
+  '5k-10k': { min: 5000, max: 9999 },
+  '10k-30k': { min: 10000, max: 29999 },
   '30k+': { min: 30000 },
 };
 

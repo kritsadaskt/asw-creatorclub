@@ -17,7 +17,6 @@ import {
   Info
 } from 'lucide-react';
 import { Button } from '../shared/Button';
-import { filterExcludedContactLogLeads } from '@/lib/excluded-contact-log-leads';
 import { getCreatorById, getProjects } from '@/modules/utils/storage';
 import type { CreatorProfile } from '@/modules/types';
 import {
@@ -150,13 +149,13 @@ export function UtmContactLogsTable({
         }
       }
 
-      const filteredList = filterExcludedContactLogLeads(list);
-      setLogs(filteredList);
+      // TEMP: show every row returned by the API (no client-side exclusion).
+      setLogs(list);
 
-      if (filteredList.length === 0) {
+      if (list.length === 0) {
         toast.info('ไม่พบข้อมูลการลงทะเบียนที่ตรงกับเงื่อนไข');
       } else {
-        toast.success(`โหลดข้อมูลสำเร็จ ${filteredList.length} รายการ`);
+        toast.success(`โหลดข้อมูลสำเร็จ ${list.length} รายการ`);
       }
     } catch (err: any) {
       console.error('Error fetching contact logs:', err);
