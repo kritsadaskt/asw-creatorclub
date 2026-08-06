@@ -7,6 +7,7 @@ import { RegisterSection } from './RegisterSection';
 import Footer from './Footer';
 import { useSession } from '@/modules/context/SessionContext';
 import { CreatorTools } from './CreatorTools';
+import { VideosSection } from './VideosSection';
 
 export function LandingPage() {
   const { handleLogin, currentUserId } = useSession();
@@ -18,6 +19,7 @@ export function LandingPage() {
       <HeroBanner />
       <IntroSection />
       <CreatorTools />
+      <VideosSection />
       {!isLoggedIn && <RegisterSection onLogin={handleLogin} />}
       <Footer />
     </div>
