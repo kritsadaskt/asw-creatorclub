@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.10.11](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.10.10...v2.10.11) (2026-08-06)
+
+
+### Bug Fixes
+
+* add video section on frontpage ([f114362](https://github.com/kritsadaskt/asw-creatorclub/commit/f114362ad906f83842afb062cb2d8ce00aec3998))
+
 ### [2.10.10](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.10.9...v2.10.10) (2026-08-05)
 
 ### [2.10.9](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.10.8...v2.10.9) (2026-08-05)
