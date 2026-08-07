@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.10.12](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.10.11...v2.10.12) (2026-08-07)
+
+
+### Bug Fixes
+
+* move CDP snipped from GTM to <head/> ([1d54113](https://github.com/kritsadaskt/asw-creatorclub/commit/1d54113ceb760b7a6ab7d7d89c5d90c03ecc0055))
+
 ### [2.10.11](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.10.10...v2.10.11) (2026-08-06)
 
 
