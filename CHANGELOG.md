@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.11.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.10.12...v2.11.0) (2026-08-10)
+
+
+### Features
+
+* disable get link affiliate button ([3a63e44](https://github.com/kritsadaskt/asw-creatorclub/commit/3a63e44d465d840bb9abe4ca433344cebac02ed9))
+
 ### [2.10.12](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.10.11...v2.10.12) (2026-08-07)
 
 
