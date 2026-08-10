@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Copy, Check, Link2, Loader2 } from 'lucide-react';
+import { isAffiliateGetLinkEnabled } from '@/lib/affiliate-get-link';
 import { BASE_PATH } from '@/lib/publicPath';
 
 interface GetLinkCardProps {
@@ -10,14 +11,21 @@ interface GetLinkCardProps {
 }
 
 export function GetLinkCard({ creatorId }: GetLinkCardProps) {
+  const getLinkEnabled = isAffiliateGetLinkEnabled();
   const [shortUrl, setShortUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(getLinkEnabled);
   const [error, setError] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const fallbackUrl = `https://assetwise.co.th/creatorclub/?ref=${creatorId}`;
 
   useEffect(() => {
+    if (!getLinkEnabled) {
+      setLoading(false);
+      setShortUrl(null);
+      return;
+    }
+
     const fetchShortUrl = async () => {
       try {
         setLoading(true);
@@ -38,7 +46,9 @@ export function GetLinkCard({ creatorId }: GetLinkCardProps) {
     };
 
     fetchShortUrl();
-  }, [creatorId]);
+  }, [creatorId, getLinkEnabled]);
+
+  if (!getLinkEnabled) return null;
 
   const handleCopy = () => {
     const urlToCopy = shortUrl ?? fallbackUrl;

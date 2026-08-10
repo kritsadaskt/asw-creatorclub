@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isAffiliateGetLinkEnabled } from '@/lib/affiliate-get-link';
 import { logServerError, requestLogContext } from '@/lib/log-server-error';
 import { requireApprovedCreatorSession } from '@/lib/require-approved-creator';
 import { getShlinkBaseUrl } from '@/lib/shlink-server';
 
 export async function POST(request: NextRequest) {
+  if (!isAffiliateGetLinkEnabled()) {
+    return NextResponse.json(
+      { error: 'Affiliate get link is disabled', code: 'AFFILIATE_GET_LINK_DISABLED' },
+      { status: 503 },
+    );
+  }
+
   const auth = await requireApprovedCreatorSession(request);
   if (!auth.ok) return auth.response;
 
