@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { creatorApprovalBlockMessage } from '@/lib/creator-approval';
+import { isAffiliateGetLinkEnabled } from '@/lib/affiliate-get-link';
 import Link from 'next/link';
 import { CampaignLayout } from '../layout/CampaignLayout';
 import { fetchAffiliateProjects, type AffiliateProject } from '../../utils/affiliate';
@@ -77,7 +78,8 @@ export function CampaignAffiliatePage({ campaignKey }: AffiliatePageProps) {
 function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
   const { currentUserId, handleLogin: sessionLogin, isCreatorApproved, approvalStatus } = useSession();
   const isLoggedIn = !!currentUserId;
-  const canGetAffiliateLink = isLoggedIn && isCreatorApproved;
+  const getLinkEnabled = isAffiliateGetLinkEnabled();
+  const canGetAffiliateLink = isLoggedIn && isCreatorApproved && getLinkEnabled;
   const isCampaignMode = !!campaignKey;
   const [projects, setProjects] = useState<AffiliateProject[]>([]);
   const [activeCampaigns, setActiveCampaigns] = useState<Campaign[]>([]);
@@ -186,7 +188,7 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
 
   // Generate referral short link when drawer opens (pass project — state from setSelectedProject is not updated until after this handler runs)
   const generateReferralLink = async (project: AffiliateProject) => {
-    if (!currentUserId || !isCreatorApproved) return;
+    if (!getLinkEnabled || !currentUserId || !isCreatorApproved) return;
     setIsShorteningLink(true);
     setShortUrl(null);
     const effectiveUtmSource = selectedCampaign?.utmSource || 'creator_club_affiliate';
@@ -322,6 +324,7 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
   };
 
   const handleGetLinkClick = (project: AffiliateProject) => {
+    if (!getLinkEnabled) return;
     if (!isLoggedIn) {
       setIsLoginModalOpen(true);
       return;
@@ -364,6 +367,14 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
             </>
           )}
         </h2>
+
+        {!isAffiliateGetLinkEnabled() && (
+          <div className="text-center text-lg text-destructive mb-4">
+            <span className="text-xl font-medium">ระบบสร้างลิ้งก์ปิดใช้งานชั่วคราว ตั้งแต่วันที่ 11 ส.ค. ถึง 12 ส.ค. 2569</span>
+            <br/>
+            <span className="text-xl font-medium">ขออภัยในความไม่สะดวก</span>
+          </div>
+        )}
 
         {isCampaignMode && selectedCampaign && (
         <div className="text-center text-lg text-muted-foreground mb-4">
@@ -571,7 +582,8 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
                                   <button
                                     type="button"
                                     onClick={() => handleGetLinkClick(project)}
-                                    className="inline-flex items-center justify-center rounded-lg border border-primary px-3 py-1.5 font-medium text-primary hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
+                                    disabled={!getLinkEnabled}
+                                    className="inline-flex items-center justify-center rounded-lg border border-primary px-3 py-1.5 font-medium text-primary hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
                                     Get Link
                                   </button>
@@ -589,7 +601,8 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
                               <button
                                 type="button"
                                 onClick={() => handleGetLinkClick(project)}
-                                className="inline-flex items-center justify-center rounded-lg border border-primary px-3 py-1.5 font-medium text-primary hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
+                                disabled={!getLinkEnabled}
+                                className="inline-flex items-center justify-center rounded-lg border border-primary px-3 py-1.5 font-medium text-primary hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed"
                               >
                                 Get Link <ArrowRight className="w-3.5 h-3.5" />
                               </button>
