@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logServerError, requestLogContext } from '@/lib/log-server-error';
-import { syncAffiliateLinkShlinkStatsFromShlink } from '@/lib/sync-affiliate-link-shlink-stats';
+import { syncAffiliateLinkShortlinkStatsFromTinyurl } from '@/lib/sync-affiliate-link-shlink-stats';
+import { isTinyurlConfigured } from '@/lib/tinyurl-server';
 
 /**
  * Vercel Cron (GET). When `CRON_SECRET` is set, Vercel sends `Authorization: Bearer <CRON_SECRET>`.
@@ -13,14 +14,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const apiKey = process.env.SHLINK_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json({ error: 'SHLINK_API_KEY not configured' }, { status: 503 });
+  if (!isTinyurlConfigured()) {
+    return NextResponse.json({ error: 'TinyURL not configured' }, { status: 503 });
   }
 
   try {
-    const result = await syncAffiliateLinkShlinkStatsFromShlink(apiKey);
-    return NextResponse.json({ ok: true, ...result }, { status: 200 });
+    const result = await syncAffiliateLinkShortlinkStatsFromTinyurl();
+    return NextResponse.json({ ok: true, provider: 'tinyurl', ...result }, { status: 200 });
   } catch (err) {
     console.error('cron sync-shlink-stats:', err);
     await logServerError({
