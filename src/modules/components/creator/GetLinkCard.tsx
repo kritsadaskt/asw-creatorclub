@@ -17,8 +17,6 @@ export function GetLinkCard({ creatorId }: GetLinkCardProps) {
   const [error, setError] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const fallbackUrl = `https://assetwise.co.th/creatorclub/?ref=${creatorId}`;
-
   useEffect(() => {
     if (!getLinkEnabled) {
       setLoading(false);
@@ -37,9 +35,13 @@ export function GetLinkCard({ creatorId }: GetLinkCardProps) {
         });
         if (!res.ok) throw new Error('API error');
         const data = await res.json();
+        if (typeof data.shortUrl !== 'string' || !data.shortUrl.trim()) {
+          throw new Error('Missing shortUrl');
+        }
         setShortUrl(data.shortUrl);
       } catch {
         setError(true);
+        setShortUrl(null);
       } finally {
         setLoading(false);
       }
@@ -51,9 +53,9 @@ export function GetLinkCard({ creatorId }: GetLinkCardProps) {
   if (!getLinkEnabled) return null;
 
   const handleCopy = () => {
-    const urlToCopy = shortUrl ?? fallbackUrl;
+    if (!shortUrl) return;
     navigator.clipboard
-      .writeText(urlToCopy)
+      .writeText(shortUrl)
       .then(() => {
         setCopied(true);
         toast.success('คัดลอกลิงก์แล้ว!');
@@ -62,8 +64,6 @@ export function GetLinkCard({ creatorId }: GetLinkCardProps) {
       .catch(() => toast.error('ไม่สามารถคัดลอกได้'));
   };
 
-  const displayUrl = shortUrl ?? (error ? fallbackUrl : null);
-
   return (
     <div className="bg-white rounded-xl shadow-sm border border-border p-6 space-y-4">
       <div className="flex items-center gap-2">
@@ -71,27 +71,22 @@ export function GetLinkCard({ creatorId }: GetLinkCardProps) {
         <h3 className="text-lg font-semibold text-foreground">ลิงก์แนะนำของคุณ</h3>
       </div>
 
-      {error && (
-        <p className="text-xs text-amber-600">
-          ไม่สามารถสร้างลิงก์สั้นได้ — แสดงลิงก์เต็มแทน
-        </p>
-      )}
-
       {loading ? (
         <div className="flex items-center gap-2 text-muted-foreground py-2">
           <Loader2 className="w-4 h-4 animate-spin" />
           <span className="text-sm">กำลังสร้างลิงก์...</span>
         </div>
+      ) : error || !shortUrl ? (
+        <p className="text-sm text-destructive">เกิดข้อผิดพลาด กรุณาลองใหม่ภายหลัง</p>
       ) : (
         <div className="flex items-center gap-2">
           <div className="flex-1 bg-muted/40 rounded-lg px-4 py-2.5 text-sm text-foreground font-mono truncate select-all border border-border">
-            {displayUrl}
+            {shortUrl}
           </div>
           <button
             type="button"
             onClick={handleCopy}
-            disabled={!displayUrl}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 cursor-pointer whitespace-nowrap"
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors cursor-pointer whitespace-nowrap"
           >
             {copied ? (
               <>

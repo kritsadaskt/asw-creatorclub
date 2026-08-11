@@ -6,11 +6,12 @@ import {
 import { countAffiliateLinkRegistrations, fetchCisContactLogRegister } from '@/lib/cis-contact-log-register';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import {
-  fetchShlinkShortUrlMeta,
+  fetchTinyurlAliasMeta,
+  isTinyurlConfigured,
   longUrlBelongsToCreator,
-  parseShlinkShortCode,
-  visitsFromShlinkShortUrlJson,
-} from '@/lib/shlink-server';
+  parseShortlinkAlias,
+  visitsFromTinyurlAliasJson,
+} from '@/lib/tinyurl-server';
 import type { AffiliateFunnelStatsResponse } from '@/modules/types/affiliateFunnel';
 
 function utmFromLongUrl(longUrl: string): {
@@ -95,20 +96,18 @@ export async function getAffiliateLinkFunnelStats(
   if (visit?.total != null && Number.isFinite(visit.total)) {
     clicks = visit.total;
   } else {
-    const apiKey = process.env.SHLINK_API_KEY;
     const url = linkRow.url?.trim() ?? '';
-    const parsed = parseShlinkShortCode(url);
-    if (apiKey && parsed) {
-      const meta = await fetchShlinkShortUrlMeta(apiKey, parsed.shortCode, parsed.domain);
+    const parsed = parseShortlinkAlias(url);
+    if (isTinyurlConfigured() && parsed) {
+      const meta = await fetchTinyurlAliasMeta(parsed.alias, parsed.domain);
       if (meta) {
-        const longUrl =
-          typeof meta.longUrl === 'string'
-            ? meta.longUrl
-            : typeof meta.originalUrl === 'string'
-              ? meta.originalUrl
-              : '';
+        const data = (meta.data && typeof meta.data === 'object' ? meta.data : meta) as Record<
+          string,
+          unknown
+        >;
+        const longUrl = typeof data.url === 'string' ? data.url : '';
         if (longUrlBelongsToCreator(longUrl, creatorId)) {
-          const live = visitsFromShlinkShortUrlJson(meta);
+          const live = visitsFromTinyurlAliasJson(meta);
           if (live?.total != null && Number.isFinite(live.total)) {
             clicks = live.total;
           }
