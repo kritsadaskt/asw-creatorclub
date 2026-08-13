@@ -3,11 +3,12 @@ import { getAffiliateLinkDailyClicksInRange } from '@/lib/affiliate-link-click-c
 import { requireApprovedCreatorSession } from '@/lib/require-approved-creator';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import {
-  fetchShlinkShortUrlMeta,
-  fetchShlinkShortUrlVisits,
+  fetchTinyurlAliasMeta,
+  fetchTinyurlTimelineDaily,
+  isTinyurlConfigured,
   longUrlBelongsToCreator,
-  parseShlinkShortCode,
-} from '@/lib/shlink-server';
+  parseShortlinkAlias,
+} from '@/lib/tinyurl-server';
 
 type DailyPoint = {
   date: string;
@@ -44,12 +45,20 @@ function buildPointsFromDailyMap(
   return points;
 }
 
+function longUrlFromTinyMeta(meta: Record<string, unknown>): string {
+  const data = (meta.data && typeof meta.data === 'object' ? meta.data : meta) as Record<
+    string,
+    unknown
+  >;
+  if (typeof data.url === 'string') return data.url;
+  return '';
+}
+
 export async function GET(request: NextRequest) {
   const auth = await requireApprovedCreatorSession(request);
   if (!auth.ok) return auth.response;
 
   const creatorId = auth.session.id;
-  const apiKey = process.env.SHLINK_API_KEY;
   const linkId = request.nextUrl.searchParams.get('linkId')?.trim();
   const daysParam = Number(request.nextUrl.searchParams.get('days') || '30');
   const days = Number.isFinite(daysParam) ? Math.min(Math.max(Math.trunc(daysParam), 3), 30) : 30;
@@ -73,7 +82,7 @@ export async function GET(request: NextRequest) {
   }
 
   const url = row.url?.trim() ?? '';
-  const parsed = parseShlinkShortCode(url);
+  const parsed = parseShortlinkAlias(url);
   if (!parsed) {
     const empty: ClickSeriesResponse = {
       days,
@@ -116,7 +125,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(body, { status: 200 });
   }
 
-  if (!apiKey) {
+  if (!isTinyurlConfigured()) {
     const empty: ClickSeriesResponse = {
       days,
       points: [],
@@ -126,7 +135,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(empty, { status: 200 });
   }
 
-  const meta = await fetchShlinkShortUrlMeta(apiKey, parsed.shortCode, parsed.domain);
+  const meta = await fetchTinyurlAliasMeta(parsed.alias, parsed.domain);
   if (!meta) {
     const empty: ClickSeriesResponse = {
       days,
@@ -136,33 +145,24 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(empty, { status: 200 });
   }
 
-  const longUrl =
-    typeof meta.longUrl === 'string'
-      ? meta.longUrl
-      : typeof meta.originalUrl === 'string'
-        ? meta.originalUrl
-        : '';
-
+  const longUrl = longUrlFromTinyMeta(meta);
   if (!longUrlBelongsToCreator(longUrl, creatorId)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const visits = await fetchShlinkShortUrlVisits(apiKey, parsed.shortCode, parsed.domain, {
-    startDate: startDateIso,
-    endDate: endDateIso,
-    itemsPerPage: 500,
-    maxPages: 20,
+  const timeline = await fetchTinyurlTimelineDaily(parsed.alias, {
+    from: startDateIso,
+    to: endDateIso,
+    domain: parsed.domain,
   });
 
-  if (!visits) {
+  if (!timeline) {
     return NextResponse.json({ error: 'Failed to load click visits' }, { status: 500 });
   }
 
   const perDayMap = new Map<string, number>();
-  for (const visit of visits) {
-    const key = visit.date.slice(0, 10);
-    if (!key) continue;
-    perDayMap.set(key, (perDayMap.get(key) ?? 0) + 1);
+  for (const hit of timeline) {
+    perDayMap.set(hit.date, (perDayMap.get(hit.date) ?? 0) + hit.clicks);
   }
 
   const points = buildPointsFromDailyMap(today, days, perDayMap);

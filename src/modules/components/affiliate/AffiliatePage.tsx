@@ -44,7 +44,6 @@ import {
   getActiveCampaigns,
   getAffiliateMaterialsByProject,
   getCampaignByKey,
-  saveAffiliateLinkIfUrlNewForCreator,
 } from '@/modules/utils/storage';
 import type { AffiliateMaterial, Campaign } from '@/modules/types';
 import { StatusLabel } from '../ui/status-label';
@@ -98,6 +97,7 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
   const [shortUrl, setShortUrl] = useState<string | null>(null);
   const [isShorteningLink, setIsShorteningLink] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [linkError, setLinkError] = useState(false);
 
   // Materials state for drawer
   const [drawerMaterials, setDrawerMaterials] = useState<AffiliateMaterial[]>([]);
@@ -191,36 +191,19 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
     if (!getLinkEnabled || !currentUserId || !isCreatorApproved) return;
     setIsShorteningLink(true);
     setShortUrl(null);
-    const effectiveUtmSource = selectedCampaign?.utmSource || 'creator_club_affiliate';
-    const effectiveUtmMedium = selectedCampaign?.utmMedium || 'affiliate';
-    const effectiveUtmCampaign = selectedCampaign?.utmCampaign || 'creator_club_affiliate';
-    const effectiveUtmContent = selectedCampaign?.utmId || currentUserId;
-
-    const buildFallbackLongUrl = () => {
-      try {
-        const u = new URL(project.materialsUrl);
-        u.searchParams.set('utm_source', effectiveUtmSource);
-        u.searchParams.set('utm_medium', effectiveUtmMedium);
-        u.searchParams.set('utm_campaign', effectiveUtmCampaign);
-        u.searchParams.set('utm_content', effectiveUtmContent);
-        u.searchParams.delete('utm_id');
-        u.searchParams.set('ref', currentUserId);
-        return u.toString();
-      } catch {
-        return `${project.materialsUrl}?utm_source=${effectiveUtmSource}&utm_medium=${effectiveUtmMedium}&utm_campaign=${effectiveUtmCampaign}&utm_content=${effectiveUtmContent}&ref=${currentUserId}`;
-      }
-    };
+    setLinkError(false);
 
     try {
       const res = await fetch(`${BASE_PATH}/api/affiliate/shorten`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           projectUrl: project.materialsUrl,
           projectId: project.id,
           campaignId: selectedCampaign?.id,
           campaignKey: selectedCampaign?.campaignKey || campaignKey,
+          campaignName: selectedCampaign?.name || project.name,
           utmSource: 'creator_club_affiliate',
           utmMedium: 'affiliate',
           utmCampaign: 'creator_club_affiliate',
@@ -237,12 +220,16 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
       });
       if (res.ok) {
         const data = await res.json();
-        setShortUrl(data.shortUrl);
+        if (typeof data.shortUrl === 'string' && data.shortUrl.trim()) {
+          setShortUrl(data.shortUrl);
+        } else {
+          setLinkError(true);
+        }
       } else {
-        setShortUrl(buildFallbackLongUrl());
+        setLinkError(true);
       }
     } catch {
-      setShortUrl(buildFallbackLongUrl());
+      setLinkError(true);
     } finally {
       setIsShorteningLink(false);
     }
@@ -269,20 +256,6 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
       setLinkCopied(true);
       toast.success('คัดลอกลิงก์แล้ว!');
       setTimeout(() => setLinkCopied(false), 2000);
-
-      if (currentUserId && selectedProject) {
-        try {
-          await saveAffiliateLinkIfUrlNewForCreator({
-            creatorId: currentUserId,
-            url: shortUrl,
-            projectId: selectedProject.id,
-            campaignName: selectedCampaign?.name || selectedProject.name,
-            campaignId: selectedCampaign?.id,
-          });
-        } catch (err) {
-          console.error('Failed to persist copied affiliate link:', err);
-        }
-      }
     } catch {
       toast.error('ไม่สามารถคัดลอกได้');
     }
@@ -345,6 +318,7 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
     setIsMaterialsOpen(true);
     setShortUrl(null);
     setLinkCopied(false);
+    setLinkError(false);
     void generateReferralLink(project);
     loadMaterials(project.id);
   };
@@ -782,7 +756,11 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
                     </button>
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground">ไม่สามารถสร้างลิงก์ได้</p>
+                  <p className="text-sm text-destructive">
+                    {linkError
+                      ? 'เกิดข้อผิดพลาด กรุณาลองใหม่ภายหลัง'
+                      : 'ไม่สามารถสร้างลิงก์ได้'}
+                  </p>
                 )}
                 <p className="text-xs text-orange-600/70">
                   แชร์ลิงก์นี้เพื่อรับค่าคอมมิชชันเมื่อมีผู้สนใจผ่านลิงก์ของคุณ

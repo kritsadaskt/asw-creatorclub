@@ -7,10 +7,11 @@ import {
 import { mapWithConcurrency } from '@/lib/concurrency';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import {
-  fetchShlinkShortUrlMeta,
-  parseShlinkShortCode,
-  visitsFromShlinkShortUrlJson,
-} from '@/lib/shlink-server';
+  fetchTinyurlAliasMeta,
+  isTinyurlConfigured,
+  parseShortlinkAlias,
+  visitsFromTinyurlAliasJson,
+} from '@/lib/tinyurl-server';
 import { getServerSession } from '@/modules/utils/auth';
 
 type LinkRow = {
@@ -95,14 +96,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (row.project_id) projects.add(row.project_id);
   }
 
-  const apiKey = process.env.SHLINK_API_KEY;
+  const tinyConfigured = isTinyurlConfigured();
   const cacheMap = await getAffiliateLinkClickStatsByIds(rows.map((r) => r.id));
   const liveTasks: { id: string; shortUrl: string }[] = [];
 
   for (const row of rows) {
     const shortUrl = row.url?.trim() ?? '';
     if (!shortUrl) continue;
-    const parsed = parseShlinkShortCode(shortUrl);
+    const parsed = parseShortlinkAlias(shortUrl);
     if (!parsed) continue;
 
     const cached = cacheMap.get(row.id);
@@ -112,18 +113,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       continue;
     }
 
-    if (apiKey) {
+    if (tinyConfigured) {
       liveTasks.push({ id: row.id, shortUrl });
     }
   }
 
-  if (apiKey && liveTasks.length > 0) {
+  if (tinyConfigured && liveTasks.length > 0) {
     await mapWithConcurrency(liveTasks, LIVE_CONCURRENCY, async (task) => {
-      const parsed = parseShlinkShortCode(task.shortUrl);
+      const parsed = parseShortlinkAlias(task.shortUrl);
       if (!parsed) return;
-      const meta = await fetchShlinkShortUrlMeta(apiKey, parsed.shortCode, parsed.domain);
+      const meta = await fetchTinyurlAliasMeta(parsed.alias, parsed.domain);
       if (!meta) return;
-      const v = visitsFromShlinkShortUrlJson(meta);
+      const v = visitsFromTinyurlAliasJson(meta);
       if (v?.total != null && Number.isFinite(v.total)) {
         linkClicks.set(task.id, v.total);
       }
@@ -131,7 +132,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   const statsSyncedAt = maxSyncedAt(rows.map((r) => cacheMap.get(r.id)));
-  const hasClickSource = Boolean(apiKey) || statsSyncedAt != null;
+  const hasClickSource = tinyConfigured || statsSyncedAt != null;
 
   let totalClicks: number | null = null;
   if (hasClickSource) {
@@ -219,7 +220,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     creatorCount: creators.size,
     projectCount: projects.size,
     totalClicks,
-    shlinkConfigured: Boolean(apiKey),
+    shlinkConfigured: tinyConfigured,
     statsSyncedAt,
     topCreators,
     topLinks,

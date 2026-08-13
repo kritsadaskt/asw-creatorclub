@@ -8,11 +8,12 @@ import {
 import { mapWithConcurrency } from '@/lib/concurrency';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import {
-  fetchShlinkShortUrlMeta,
+  fetchTinyurlAliasMeta,
+  isTinyurlConfigured,
   longUrlBelongsToCreator,
-  parseShlinkShortCode,
-  visitsFromShlinkShortUrlJson,
-} from '@/lib/shlink-server';
+  parseShortlinkAlias,
+  visitsFromTinyurlAliasJson,
+} from '@/lib/tinyurl-server';
 import { getServerSession } from '@/modules/utils/auth';
 import type {
   AdminAffiliateReportsResponse,
@@ -231,8 +232,7 @@ export async function GET(request: NextRequest) {
       ([creatorId]) => !adminCreatorIds.has(creatorId),
     );
 
-    const apiKey = process.env.SHLINK_API_KEY;
-    const shlinkConfigured = Boolean(apiKey);
+    const shlinkConfigured = isTinyurlConfigured();
     const totalLinks = creatorEntriesExcludingAdmin.reduce((sum, [, linkCount]) => sum + linkCount, 0);
 
     const nonAdminRows = rows.filter((r) => r.creator_id && !adminCreatorIds.has(r.creator_id));
@@ -256,28 +256,27 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      if (apiKey && url) {
-        const parsed = parseShlinkShortCode(url);
+      if (shlinkConfigured && url) {
+        const parsed = parseShortlinkAlias(url);
         if (parsed) {
           fallbackTasks.push({ id: row.id, creatorId, url });
         }
       }
     }
 
-    if (apiKey && fallbackTasks.length > 0) {
+    if (shlinkConfigured && fallbackTasks.length > 0) {
       await mapWithConcurrency(fallbackTasks, LIVE_FALLBACK_CONCURRENCY, async (task) => {
-        const parsed = parseShlinkShortCode(task.url);
+        const parsed = parseShortlinkAlias(task.url);
         if (!parsed) return;
-        const meta = await fetchShlinkShortUrlMeta(apiKey, parsed.shortCode, parsed.domain);
+        const meta = await fetchTinyurlAliasMeta(parsed.alias, parsed.domain);
         if (!meta) return;
-        const longUrl =
-          typeof meta.longUrl === 'string'
-            ? meta.longUrl
-            : typeof meta.originalUrl === 'string'
-              ? meta.originalUrl
-              : '';
+        const data = (meta.data && typeof meta.data === 'object' ? meta.data : meta) as Record<
+          string,
+          unknown
+        >;
+        const longUrl = typeof data.url === 'string' ? data.url : '';
         if (!longUrlBelongsToCreator(longUrl, task.creatorId)) return;
-        const stats = visitsFromShlinkShortUrlJson(meta);
+        const stats = visitsFromTinyurlAliasJson(meta);
         if (stats?.total != null && Number.isFinite(stats.total)) {
           linkResolvedClicks.set(task.id, stats.total);
         }

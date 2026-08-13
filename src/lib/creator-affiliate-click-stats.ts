@@ -6,29 +6,39 @@ import {
 import { mapWithConcurrency } from '@/lib/concurrency';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import {
-  fetchShlinkShortUrlMeta,
+  fetchTinyurlAliasMeta,
+  isTinyurlConfigured,
   longUrlBelongsToCreator,
-  parseShlinkShortCode,
-  visitsFromShlinkShortUrlJson,
-  type ShlinkVisitStats,
-} from '@/lib/shlink-server';
+  parseShortlinkAlias,
+  visitsFromTinyurlAliasJson,
+  type ShortlinkVisitStats,
+} from '@/lib/tinyurl-server';
 
 type LinkRow = { id: string; url: string | null };
 
 const LIVE_CONCURRENCY = 8;
 
 export type CreatorAffiliateClickStatsResult = {
-  stats: Record<string, ShlinkVisitStats | null>;
+  stats: Record<string, ShortlinkVisitStats | null>;
   totalClicks: number;
+  /** True when TinyURL (or legacy flag name) is configured for live fallback. */
   shlinkConfigured: boolean;
   statsSyncedAt: string | null;
 };
 
+function longUrlFromTinyMeta(meta: Record<string, unknown>): string {
+  const data = (meta.data && typeof meta.data === 'object' ? meta.data : meta) as Record<
+    string,
+    unknown
+  >;
+  if (typeof data.url === 'string') return data.url;
+  return '';
+}
+
 export async function getCreatorAffiliateClickStats(
   creatorId: string,
 ): Promise<CreatorAffiliateClickStatsResult> {
-  const apiKey = process.env.SHLINK_API_KEY;
-  const shlinkConfigured = Boolean(apiKey);
+  const configured = isTinyurlConfigured();
 
   const { data, error } = await supabaseAdmin
     .from('affiliate_links')
@@ -42,7 +52,7 @@ export async function getCreatorAffiliateClickStats(
   const rows = (data ?? []) as LinkRow[];
   const cacheMap = await getAffiliateLinkClickStatsByIds(rows.map((r) => r.id));
 
-  const stats: Record<string, ShlinkVisitStats | null> = {};
+  const stats: Record<string, ShortlinkVisitStats | null> = {};
   const liveTasks: { id: string; url: string }[] = [];
 
   for (const row of rows) {
@@ -52,7 +62,7 @@ export async function getCreatorAffiliateClickStats(
       continue;
     }
 
-    const parsed = parseShlinkShortCode(url);
+    const parsed = parseShortlinkAlias(url);
     if (!parsed) {
       stats[row.id] = null;
       continue;
@@ -67,27 +77,22 @@ export async function getCreatorAffiliateClickStats(
       }
     }
 
-    if (apiKey) {
+    if (configured) {
       liveTasks.push({ id: row.id, url });
     } else {
       stats[row.id] = null;
     }
   }
 
-  if (apiKey && liveTasks.length > 0) {
+  if (configured && liveTasks.length > 0) {
     await mapWithConcurrency(liveTasks, LIVE_CONCURRENCY, async (task) => {
-      const parsed = parseShlinkShortCode(task.url);
+      const parsed = parseShortlinkAlias(task.url);
       if (!parsed) return;
-      const meta = await fetchShlinkShortUrlMeta(apiKey, parsed.shortCode, parsed.domain);
+      const meta = await fetchTinyurlAliasMeta(parsed.alias, parsed.domain);
       if (!meta) return;
-      const longUrl =
-        typeof meta.longUrl === 'string'
-          ? meta.longUrl
-          : typeof meta.originalUrl === 'string'
-            ? meta.originalUrl
-            : '';
+      const longUrl = longUrlFromTinyMeta(meta);
       if (!longUrlBelongsToCreator(longUrl, creatorId)) return;
-      stats[task.id] = visitsFromShlinkShortUrlJson(meta);
+      stats[task.id] = visitsFromTinyurlAliasJson(meta);
     });
   }
 
@@ -103,7 +108,7 @@ export async function getCreatorAffiliateClickStats(
   return {
     stats,
     totalClicks,
-    shlinkConfigured,
+    shlinkConfigured: configured,
     statsSyncedAt,
   };
 }

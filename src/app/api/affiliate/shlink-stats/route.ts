@@ -9,15 +9,16 @@ import { mapWithConcurrency } from '@/lib/concurrency';
 import { requireApprovedCreatorSession } from '@/lib/require-approved-creator';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import {
-  fetchShlinkShortUrlMeta,
+  fetchTinyurlAliasMeta,
+  isTinyurlConfigured,
   longUrlBelongsToCreator,
-  parseShlinkShortCode,
-  visitsFromShlinkShortUrlJson,
-  type ShlinkVisitStats,
-} from '@/lib/shlink-server';
+  parseShortlinkAlias,
+  visitsFromTinyurlAliasJson,
+  type ShortlinkVisitStats,
+} from '@/lib/tinyurl-server';
 
 export type ShlinkStatsResponse = {
-  stats: Record<string, ShlinkVisitStats | null>;
+  stats: Record<string, ShortlinkVisitStats | null>;
   /** Sum of `total` for non-null stats (convenience for UI). */
   totalClicksAll: number;
   /** Latest cache sync (UTC ISO) when reading from `affiliate_link_click_stats`. */
@@ -26,12 +27,21 @@ export type ShlinkStatsResponse = {
 
 const LIVE_CONCURRENCY = 8;
 
+function longUrlFromTinyMeta(meta: Record<string, unknown>): string {
+  const data = (meta.data && typeof meta.data === 'object' ? meta.data : meta) as Record<
+    string,
+    unknown
+  >;
+  if (typeof data.url === 'string') return data.url;
+  return '';
+}
+
 export async function GET(request: NextRequest) {
   const auth = await requireApprovedCreatorSession(request);
   if (!auth.ok) return auth.response;
 
   const creatorId = auth.session.id;
-  const apiKey = process.env.SHLINK_API_KEY;
+  const configured = isTinyurlConfigured();
 
   try {
     const { data: rows, error } = await supabaseAdmin
@@ -55,7 +65,7 @@ export async function GET(request: NextRequest) {
     const ids = list.map((r: { id: string }) => r.id);
     const cacheMap = await getAffiliateLinkClickStatsByIds(ids);
 
-    const stats: Record<string, ShlinkVisitStats | null> = {};
+    const stats: Record<string, ShortlinkVisitStats | null> = {};
     type Task = { id: string; url: string };
     const liveTasks: Task[] = [];
 
@@ -67,7 +77,7 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      const parsed = parseShlinkShortCode(url);
+      const parsed = parseShortlinkAlias(url);
       if (!parsed) {
         stats[id] = null;
         continue;
@@ -82,27 +92,22 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      if (apiKey) {
+      if (configured) {
         liveTasks.push({ id, url });
       } else {
         stats[id] = null;
       }
     }
 
-    if (apiKey && liveTasks.length > 0) {
+    if (configured && liveTasks.length > 0) {
       await mapWithConcurrency(liveTasks, LIVE_CONCURRENCY, async (task) => {
-        const parsed = parseShlinkShortCode(task.url);
+        const parsed = parseShortlinkAlias(task.url);
         if (!parsed) return;
-        const meta = await fetchShlinkShortUrlMeta(apiKey, parsed.shortCode, parsed.domain);
+        const meta = await fetchTinyurlAliasMeta(parsed.alias, parsed.domain);
         if (!meta) return;
-        const longUrl =
-          typeof meta.longUrl === 'string'
-            ? meta.longUrl
-            : typeof meta.originalUrl === 'string'
-              ? meta.originalUrl
-              : '';
+        const longUrl = longUrlFromTinyMeta(meta);
         if (!longUrlBelongsToCreator(longUrl, creatorId)) return;
-        stats[task.id] = visitsFromShlinkShortUrlJson(meta);
+        stats[task.id] = visitsFromTinyurlAliasJson(meta);
       });
     }
 
@@ -126,6 +131,6 @@ export async function GET(request: NextRequest) {
       error: err,
       context: requestLogContext(request),
     });
-    return NextResponse.json({ error: 'Failed to load Shlink stats' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to load shortlink stats' }, { status: 500 });
   }
 }
