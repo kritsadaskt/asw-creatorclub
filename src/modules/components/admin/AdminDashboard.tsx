@@ -1383,7 +1383,7 @@ export function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="contact-logs" className="mt-4 flex flex-col gap-6">
-          <UtmContactLogsTable allowSearch={true} />
+          <UtmContactLogsTable allowSearch={false} />
         </TabsContent>
       </Tabs>
 

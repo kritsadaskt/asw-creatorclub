@@ -149,11 +149,11 @@ export function UtmContactLogsTable({
         }
       }
 
-      // TEMP: show every row returned by the API (no client-side exclusion).
+      // Show every row returned by the API (no client-side exclusion).
       setLogs(list);
 
       if (list.length === 0) {
-        toast.info('ไม่พบข้อมูลการลงทะเบียนที่ตรงกับเงื่อนไข');
+        toast.info('ไม่พบข้อมูล Leads');
       } else {
         toast.success(`โหลดข้อมูลสำเร็จ ${list.length} รายการ`);
       }
@@ -167,9 +167,13 @@ export function UtmContactLogsTable({
     }
   };
 
-  // Auto-fetch on mount so the admin sees both default sources immediately.
+  // Auto-fetch on mount — dashboard loads unfiltered list.
   useEffect(() => {
-    fetchLogs(utmSource, utmCampaign, utmMedium);
+    if (allowSearch) {
+      fetchLogs(utmSource, utmCampaign, utmMedium);
+    } else {
+      fetchLogs('', '', '');
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allowSearch, utmSource, utmCampaign, utmMedium]);
 
@@ -360,15 +364,13 @@ export function UtmContactLogsTable({
             <h3 className="text-primary text-2xl font-medium">
               Leads ทั้งหมด {logs.length > 0 && `(${logs.length})`}
             </h3>
-            {!allowSearch && (
-              <p className="text-sm text-muted-foreground mt-1">
-                ดึงข้อมูลจาก <code className="bg-neutral-100 px-1.5 py-0.5 rounded text-neutral-800 font-mono text-xs">{DEFAULT_UTM_SOURCES.join(', ')}</code>
-              </p>
-            )}
+            <p className="text-sm text-muted-foreground mt-1">
+              แสดงรายการทั้งหมดจาก CIS โดยไม่กรอง utm / ชื่อ
+            </p>
           </div>
 
-          {logs.length > 0 && (
-            <div className="flex gap-2 w-full sm:w-auto">
+          <div className="flex gap-2 w-full sm:w-auto">
+            {logs.length > 0 && (
               <Button
                 type="button"
                 variant="success"
@@ -379,19 +381,17 @@ export function UtmContactLogsTable({
                 <FileDown className="w-4 h-4" />
                 Export {logs.length}
               </Button>
-              {!allowSearch && (
-                <Button
-                  type="button"
-                  variant="outline"
-                onClick={() => fetchLogs(utmSource, utmCampaign, utmMedium)}
-                  disabled={loading}
-                  center
-                >
-                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                </Button>
-              )}
-            </div>
-          )}
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => fetchLogs(allowSearch ? searchSource : '', allowSearch ? searchCampaign : '', allowSearch ? searchMedium : '')}
+              disabled={loading}
+              center
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
         </div>
 
         {/* Loading and Error states */}
@@ -417,7 +417,7 @@ export function UtmContactLogsTable({
             <p className="font-medium text-neutral-500">
               {allowSearch
                 ? 'ยังไม่พบข้อมูลที่ตรงกับเงื่อนไข'
-                : 'ไม่พบข้อมูลผู้ลงทะเบียนสำหรับแคมเปญนี้'}
+                : 'ยังไม่พบข้อมูล Leads'}
             </p>
           </div>
         ) : (

@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchCreatorClubContactLogs } from '@/lib/cis-contact-log-register';
-import { filterExcludedContactLogsResponse } from '@/lib/excluded-contact-log-leads';
+import { fetchAllContactLogs, fetchCisContactLogRegister } from '@/lib/cis-contact-log-register';
 import { logServerError, requestLogContext } from '@/lib/log-server-error';
 import { getServerSession } from '@/modules/utils/auth';
 
 /**
  * GET /api/admin/contact-logs
  *
- * Fetches UTM customer registration logs from the external AssetWise CIS API.
- * Query Parameters:
- *  - utm_source (optional)
- *  - utm_campaign (optional)
- *  - utm_medium (optional)
+ * Default (no query): all CIS leads — no source / campaign / medium / name filters.
+ * Optional query params for ad-hoc lookup: utm_source, utm_campaign, utm_medium.
  */
 export async function GET(request: NextRequest) {
   const session = getServerSession(request);
@@ -21,96 +17,25 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = request.nextUrl;
-    const utmSource = searchParams.get('utm_source')?.trim();
-    const utmCampaign = searchParams.get('utm_campaign')?.trim();
-    const utmMedium = searchParams.get('utm_medium')?.trim();
+    const utmSource = searchParams.get('utm_source')?.trim() || undefined;
+    const utmCampaign = searchParams.get('utm_campaign')?.trim() || undefined;
+    const utmMedium = searchParams.get('utm_medium')?.trim() || undefined;
 
-    if (!utmSource) {
-      const logs = await fetchCreatorClubContactLogs();
-      if (logs == null) {
-        return NextResponse.json(
-          { error: 'Failed to fetch contact logs from external API' },
-          { status: 502 },
-        );
-      }
+    const logs =
+      !utmSource && !utmCampaign && !utmMedium
+        ? await fetchAllContactLogs()
+        : await fetchCisContactLogRegister({ utmSource, utmCampaign, utmMedium });
 
-      // TEMP: return all fetched Creator Club logs (skip campaign/medium post-filter).
-      void utmCampaign;
-      void utmMedium;
-
-      return NextResponse.json({
-        success: true,
-        data: logs,
-      });
-    }
-
-    // Determine the CIS API endpoint based on UAT or Production environment settings
-    let endpointUrl = 'https://api.assetwise.co.th/api/Customer/GetContactLogRegister';
-
-    // Retrieve external authorization credentials
-    const token = process.env.CONTACT_LOGS_TOKEN;
-    const headers: Record<string, string> = { 
-      'Accept': 'application/json',
-      'Content-Type': 'application/json'
-    };
-    if (token) {
-      headers.Authorization = `Basic ${token}`;
-    }
-
-    const payloadBody: Record<string, string> = {
-      utm_source: utmSource,
-    };
-    if (utmCampaign) {
-      payloadBody.utm_campaign = utmCampaign;
-    }
-    if (utmMedium) {
-      payloadBody.utm_medium = utmMedium;
-    }
-
-    // console.log(`[contact-logs] Fetching logs from: ${endpointUrl} (POST) with payload:`, payloadBody);
-
-    const externalRes = await fetch(endpointUrl, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payloadBody)
-    });
-
-    const responseText = await externalRes.text();
-    // console.log(`[contact-logs] Received status ${externalRes.status} from external API. Response:`, responseText);
-    let responseData: unknown;
-    try {
-      responseData = responseText ? JSON.parse(responseText) : null;
-    } catch {
-      responseData = { raw: responseText };
-    }
-
-    if (!externalRes.ok) {
-      await logServerError({
-        environment: process.env.NODE_ENV ?? 'development',
-        source: 'api:admin/contact-logs',
-        severity: 'warn',
-        message: `External CIS API returned status ${externalRes.status}`,
-        context: {
-          ...requestLogContext(request),
-          targetUrl: endpointUrl,
-          status: externalRes.status,
-          responseBodySnippet: responseText.slice(0, 500),
-        },
-      });
-
+    if (logs == null) {
       return NextResponse.json(
-        {
-          error: 'Failed to fetch contact logs from external API',
-          status: externalRes.status,
-          details: responseData,
-        },
+        { error: 'Failed to fetch contact logs from external API' },
         { status: 502 },
       );
     }
 
     return NextResponse.json({
       success: true,
-      data: filterExcludedContactLogsResponse(responseData),
+      data: logs,
     });
   } catch (error) {
     console.error('[contact-logs] Server error:', error);
