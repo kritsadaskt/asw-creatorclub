@@ -5,13 +5,10 @@ import {
   rowToVisitStats,
 } from '@/lib/affiliate-link-click-cache';
 import { mapWithConcurrency } from '@/lib/concurrency';
+import { resolveAffiliateLinkClickTotals } from '@/lib/resolve-affiliate-link-clicks';
+import { isShlinkConfigured } from '@/lib/shlink-server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import {
-  fetchTinyurlAliasMeta,
-  isTinyurlConfigured,
-  parseShortlinkAlias,
-  visitsFromTinyurlAliasJson,
-} from '@/lib/tinyurl-server';
+import { isTinyurlConfigured, parseShortlinkAlias } from '@/lib/tinyurl-server';
 import { getServerSession } from '@/modules/utils/auth';
 
 type LinkRow = {
@@ -96,7 +93,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (row.project_id) projects.add(row.project_id);
   }
 
-  const tinyConfigured = isTinyurlConfigured();
+  const tinyConfigured = isTinyurlConfigured() || isShlinkConfigured();
   const cacheMap = await getAffiliateLinkClickStatsByIds(rows.map((r) => r.id));
   const liveTasks: { id: string; shortUrl: string }[] = [];
 
@@ -120,13 +117,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   if (tinyConfigured && liveTasks.length > 0) {
     await mapWithConcurrency(liveTasks, LIVE_CONCURRENCY, async (task) => {
-      const parsed = parseShortlinkAlias(task.shortUrl);
-      if (!parsed) return;
-      const meta = await fetchTinyurlAliasMeta(parsed.alias, parsed.domain);
-      if (!meta) return;
-      const v = visitsFromTinyurlAliasJson(meta);
-      if (v?.total != null && Number.isFinite(v.total)) {
-        linkClicks.set(task.id, v.total);
+      const resolved = await resolveAffiliateLinkClickTotals({
+        linkId: task.id,
+        url: task.shortUrl,
+        cached: cacheMap.get(task.id),
+        persist: false,
+      });
+      if (resolved?.stats.total != null && Number.isFinite(resolved.stats.total)) {
+        linkClicks.set(task.id, resolved.stats.total);
       }
     });
   }

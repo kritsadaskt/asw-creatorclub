@@ -6,14 +6,10 @@ import {
   rowToVisitStats,
 } from '@/lib/affiliate-link-click-cache';
 import { mapWithConcurrency } from '@/lib/concurrency';
+import { resolveAffiliateLinkClickTotals } from '@/lib/resolve-affiliate-link-clicks';
+import { isShlinkConfigured } from '@/lib/shlink-server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import {
-  fetchTinyurlAliasMeta,
-  isTinyurlConfigured,
-  longUrlBelongsToCreator,
-  parseShortlinkAlias,
-  visitsFromTinyurlAliasJson,
-} from '@/lib/tinyurl-server';
+import { isTinyurlConfigured, parseShortlinkAlias } from '@/lib/tinyurl-server';
 import { getServerSession } from '@/modules/utils/auth';
 import type {
   AdminAffiliateReportsResponse,
@@ -232,7 +228,7 @@ export async function GET(request: NextRequest) {
       ([creatorId]) => !adminCreatorIds.has(creatorId),
     );
 
-    const shlinkConfigured = isTinyurlConfigured();
+    const shlinkConfigured = isTinyurlConfigured() || isShlinkConfigured();
     const totalLinks = creatorEntriesExcludingAdmin.reduce((sum, [, linkCount]) => sum + linkCount, 0);
 
     const nonAdminRows = rows.filter((r) => r.creator_id && !adminCreatorIds.has(r.creator_id));
@@ -248,12 +244,9 @@ export async function GET(request: NextRequest) {
       const url = row.url?.trim() ?? '';
 
       if (cached && cached.total_visits != null && Number.isFinite(cached.total_visits)) {
-        const lu = cached.long_url?.trim() ?? '';
-        if (lu && longUrlBelongsToCreator(lu, creatorId)) {
-          const st = rowToVisitStats(cached);
-          if (st?.total != null) linkResolvedClicks.set(row.id, st.total);
-          continue;
-        }
+        const st = rowToVisitStats(cached);
+        if (st?.total != null) linkResolvedClicks.set(row.id, st.total);
+        continue;
       }
 
       if (shlinkConfigured && url) {
@@ -266,19 +259,14 @@ export async function GET(request: NextRequest) {
 
     if (shlinkConfigured && fallbackTasks.length > 0) {
       await mapWithConcurrency(fallbackTasks, LIVE_FALLBACK_CONCURRENCY, async (task) => {
-        const parsed = parseShortlinkAlias(task.url);
-        if (!parsed) return;
-        const meta = await fetchTinyurlAliasMeta(parsed.alias, parsed.domain);
-        if (!meta) return;
-        const data = (meta.data && typeof meta.data === 'object' ? meta.data : meta) as Record<
-          string,
-          unknown
-        >;
-        const longUrl = typeof data.url === 'string' ? data.url : '';
-        if (!longUrlBelongsToCreator(longUrl, task.creatorId)) return;
-        const stats = visitsFromTinyurlAliasJson(meta);
-        if (stats?.total != null && Number.isFinite(stats.total)) {
-          linkResolvedClicks.set(task.id, stats.total);
+        const resolved = await resolveAffiliateLinkClickTotals({
+          linkId: task.id,
+          url: task.url,
+          cached: cacheMap.get(task.id),
+          persist: false,
+        });
+        if (resolved?.stats.total != null && Number.isFinite(resolved.stats.total)) {
+          linkResolvedClicks.set(task.id, resolved.stats.total);
         }
       });
     }

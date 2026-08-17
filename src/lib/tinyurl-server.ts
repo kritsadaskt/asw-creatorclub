@@ -10,7 +10,12 @@ const DEFAULT_LEGACY_PUBLIC_BASE = 'https://assetwise.co.th/c';
 const DEFAULT_API_BASE = 'https://api.tinyurl.com';
 const FETCH_TIMEOUT_MS = 12_000;
 
-export type ShortlinkVisitStats = { total: number; nonBots?: number };
+export type ShortlinkVisitStats = {
+  total: number;
+  nonBots?: number;
+  shlinkBaseline?: number;
+  tinyurlHits?: number;
+};
 /** @deprecated Use ShortlinkVisitStats */
 export type ShlinkVisitStats = ShortlinkVisitStats;
 
@@ -69,8 +74,15 @@ export function longUrlBelongsToCreator(longUrl: string, creatorId: string): boo
 }
 
 function pathUnderBase(linkPath: string, basePath: string): string | null {
-  const base = basePath.replace(/\/+$/, '') || '/';
   const path = linkPath.replace(/\/+$/, '') || '/';
+  // Root public base (`https://link.assetwise.co.th`) has pathname `/`.
+  // Stripping trailing slashes yields `''` — treat that as site root, not `/`.
+  const baseNormalized = basePath.replace(/\/+$/, '');
+  if (!baseNormalized) {
+    if (path === '/') return '';
+    return path.replace(/^\//, '');
+  }
+  const base = baseNormalized.startsWith('/') ? baseNormalized : `/${baseNormalized}`;
   if (path === base) return '';
   if (path.startsWith(`${base}/`)) return path.slice(base.length + 1);
   return null;
@@ -105,9 +117,23 @@ export function parseShortlinkAlias(linkUrl: string): { alias: string; domain: s
   if (link.protocol === legacyBase.protocol && link.host === legacyBase.host) {
     const under = pathUnderBase(link.pathname, legacyBase.pathname);
     if (under === null) return null;
-    const alias = under.split('/')[0]?.trim();
+    const alias = under.split('/').filter(Boolean).pop()?.trim();
     if (!alias) return null;
     return { alias, domain: apiDomain };
+  }
+
+  // Fallback: any assetwise short host — use last path segment as alias
+  if (
+    (link.hostname === tinyBase.hostname ||
+      link.hostname === legacyBase.hostname ||
+      link.hostname.endsWith('.assetwise.co.th') ||
+      link.hostname === 'assetwise.co.th') &&
+    (link.protocol === 'https:' || link.protocol === 'http:')
+  ) {
+    const last = link.pathname.split('/').filter(Boolean).pop()?.trim();
+    if (last && /^[A-Za-z0-9_-]{5,30}$/.test(last)) {
+      return { alias: last, domain: apiDomain };
+    }
   }
 
   return null;
@@ -120,18 +146,46 @@ export function parseShlinkShortCode(linkUrl: string): { shortCode: string; doma
   return { shortCode: parsed.alias, domain: parsed.domain };
 }
 
-export function visitsFromTinyurlAliasJson(data: Record<string, unknown>): ShortlinkVisitStats | null {
-  const node = (data.data && typeof data.data === 'object' ? data.data : data) as Record<
-    string,
-    unknown
-  >;
-  if (typeof node.hits === 'number' && Number.isFinite(node.hits)) {
-    return { total: Math.trunc(node.hits) };
+function coerceCount(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
+    return Math.trunc(value);
   }
-  if (typeof node.total === 'number' && Number.isFinite(node.total)) {
-    return { total: Math.trunc(node.total) };
+  if (typeof value === 'string' && value.trim()) {
+    const n = Number(value.replace(/,/g, '').trim());
+    if (Number.isFinite(n) && n >= 0) return Math.trunc(n);
   }
   return null;
+}
+
+function pickCount(node: Record<string, unknown> | null | undefined): number | null {
+  if (!node) return null;
+  return (
+    coerceCount(node.hits) ??
+    coerceCount(node.total) ??
+    coerceCount(node.clicks) ??
+    coerceCount(node.visitCount) ??
+    coerceCount(node.visits)
+  );
+}
+
+export function visitsFromTinyurlAliasJson(data: Record<string, unknown>): ShortlinkVisitStats | null {
+  const root = data;
+  const nested = data.data && typeof data.data === 'object' ? (data.data as Record<string, unknown>) : null;
+  const statsNode =
+    nested && nested.stats && typeof nested.stats === 'object'
+      ? (nested.stats as Record<string, unknown>)
+      : root.stats && typeof root.stats === 'object'
+        ? (root.stats as Record<string, unknown>)
+        : null;
+  const analyticsNode =
+    nested && nested.analytics && typeof nested.analytics === 'object'
+      ? (nested.analytics as Record<string, unknown>)
+      : null;
+
+  const total =
+    pickCount(nested) ?? pickCount(root) ?? pickCount(statsNode) ?? pickCount(analyticsNode);
+  if (total == null) return null;
+  return { total };
 }
 
 /** Normalize Shlink short-url JSON (legacy live fallback). */
@@ -173,12 +227,42 @@ export async function fetchTinyurlAliasMeta(
   domain = getTinyurlDomain()
 ): Promise<Record<string, unknown> | null> {
   const res = await tinyurlFetch(`/alias/${encodeURIComponent(domain)}/${encodeURIComponent(alias)}`);
-  if (!res?.ok) return null;
+  if (!res) return null;
+  if (!res.ok) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(`[tinyurl] GET /alias ${domain}/${alias} → ${res.status}`);
+    }
+    return null;
+  }
   try {
     return (await res.json()) as Record<string, unknown>;
   } catch {
     return null;
   }
+}
+
+export type TinyurlHitsResult = {
+  hits: number | null;
+  longUrl: string;
+};
+
+/**
+ * Lifetime TinyURL click count for an alias.
+ * Source of truth: GET /alias `data.hits` (timeline/analytics endpoints are unreliable).
+ */
+export async function fetchTinyurlHits(
+  alias: string,
+  domain = getTinyurlDomain(),
+): Promise<TinyurlHitsResult> {
+  const meta = await fetchTinyurlAliasMeta(alias, domain);
+  const fromAlias = meta ? visitsFromTinyurlAliasJson(meta)?.total ?? null : null;
+  const data = (meta?.data && typeof meta.data === 'object' ? meta.data : meta) as Record<
+    string,
+    unknown
+  > | null;
+  const longUrl = typeof data?.url === 'string' ? data.url : '';
+  const hits = fromAlias != null && Number.isFinite(fromAlias) ? Math.max(0, fromAlias) : null;
+  return { hits, longUrl };
 }
 
 export type TinyurlDailyHit = { date: string; clicks: number };
@@ -194,8 +278,8 @@ export async function fetchTinyurlTimelineDaily(
   const domain = options.domain || getTinyurlDomain();
   if (!options.from || !options.to) return null;
   const params = new URLSearchParams({
-    from: options.from.slice(0, 10),
-    to: options.to.slice(0, 10),
+    from: `${options.from.slice(0, 10)} 00:00:00`,
+    to: `${options.to.slice(0, 10)} 23:59:59`,
     alias,
     domain,
   });
@@ -210,7 +294,7 @@ export async function fetchTinyurlTimelineDaily(
       if (!item || typeof item !== 'object') continue;
       const row = item as Record<string, unknown>;
       const datetime = typeof row.datetime === 'string' ? row.datetime : '';
-      const total = typeof row.total === 'number' ? row.total : 0;
+      const total = coerceCount(row.total) ?? coerceCount(row.hits) ?? coerceCount(row.clicks) ?? 0;
       const date = datetime.slice(0, 10);
       if (!date) continue;
       out.push({ date, clicks: Math.max(0, Math.trunc(total)) });

@@ -4,14 +4,9 @@ import {
   rowToVisitStats,
 } from '@/lib/affiliate-link-click-cache';
 import { countAffiliateLinkRegistrations, fetchCisContactLogRegister } from '@/lib/cis-contact-log-register';
+import { resolveAffiliateLinkClickTotals } from '@/lib/resolve-affiliate-link-clicks';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import {
-  fetchTinyurlAliasMeta,
-  isTinyurlConfigured,
-  longUrlBelongsToCreator,
-  parseShortlinkAlias,
-  visitsFromTinyurlAliasJson,
-} from '@/lib/tinyurl-server';
+import { parseShortlinkAlias } from '@/lib/tinyurl-server';
 import type { AffiliateFunnelStatsResponse } from '@/modules/types/affiliateFunnel';
 
 function utmFromLongUrl(longUrl: string): {
@@ -92,32 +87,24 @@ export async function getAffiliateLinkFunnelStats(
   const cacheMap = await getAffiliateLinkClickStatsByIds([linkId]);
   const cached = cacheMap.get(linkId);
   let clicks = 0;
-  const visit = rowToVisitStats(cached);
-  if (visit?.total != null && Number.isFinite(visit.total)) {
-    clicks = visit.total;
-  } else {
-    const url = linkRow.url?.trim() ?? '';
-    const parsed = parseShortlinkAlias(url);
-    if (isTinyurlConfigured() && parsed) {
-      const meta = await fetchTinyurlAliasMeta(parsed.alias, parsed.domain);
-      if (meta) {
-        const data = (meta.data && typeof meta.data === 'object' ? meta.data : meta) as Record<
-          string,
-          unknown
-        >;
-        const longUrl = typeof data.url === 'string' ? data.url : '';
-        if (longUrlBelongsToCreator(longUrl, creatorId)) {
-          const live = visitsFromTinyurlAliasJson(meta);
-          if (live?.total != null && Number.isFinite(live.total)) {
-            clicks = live.total;
-          }
-          const fromUrl = utmFromLongUrl(longUrl);
-          if (!utmCampaign && fromUrl.utmCampaign) utmCampaign = fromUrl.utmCampaign;
-          if (fromUrl.utmSource) utmSource = fromUrl.utmSource;
-          if (!utmMedium && fromUrl.utmMedium) utmMedium = fromUrl.utmMedium;
-        }
-      }
+  const url = linkRow.url?.trim() ?? '';
+  if (url && parseShortlinkAlias(url)) {
+    const resolved = await resolveAffiliateLinkClickTotals({
+      linkId,
+      url,
+      cached,
+      persist: true,
+    });
+    if (resolved?.stats.total != null) clicks = resolved.stats.total;
+    if (resolved?.longUrl) {
+      const fromUrl = utmFromLongUrl(resolved.longUrl);
+      if (!utmCampaign && fromUrl.utmCampaign) utmCampaign = fromUrl.utmCampaign;
+      if (fromUrl.utmSource) utmSource = fromUrl.utmSource;
+      if (!utmMedium && fromUrl.utmMedium) utmMedium = fromUrl.utmMedium;
     }
+  } else {
+    const visit = rowToVisitStats(cached);
+    if (visit?.total != null && Number.isFinite(visit.total)) clicks = visit.total;
   }
 
   if (!utmCampaign && cached?.long_url) {

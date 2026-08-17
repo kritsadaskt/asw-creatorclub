@@ -3,7 +3,8 @@
  *
  * Maps CSV → Supabase:
  *   shortUrl / shortCode  → match affiliate_links.url
- *   visits                → affiliate_link_click_stats.total_visits
+ *   visits                → raise affiliate_link_click_stats.shlink_baseline
+ *                           total_visits = shlink_baseline + tinyurl_hits
  *   longUrl               → affiliate_link_click_stats.long_url
  *   createdAt             → affiliate_links.created_at (optional)
  *
@@ -134,7 +135,7 @@ console.log(`Update created_at: ${UPDATE_CREATED_AT ? 'yes' : 'no'}\n`);
 const byExactUrl = new Map();
 /** @type {{ id: string; url: string; created_at: string | null }[]} */
 let allLinks = [];
-/** @type {Map<string, number | null>} */
+/** @type {Map<string, { total: number | null; baseline: number | null; tinyHits: number | null }>} */
 const existingVisits = new Map();
 
 if (!DRY_RUN && supabase) {
@@ -168,14 +169,18 @@ if (!DRY_RUN && supabase) {
   for (let from = 0; ; from += 1000) {
     const { data, error } = await supabase
       .from('affiliate_link_click_stats')
-      .select('affiliate_link_id, total_visits')
+      .select('affiliate_link_id, total_visits, shlink_baseline, tinyurl_hits')
       .range(from, from + 999);
     if (error) {
       console.error('Failed to load affiliate_link_click_stats:', error.message);
       process.exit(1);
     }
     for (const row of data ?? []) {
-      existingVisits.set(row.affiliate_link_id, row.total_visits == null ? null : Number(row.total_visits));
+      existingVisits.set(row.affiliate_link_id, {
+        total: row.total_visits == null ? null : Number(row.total_visits),
+        baseline: row.shlink_baseline == null ? null : Number(row.shlink_baseline),
+        tinyHits: row.tinyurl_hits == null ? null : Number(row.tinyurl_hits),
+      });
     }
     if (!data || data.length < 1000) break;
   }
@@ -235,14 +240,33 @@ for (let i = 1; i < lines.length; i++) {
   for (const link of matches) {
     try {
       if (visits != null) {
-        const prev = existingVisits.has(link.id) ? existingVisits.get(link.id) : null;
-        if (prev === visits) {
+        const prev = existingVisits.get(link.id) ?? {
+          total: null,
+          baseline: null,
+          tinyHits: null,
+        };
+        const prevBaseline =
+          prev.baseline != null && Number.isFinite(prev.baseline)
+            ? Math.max(0, Math.trunc(prev.baseline))
+            : prev.total != null && Number.isFinite(prev.total)
+              ? Math.max(0, Math.trunc(prev.total))
+              : 0;
+        const tinyHits =
+          prev.tinyHits != null && Number.isFinite(prev.tinyHits)
+            ? Math.max(0, Math.trunc(prev.tinyHits))
+            : 0;
+        const nextBaseline = Math.max(prevBaseline, visits);
+        const nextTotal = nextBaseline + tinyHits;
+
+        if (prev.baseline === nextBaseline && prev.total === nextTotal) {
           summary.statsUnchanged += 1;
         } else {
           const { error: upErr } = await supabase.from('affiliate_link_click_stats').upsert(
             {
               affiliate_link_id: link.id,
-              total_visits: visits,
+              shlink_baseline: nextBaseline,
+              tinyurl_hits: tinyHits,
+              total_visits: nextTotal,
               long_url: longUrl || null,
               synced_at: nowIso,
             },
@@ -250,8 +274,14 @@ for (let i = 1; i < lines.length; i++) {
           );
           if (upErr) throw upErr;
           summary.statsOk += 1;
-          existingVisits.set(link.id, visits);
-          console.log(`[ok] ${shortCode} link=${link.id} visits ${prev ?? 'null'} → ${visits}`);
+          existingVisits.set(link.id, {
+            total: nextTotal,
+            baseline: nextBaseline,
+            tinyHits,
+          });
+          console.log(
+            `[ok] ${shortCode} link=${link.id} baseline ${prevBaseline} → ${nextBaseline} (tiny=${tinyHits}, total=${nextTotal})`,
+          );
         }
       }
 

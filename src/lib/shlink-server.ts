@@ -11,12 +11,33 @@ export {
   type ShortlinkVisitStats as ShlinkVisitStats,
 } from '@/lib/tinyurl-server';
 
-import { getLegacyShortlinkPublicBaseUrl } from '@/lib/tinyurl-server';
+import {
+  getLegacyShortlinkPublicBaseUrl,
+  visitsFromShlinkShortUrlJson,
+} from '@/lib/tinyurl-server';
 
 const SHLINK_FETCH_TIMEOUT_MS = 12_000;
 
 export function getShlinkBaseUrl(): string {
   return getLegacyShortlinkPublicBaseUrl();
+}
+
+/** Hostname passed to Shlink REST `domain` query (e.g. assetwise.co.th). */
+export function getShlinkApiDomain(): string {
+  try {
+    return new URL(getLegacyShortlinkPublicBaseUrl()).hostname;
+  } catch {
+    return 'assetwise.co.th';
+  }
+}
+
+export function getShlinkApiKey(): string | undefined {
+  const t = process.env.SHLINK_API_KEY?.trim();
+  return t || undefined;
+}
+
+export function isShlinkConfigured(): boolean {
+  return Boolean(getShlinkApiKey());
 }
 
 export function getShlinkRestV3Root(): string {
@@ -49,6 +70,20 @@ export async function fetchShlinkShortUrlMeta(
   } finally {
     clearTimeout(t);
   }
+}
+
+/** Visit total from Shlink short-url meta (null if unavailable). */
+export async function fetchShlinkVisitTotal(
+  shortCode: string,
+  domain = getShlinkApiDomain(),
+): Promise<number | null> {
+  const apiKey = getShlinkApiKey();
+  if (!apiKey) return null;
+  const meta = await fetchShlinkShortUrlMeta(apiKey, shortCode, domain);
+  if (!meta) return null;
+  const stats = visitsFromShlinkShortUrlJson(meta);
+  if (stats?.total == null || !Number.isFinite(stats.total)) return null;
+  return Math.max(0, Math.trunc(stats.total));
 }
 
 type FetchShlinkVisitsOptions = {

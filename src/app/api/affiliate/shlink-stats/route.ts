@@ -6,14 +6,13 @@ import {
   rowToVisitStats,
 } from '@/lib/affiliate-link-click-cache';
 import { mapWithConcurrency } from '@/lib/concurrency';
+import { resolveAffiliateLinkClickTotals } from '@/lib/resolve-affiliate-link-clicks';
 import { requireApprovedCreatorSession } from '@/lib/require-approved-creator';
+import { isShlinkConfigured } from '@/lib/shlink-server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import {
-  fetchTinyurlAliasMeta,
   isTinyurlConfigured,
-  longUrlBelongsToCreator,
   parseShortlinkAlias,
-  visitsFromTinyurlAliasJson,
   type ShortlinkVisitStats,
 } from '@/lib/tinyurl-server';
 
@@ -27,21 +26,12 @@ export type ShlinkStatsResponse = {
 
 const LIVE_CONCURRENCY = 8;
 
-function longUrlFromTinyMeta(meta: Record<string, unknown>): string {
-  const data = (meta.data && typeof meta.data === 'object' ? meta.data : meta) as Record<
-    string,
-    unknown
-  >;
-  if (typeof data.url === 'string') return data.url;
-  return '';
-}
-
 export async function GET(request: NextRequest) {
   const auth = await requireApprovedCreatorSession(request);
   if (!auth.ok) return auth.response;
 
   const creatorId = auth.session.id;
-  const configured = isTinyurlConfigured();
+  const configured = isTinyurlConfigured() || isShlinkConfigured();
 
   try {
     const { data: rows, error } = await supabaseAdmin
@@ -61,54 +51,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to load links' }, { status: 500 });
     }
 
-    const list = rows ?? [];
-    const ids = list.map((r: { id: string }) => r.id);
+    const list = (rows ?? []) as { id: string; url: string | null }[];
+    const ids = list.map((r) => r.id);
     const cacheMap = await getAffiliateLinkClickStatsByIds(ids);
 
     const stats: Record<string, ShortlinkVisitStats | null> = {};
-    type Task = { id: string; url: string };
-    const liveTasks: Task[] = [];
 
-    for (const row of list as { id: string; url: string | null }[]) {
-      const id = row.id;
-      const url = row.url?.trim() ?? '';
-      if (!url) {
-        stats[id] = null;
-        continue;
-      }
-
-      const parsed = parseShortlinkAlias(url);
-      if (!parsed) {
-        stats[id] = null;
-        continue;
-      }
-
-      const cached = cacheMap.get(id);
-      if (cached && cached.total_visits != null && Number.isFinite(cached.total_visits)) {
-        const lu = cached.long_url?.trim() ?? '';
-        if (lu && longUrlBelongsToCreator(lu, creatorId)) {
-          stats[id] = rowToVisitStats(cached);
-          continue;
+    if (configured) {
+      await mapWithConcurrency(list, LIVE_CONCURRENCY, async (row) => {
+        const url = row.url?.trim() ?? '';
+        if (!url || !parseShortlinkAlias(url)) {
+          stats[row.id] = null;
+          return;
         }
-      }
-
-      if (configured) {
-        liveTasks.push({ id, url });
-      } else {
-        stats[id] = null;
-      }
-    }
-
-    if (configured && liveTasks.length > 0) {
-      await mapWithConcurrency(liveTasks, LIVE_CONCURRENCY, async (task) => {
-        const parsed = parseShortlinkAlias(task.url);
-        if (!parsed) return;
-        const meta = await fetchTinyurlAliasMeta(parsed.alias, parsed.domain);
-        if (!meta) return;
-        const longUrl = longUrlFromTinyMeta(meta);
-        if (!longUrlBelongsToCreator(longUrl, creatorId)) return;
-        stats[task.id] = visitsFromTinyurlAliasJson(meta);
+        const resolved = await resolveAffiliateLinkClickTotals({
+          linkId: row.id,
+          url,
+          cached: cacheMap.get(row.id),
+          persist: true,
+        });
+        stats[row.id] = resolved?.stats ?? rowToVisitStats(cacheMap.get(row.id));
       });
+    } else {
+      for (const row of list) {
+        stats[row.id] = rowToVisitStats(cacheMap.get(row.id));
+      }
     }
 
     let totalClicksAll = 0;
@@ -118,7 +85,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const statsSyncedAt = maxSyncedAt(ids.map((i) => cacheMap.get(i)));
+    const refreshed = await getAffiliateLinkClickStatsByIds(ids);
+    const statsSyncedAt = maxSyncedAt(ids.map((i) => refreshed.get(i) ?? cacheMap.get(i)));
 
     const body: ShlinkStatsResponse = { stats, totalClicksAll, statsSyncedAt };
     return NextResponse.json(body, { status: 200 });
