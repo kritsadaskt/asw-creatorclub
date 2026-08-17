@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Bar,
   BarChart,
@@ -15,11 +15,14 @@ import {
   YAxis,
 } from 'recharts';
 import {
+  addMonths,
   eachDayOfInterval,
+  endOfMonth,
   format,
   isWithinInterval,
   parseISO,
   startOfDay,
+  startOfMonth,
   subDays,
 } from 'date-fns';
 import { th } from 'date-fns/locale';
@@ -37,6 +40,14 @@ import Link from 'next/link';
 import { FileDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { AdminAffiliateSubmittedPostsTable } from './AdminAffiliateSubmittedPostsTable';
+import { ToggleGroup, ToggleGroupItem } from '../ui/toggle-group';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select';
 
 /** Affiliate post-links preview rows on dashboard (API returns newest first). */
 const DASHBOARD_AFFILIATE_POSTS_LIMIT = 10;
@@ -114,6 +125,32 @@ function categoryLabelEnglishOnly(raw: string): string {
   return left || text;
 }
 
+type RegistrationRangeMode = '7d' | '30d' | 'month';
+
+function currentMonthKey(now = new Date()): string {
+  return format(now, 'yyyy-MM');
+}
+
+function getRegistrationInterval(
+  mode: RegistrationRangeMode,
+  selectedMonth: string,
+  today: Date,
+): { start: Date; end: Date } {
+  if (mode === '7d') {
+    return { start: startOfDay(subDays(today, 6)), end: today };
+  }
+  if (mode === '30d') {
+    return { start: startOfDay(subDays(today, 29)), end: today };
+  }
+
+  const [year, month] = selectedMonth.split('-').map(Number);
+  const start = startOfMonth(
+    Number.isFinite(year) && Number.isFinite(month) ? new Date(year, month - 1, 1) : today,
+  );
+  const monthEnd = startOfDay(endOfMonth(start));
+  return { start, end: monthEnd > today ? today : monthEnd };
+}
+
 function normalizeCreatorType(typeRaw: string | undefined): 'staff' | 'household' | 'general' | 'pageant' {
   const type = (typeRaw ?? '').trim().toLowerCase();
   if (type === 'assetwise_staff' || type === 'staff') return 'staff';
@@ -137,11 +174,38 @@ export function AdminDashboardCharts({
   affiliateReportLoading,
   onSelectCreator,
 }: Props) {
+  const [rangeMode, setRangeMode] = useState<RegistrationRangeMode>('7d');
+  const [selectedMonth, setSelectedMonth] = useState(currentMonthKey);
+
   const listed = useMemo(() => filterListedCreators(creators), [creators]);
   const approvedListed = useMemo(
     () => listed.filter((creator) => creator.approvalStatus === 1),
     [listed],
   );
+
+  const monthOptions = useMemo(() => {
+    const today = new Date();
+    const latest = startOfMonth(today);
+    let earliest = latest;
+
+    for (const creator of listed) {
+      try {
+        const created = startOfMonth(parseISO(creator.createdAt));
+        if (created < earliest) earliest = created;
+      } catch {
+        /* skip invalid dates */
+      }
+    }
+
+    const options: { value: string; label: string }[] = [];
+    for (let cursor = earliest; cursor <= latest; cursor = addMonths(cursor, 1)) {
+      options.push({
+        value: format(cursor, 'yyyy-MM'),
+        label: format(cursor, 'MMMM yyyy', { locale: th }),
+      });
+    }
+    return options.reverse();
+  }, [listed]);
 
   const approvalStats = useMemo(() => {
     const pending = listed.filter((c) => c.approvalStatus === 3).length;
@@ -169,9 +233,9 @@ export function AdminDashboardCharts({
 
   const lineData = useMemo(() => {
     const today = startOfDay(new Date());
-    const start = startOfDay(subDays(today, 6));
-    const days = eachDayOfInterval({ start, end: today });
-    const range = { start, end: today };
+    const range = getRegistrationInterval(rangeMode, selectedMonth, today);
+    if (range.start > range.end) return [];
+    const days = eachDayOfInterval(range);
 
     const counts = new Map<string, number>();
     for (const d of days) {
@@ -195,10 +259,27 @@ export function AdminDashboardCharts({
       return {
         dateKey: k,
         label: format(d, 'd MMM', { locale: th }),
+        tooltipLabel: format(d, 'd MMMM yyyy', { locale: th }),
         registrations: counts.get(k) ?? 0,
       };
     });
-  }, [approvedListed]);
+  }, [approvedListed, rangeMode, selectedMonth]);
+
+  const registrationPeriodMeta = useMemo(() => {
+    const total = lineData.reduce((sum, row) => sum + row.registrations, 0);
+    const selectedMonthLabel =
+      monthOptions.find((option) => option.value === selectedMonth)?.label ??
+      format(startOfMonth(new Date()), 'MMMM yyyy', { locale: th });
+
+    const periodLabel =
+      rangeMode === '7d'
+        ? '7 วันล่าสุด'
+        : rangeMode === '30d'
+          ? '30 วันล่าสุด'
+          : selectedMonthLabel;
+
+    return { total, periodLabel, dense: lineData.length > 10 };
+  }, [lineData, monthOptions, rangeMode, selectedMonth]);
 
   const creatorTypePieData = useMemo(() => {
     const agg = { staff: 0, household: 0, general: 0, pageant: 0 };
@@ -501,9 +582,55 @@ export function AdminDashboardCharts({
             'animate-in fade-in-0 slide-in-from-bottom-2 duration-500 fill-mode-both [animation-delay:150ms]',
           )}
         >
-          <h3 className="mb-4 text-neutral-700 text-lg font-medium">
-            การสมัครรายวัน (7 วันล่าสุด)
-          </h3>
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h3 className="text-neutral-700 text-lg font-medium">การสมัครรายวัน</h3>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {registrationPeriodMeta.periodLabel}
+                <span className="mx-1.5 text-border">·</span>
+                รวม {registrationPeriodMeta.total.toLocaleString()} คน
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <ToggleGroup
+                type="single"
+                variant="outline"
+                size="sm"
+                value={rangeMode}
+                onValueChange={(value) => {
+                  if (value === '7d' || value === '30d' || value === 'month') {
+                    setRangeMode(value);
+                  }
+                }}
+                aria-label="ช่วงเวลาการสมัครรายวัน"
+                className="shrink-0"
+              >
+                <ToggleGroupItem value="7d" aria-label="7 วันล่าสุด" className="px-3">
+                  7 วัน
+                </ToggleGroupItem>
+                <ToggleGroupItem value="30d" aria-label="30 วันล่าสุด" className="px-3">
+                  30 วัน
+                </ToggleGroupItem>
+                <ToggleGroupItem value="month" aria-label="เลือกเดือน" className="px-3">
+                  รายเดือน
+                </ToggleGroupItem>
+              </ToggleGroup>
+              {rangeMode === 'month' ? (
+                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                  <SelectTrigger size="sm" className="w-[11.5rem] bg-white" aria-label="เลือกเดือน">
+                    <SelectValue placeholder="เลือกเดือน" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {monthOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : null}
+            </div>
+          </div>
           <ChartContainer config={lineChartConfig} className="aspect-auto h-[260px] w-full">
             <LineChart
               data={lineData}
@@ -516,7 +643,8 @@ export function AdminDashboardCharts({
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                interval={0}
+                interval={registrationPeriodMeta.dense ? 'preserveStartEnd' : 0}
+                minTickGap={registrationPeriodMeta.dense ? 22 : undefined}
                 tick={{ fontSize: 11 }}
               />
               <YAxis
@@ -535,8 +663,8 @@ export function AdminDashboardCharts({
                       </span>
                     )}
                     labelFormatter={(_, payload) => {
-                      const row = payload?.[0]?.payload as { label?: string } | undefined;
-                      return row?.label ?? '';
+                      const row = payload?.[0]?.payload as { tooltipLabel?: string; label?: string } | undefined;
+                      return row?.tooltipLabel ?? row?.label ?? '';
                     }}
                   />
                 }
@@ -546,7 +674,11 @@ export function AdminDashboardCharts({
                 dataKey="registrations"
                 stroke="var(--color-registrations)"
                 strokeWidth={2}
-                dot={{ r: 4, fill: 'var(--color-registrations)' }}
+                dot={
+                  registrationPeriodMeta.dense
+                    ? false
+                    : { r: 4, fill: 'var(--color-registrations)' }
+                }
                 activeDot={{ r: 5 }}
                 animationDuration={700}
               />

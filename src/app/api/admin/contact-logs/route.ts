@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchAllContactLogs, fetchCisContactLogRegister } from '@/lib/cis-contact-log-register';
+import {
+  fetchAllContactLogs,
+  fetchCisContactLogRegisterResultWithRetry,
+} from '@/lib/cis-contact-log-register';
+import { filterExcludedContactLogLeads } from '@/lib/excluded-contact-log-leads';
 import { logServerError, requestLogContext } from '@/lib/log-server-error';
 import { getServerSession } from '@/modules/utils/auth';
+
+/** CIS may run two parallel source fetches — allow enough time on Vercel. */
+export const maxDuration = 60;
 
 /**
  * GET /api/admin/contact-logs
  *
- * Default (no query): all CIS leads — no source / campaign / medium / name filters.
+ * Default (no query): merged leads from utm_source creator_club_affiliate + creatorclub.
  * Optional query params for ad-hoc lookup: utm_source, utm_campaign, utm_medium.
  */
 export async function GET(request: NextRequest) {
@@ -21,21 +28,39 @@ export async function GET(request: NextRequest) {
     const utmCampaign = searchParams.get('utm_campaign')?.trim() || undefined;
     const utmMedium = searchParams.get('utm_medium')?.trim() || undefined;
 
-    const logs =
+    const result =
       !utmSource && !utmCampaign && !utmMedium
         ? await fetchAllContactLogs()
-        : await fetchCisContactLogRegister({ utmSource, utmCampaign, utmMedium });
+        : await fetchCisContactLogRegisterResultWithRetry({ utmSource, utmCampaign, utmMedium });
 
-    if (logs == null) {
+    if (!result.ok) {
+      await logServerError({
+        environment: process.env.NODE_ENV ?? 'development',
+        source: 'api:admin/contact-logs',
+        severity: 'warn',
+        message: result.reason,
+        context: {
+          ...requestLogContext(request),
+          cisStatus: result.status ?? null,
+          utmSource: utmSource ?? null,
+          utmCampaign: utmCampaign ?? null,
+          utmMedium: utmMedium ?? null,
+        },
+      });
+
       return NextResponse.json(
-        { error: 'Failed to fetch contact logs from external API' },
+        {
+          error: 'Failed to fetch contact logs from external API',
+          detail: result.reason,
+          status: result.status,
+        },
         { status: 502 },
       );
     }
 
     return NextResponse.json({
       success: true,
-      data: logs,
+      data: filterExcludedContactLogLeads(result.data),
     });
   } catch (error) {
     console.error('[contact-logs] Server error:', error);

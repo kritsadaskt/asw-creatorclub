@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import {
   Loader2,
@@ -29,6 +29,11 @@ import {
   DrawerTitle,
 } from '../ui/drawer';
 import { LeadTypeByKey } from '../ui/utils';
+import {
+  decodeCisContactDetail,
+  formatFgfReferrerName,
+  resolveFgfReferrer,
+} from '@/lib/fgf-lead-referrer';
 
 const DEFAULT_UTM_SOURCES = ['creator_club_affiliate', 'creatorclub'] as const;
 
@@ -51,6 +56,8 @@ interface ContactLogItem {
   PromoCode?: string;
   PurchasePurpose?: string;
   LineID?: string;
+  ContactDetail?: string;
+  Ref?: string;
   [key: string]: any;
 }
 
@@ -59,13 +66,16 @@ interface UtmContactLogsTableProps {
   utmCampaign?: string;
   utmMedium?: string;
   allowSearch?: boolean;
+  /** When false, skip auto-fetch until tab becomes active. */
+  enabled?: boolean;
 }
 
 export function UtmContactLogsTable({
   utmSource = '',
   utmCampaign = '',
   utmMedium = '',
-  allowSearch = true
+  allowSearch = true,
+  enabled = true,
 }: UtmContactLogsTableProps) {
   const [logs, setLogs] = useState<ContactLogItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -132,7 +142,11 @@ export function UtmContactLogsTable({
       const payload = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        throw new Error(payload.error || 'ดึงข้อมูลไม่สำเร็จ');
+        const detail =
+          typeof payload.detail === 'string' && payload.detail.trim()
+            ? payload.detail.trim()
+            : null;
+        throw new Error(detail || payload.error || 'ดึงข้อมูลไม่สำเร็จ');
       }
 
       const rawData = payload.data;
@@ -149,7 +163,6 @@ export function UtmContactLogsTable({
         }
       }
 
-      // Show every row returned by the API (no client-side exclusion).
       setLogs(list);
 
       if (list.length === 0) {
@@ -167,15 +180,16 @@ export function UtmContactLogsTable({
     }
   };
 
-  // Auto-fetch on mount — dashboard loads unfiltered list.
+  // Fetch when enabled (e.g. Leads tab is active) — avoids cold-start CIS 500 on dashboard load.
   useEffect(() => {
+    if (!enabled) return;
     if (allowSearch) {
       fetchLogs(utmSource, utmCampaign, utmMedium);
     } else {
       fetchLogs('', '', '');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allowSearch, utmSource, utmCampaign, utmMedium]);
+  }, [enabled, allowSearch, utmSource, utmCampaign, utmMedium]);
 
   useEffect(() => {
     const creatorId = selectedLog?.utm_content?.trim();
@@ -213,6 +227,17 @@ export function UtmContactLogsTable({
     };
   }, [selectedLog?.utm_content, selectedLog?.ContactLogID]);
 
+  const contactDetailText = useMemo(() => {
+    if (!selectedLog) return '';
+    const raw = selectedLog.ContactDetail ?? selectedLog.Ref ?? '';
+    return decodeCisContactDetail(String(raw)).trim();
+  }, [selectedLog]);
+
+  const fgfReferrer = useMemo(() => {
+    if (!selectedLog) return null;
+    return resolveFgfReferrer(selectedLog);
+  }, [selectedLog]);
+
   // Export to Excel using XLSX library
   const handleExportExcel = async () => {
     if (logs.length === 0) return;
@@ -243,6 +268,7 @@ export function UtmContactLogsTable({
           'UTM Campaign': log.utm_campaign ?? '',
           'UTM Content': log.utm_content ?? '',
           'UTM Term': log.utm_term ?? '',
+          'Contact Detail': decodeCisContactDetail(String(log.ContactDetail ?? log.Ref ?? '')).trim(),
           'วันที่ลงทะเบียน': log.RefDate ? new Date(log.RefDate).toLocaleString('th-TH') : '-',
         };
       });
@@ -365,7 +391,7 @@ export function UtmContactLogsTable({
               Leads ทั้งหมด {logs.length > 0 && `(${logs.length})`}
             </h3>
             <p className="text-sm text-muted-foreground mt-1">
-              แสดงรายการทั้งหมดจาก CIS โดยไม่กรอง utm / ชื่อ
+              ซ่อนรายการที่ชื่อ/นามสกุลเป็น Test และชื่อทดสอบที่รู้จัก
             </p>
           </div>
 
@@ -577,9 +603,32 @@ export function UtmContactLogsTable({
                           กำลังโหลด...
                         </span>
                       ) : referrerCreator ? (
-                        <span className="text-sm font-medium text-foreground">
-                          {[referrerCreator.name, referrerCreator.lastName].filter(Boolean).join(' ')}
-                        </span>
+                        <div className="space-y-1">
+                          <span className="text-sm font-medium text-foreground">
+                            {[referrerCreator.name, referrerCreator.lastName].filter(Boolean).join(' ')}
+                          </span>
+                          {referrerCreator.phone ? (
+                            <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <Phone className="w-3.5 h-3.5" />
+                              {referrerCreator.phone}
+                            </span>
+                          ) : null}
+                        </div>
+                      ) : fgfReferrer ? (
+                        <div className="space-y-1">
+                          <span className="text-sm font-medium text-foreground">
+                            {formatFgfReferrerName(fgfReferrer)}
+                          </span>
+                          {fgfReferrer.phone ? (
+                            <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <Phone className="w-3.5 h-3.5" />
+                              {fgfReferrer.phone}
+                            </span>
+                          ) : null}
+                          <span className="block text-[10px] text-muted-foreground">
+                            จาก {fgfReferrer.source === 'contact_detail' ? 'Contact Detail' : 'UTM Term (สำรอง)'}
+                          </span>
+                        </div>
                       ) : selectedLog.utm_content?.trim() ? (
                         <span className="text-sm text-muted-foreground">
                           {referrerCreatorNotFound
@@ -592,6 +641,17 @@ export function UtmContactLogsTable({
                     </div>
                   </div>
                 </div>
+
+                {contactDetailText ? (
+                  <div className="bg-neutral-50 rounded-xl p-4 space-y-2 border border-border/50">
+                    <h4 className="font-semibold text-neutral-700 text-sm border-b border-border/70 pb-1.5">
+                      Contact Detail
+                    </h4>
+                    <p className="text-sm text-foreground whitespace-pre-wrap break-words leading-relaxed">
+                      {contactDetailText}
+                    </p>
+                  </div>
+                ) : null}
 
                 {/* Project & Interest */}
                 <div className="bg-neutral-50 rounded-xl p-4 space-y-3.5 border border-border/50">

@@ -265,6 +265,7 @@ export function AdminDashboard() {
   const [followerRange, setFollowerRange] = useState('all');
   const [customFollowers, setCustomFollowers] = useState('');
   const [loading, setLoading] = useState(true);
+  const [adminTab, setAdminTab] = useState('overview');
   const [affiliateReport, setAffiliateReport] = useState<AdminAffiliateReportsResponse | null>(null);
   const [affiliateReportLoading, setAffiliateReportLoading] = useState(true);
   const [affiliateReportError, setAffiliateReportError] = useState<string | null>(null);
@@ -1124,7 +1125,7 @@ export function AdminDashboard() {
     <div className="container mx-auto p-6">
       <h2 className="mb-4">แดชบอร์ดผู้ดูแลระบบ</h2>
 
-      <Tabs defaultValue="overview" className="w-full gap-4">
+      <Tabs value={adminTab} onValueChange={setAdminTab} className="w-full gap-4">
         <TabsList className="w-full max-w-lg grid grid-cols-3 h-auto p-1">
           <TabsTrigger value="overview" className="py-2">
             ภาพรวม
@@ -1383,7 +1384,7 @@ export function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="contact-logs" className="mt-4 flex flex-col gap-6">
-          <UtmContactLogsTable allowSearch={false} />
+          <UtmContactLogsTable allowSearch={false} enabled={adminTab === 'contact-logs'} />
         </TabsContent>
       </Tabs>
 

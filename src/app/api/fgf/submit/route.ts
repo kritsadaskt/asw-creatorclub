@@ -1,6 +1,7 @@
 import { randomInt } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { buildFgfReferrerUtmTerm } from '@/lib/fgf-lead-referrer';
 import { logServerError, requestLogContext } from '@/lib/log-server-error';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
@@ -166,6 +167,12 @@ export async function POST(request: NextRequest) {
       .filter(Boolean)
       .join(' | ');
 
+    const utmTermReferrer = buildFgfReferrerUtmTerm(
+      data.referrerName,
+      data.referrerLastName,
+      data.referrerTel,
+    );
+
     const cisPayload = {
       ProjectID:          cisProjectId,
       ContactChannelID: 21,
@@ -184,6 +191,7 @@ export async function POST(request: NextRequest) {
       utm_medium:       'referral',
       utm_campaign:     'friend_get_friend',
       utm_content:      sessionUserId ?? String(numericRefId),
+      utm_term:         utmTermReferrer,
     };
 
     console.log('[fgf/submit] CIS request', { url: cisUrl, payload: cisPayload });
