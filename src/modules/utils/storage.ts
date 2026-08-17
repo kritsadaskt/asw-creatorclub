@@ -269,18 +269,33 @@ const normalizeCreatorBudget = (raw: unknown): number | undefined => {
   return undefined;
 };
 
-export const getCreators = async (): Promise<CreatorProfile[]> => {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .order('created_at', { ascending: false });
+/** PostgREST caps each request at 1000 rows; paginate so dashboard stats match the full table. */
+const SUPABASE_PAGE_SIZE = 1000;
 
-  if (error) {
-    console.error('Error getting Creators:', error);
-    throw error;
+export const getCreators = async (): Promise<CreatorProfile[]> => {
+  const rows: Record<string, unknown>[] = [];
+  let from = 0;
+
+  for (;;) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: true })
+      .range(from, from + SUPABASE_PAGE_SIZE - 1);
+
+    if (error) {
+      console.error('Error getting Creators:', error);
+      throw error;
+    }
+
+    const page = data ?? [];
+    rows.push(...page);
+    if (page.length < SUPABASE_PAGE_SIZE) break;
+    from += SUPABASE_PAGE_SIZE;
   }
 
-  return enrichCreatorProfiles((data || []).map(mapDbToCreatorProfile));
+  return enrichCreatorProfiles(rows.map(mapDbToCreatorProfile));
 };
 
 export const getCreatorById = async (id: string): Promise<CreatorProfile | null> => {
