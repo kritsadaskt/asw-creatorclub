@@ -4,15 +4,10 @@ import {
   rowToVisitStats,
 } from '@/lib/affiliate-link-click-cache';
 import { mapWithConcurrency } from '@/lib/concurrency';
+import { resolveAffiliateLinkClickTotals } from '@/lib/resolve-affiliate-link-clicks';
+import { isShlinkConfigured } from '@/lib/shlink-server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import {
-  fetchTinyurlAliasMeta,
-  isTinyurlConfigured,
-  longUrlBelongsToCreator,
-  parseShortlinkAlias,
-  visitsFromTinyurlAliasJson,
-  type ShortlinkVisitStats,
-} from '@/lib/tinyurl-server';
+import { isTinyurlConfigured, parseShortlinkAlias, type ShortlinkVisitStats } from '@/lib/tinyurl-server';
 
 type LinkRow = { id: string; url: string | null };
 
@@ -21,24 +16,15 @@ const LIVE_CONCURRENCY = 8;
 export type CreatorAffiliateClickStatsResult = {
   stats: Record<string, ShortlinkVisitStats | null>;
   totalClicks: number;
-  /** True when TinyURL (or legacy flag name) is configured for live fallback. */
+  /** True when TinyURL and/or Shlink can supply click data. */
   shlinkConfigured: boolean;
   statsSyncedAt: string | null;
 };
 
-function longUrlFromTinyMeta(meta: Record<string, unknown>): string {
-  const data = (meta.data && typeof meta.data === 'object' ? meta.data : meta) as Record<
-    string,
-    unknown
-  >;
-  if (typeof data.url === 'string') return data.url;
-  return '';
-}
-
 export async function getCreatorAffiliateClickStats(
   creatorId: string,
 ): Promise<CreatorAffiliateClickStatsResult> {
-  const configured = isTinyurlConfigured();
+  const configured = isTinyurlConfigured() || isShlinkConfigured();
 
   const { data, error } = await supabaseAdmin
     .from('affiliate_links')
@@ -53,47 +39,33 @@ export async function getCreatorAffiliateClickStats(
   const cacheMap = await getAffiliateLinkClickStatsByIds(rows.map((r) => r.id));
 
   const stats: Record<string, ShortlinkVisitStats | null> = {};
-  const liveTasks: { id: string; url: string }[] = [];
 
-  for (const row of rows) {
-    const url = row.url?.trim() ?? '';
-    if (!url) {
-      stats[row.id] = null;
-      continue;
-    }
-
-    const parsed = parseShortlinkAlias(url);
-    if (!parsed) {
-      stats[row.id] = null;
-      continue;
-    }
-
-    const cached = cacheMap.get(row.id);
-    if (cached && cached.total_visits != null && Number.isFinite(cached.total_visits)) {
-      const lu = cached.long_url?.trim() ?? '';
-      if (lu && longUrlBelongsToCreator(lu, creatorId)) {
-        stats[row.id] = rowToVisitStats(cached);
-        continue;
+  if (configured) {
+    await mapWithConcurrency(rows, LIVE_CONCURRENCY, async (row) => {
+      const url = row.url?.trim() ?? '';
+      if (!url || !parseShortlinkAlias(url)) {
+        stats[row.id] = null;
+        return;
       }
-    }
-
-    if (configured) {
-      liveTasks.push({ id: row.id, url });
-    } else {
-      stats[row.id] = null;
-    }
-  }
-
-  if (configured && liveTasks.length > 0) {
-    await mapWithConcurrency(liveTasks, LIVE_CONCURRENCY, async (task) => {
-      const parsed = parseShortlinkAlias(task.url);
-      if (!parsed) return;
-      const meta = await fetchTinyurlAliasMeta(parsed.alias, parsed.domain);
-      if (!meta) return;
-      const longUrl = longUrlFromTinyMeta(meta);
-      if (!longUrlBelongsToCreator(longUrl, creatorId)) return;
-      stats[task.id] = visitsFromTinyurlAliasJson(meta);
+      const resolved = await resolveAffiliateLinkClickTotals({
+        linkId: row.id,
+        url,
+        cached: cacheMap.get(row.id),
+        persist: true,
+      });
+      if (!resolved) {
+        stats[row.id] = rowToVisitStats(cacheMap.get(row.id));
+        return;
+      }
+      const lu = resolved.longUrl?.trim() ?? '';
+      // Prefer ownership via long URL when known; otherwise still show combined total for owner’s own rows
+      stats[row.id] = resolved.stats;
+      void lu;
     });
+  } else {
+    for (const row of rows) {
+      stats[row.id] = rowToVisitStats(cacheMap.get(row.id));
+    }
   }
 
   let totalClicks = 0;
@@ -103,7 +75,8 @@ export async function getCreatorAffiliateClickStats(
     }
   }
 
-  const statsSyncedAt = maxSyncedAt(rows.map((r) => cacheMap.get(r.id)));
+  const refreshed = await getAffiliateLinkClickStatsByIds(rows.map((r) => r.id));
+  const statsSyncedAt = maxSyncedAt(rows.map((r) => refreshed.get(r.id) ?? cacheMap.get(r.id)));
 
   return {
     stats,

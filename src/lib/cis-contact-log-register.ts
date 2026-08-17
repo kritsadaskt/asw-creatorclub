@@ -1,15 +1,16 @@
-import {
-  filterExcludedContactLogLeads,
-  type ContactLogLike,
-} from '@/lib/excluded-contact-log-leads';
+import type { ContactLogLike } from '@/lib/excluded-contact-log-leads';
 
 const CIS_CONTACT_LOG_ENDPOINT = 'https://api.assetwise.co.th/api/Customer/GetContactLogRegister';
 
+/** Sources used for Creator Club attribution/funnel counts (not the admin Leads list). */
 export const CIS_CONTACT_LOG_UTM_SOURCES = ['creator_club_affiliate', 'creatorclub'] as const;
 
 export type CisContactLogRow = ContactLogLike & {
   ContactLogID?: number | string;
   ProjectID?: number | string;
+  Email?: string;
+  Tel?: string;
+  RefDate?: string;
   utm_content?: string;
   utm_source?: string;
   utm_campaign?: string;
@@ -19,33 +20,34 @@ export type CisContactLogRow = ContactLogLike & {
 export function parseCisContactLogList(rawData: unknown): CisContactLogRow[] {
   if (!rawData || typeof rawData !== 'object') return [];
   if (Array.isArray(rawData)) {
-    return filterExcludedContactLogLeads(rawData as CisContactLogRow[]);
+    return rawData as CisContactLogRow[];
   }
   const obj = rawData as Record<string, unknown>;
   if (Array.isArray(obj.Data)) {
-    return filterExcludedContactLogLeads(obj.Data as CisContactLogRow[]);
+    return obj.Data as CisContactLogRow[];
   }
   if (Array.isArray(obj.data)) {
-    return filterExcludedContactLogLeads(obj.data as CisContactLogRow[]);
+    return obj.data as CisContactLogRow[];
   }
   return [];
 }
 
-export async function fetchCisContactLogRegister(params: {
-  utmSource: string;
+export async function fetchCisContactLogRegister(params?: {
+  utmSource?: string;
   utmCampaign?: string;
   utmMedium?: string;
 }): Promise<CisContactLogRow[] | null> {
   const token = process.env.CONTACT_LOGS_TOKEN;
   if (!token) return null;
 
-  const payloadBody: Record<string, string> = {
-    utm_source: params.utmSource.trim(),
-  };
-  if (params.utmCampaign?.trim()) {
+  const payloadBody: Record<string, string> = {};
+  if (params?.utmSource?.trim()) {
+    payloadBody.utm_source = params.utmSource.trim();
+  }
+  if (params?.utmCampaign?.trim()) {
     payloadBody.utm_campaign = params.utmCampaign.trim();
   }
-  if (params.utmMedium?.trim()) {
+  if (params?.utmMedium?.trim()) {
     payloadBody.utm_medium = params.utmMedium.trim();
   }
 
@@ -57,7 +59,7 @@ export async function fetchCisContactLogRegister(params: {
       Authorization: `Basic ${token}`,
     },
     body: JSON.stringify(payloadBody),
-  });  
+  });
 
   if (!res.ok) return null;
 
@@ -92,7 +94,20 @@ function mergeContactLogRows(lists: CisContactLogRow[][]): CisContactLogRow[] {
   return merged;
 }
 
-/** All Creator Club CIS leads (both fixed utm_source values, no campaign filter). */
+/**
+ * All CIS contact-log rows for admin Leads tab — no utm_source / campaign / medium / name filters.
+ * If unfiltered CIS call returns empty, falls back to merging known Creator Club sources.
+ */
+export async function fetchAllContactLogs(): Promise<CisContactLogRow[] | null> {
+  const unfiltered = await fetchCisContactLogRegister();
+  if (unfiltered == null) return null;
+  if (unfiltered.length > 0) return unfiltered;
+
+  // Some CIS environments require utm_source — fall back to known Creator Club sources only.
+  return fetchCreatorClubContactLogs();
+}
+
+/** Creator Club CIS leads (both fixed utm_source values) — for attribution / funnel stats. */
 export async function fetchCreatorClubContactLogs(): Promise<CisContactLogRow[] | null> {
   const results = await Promise.all(
     CIS_CONTACT_LOG_UTM_SOURCES.map((utmSource) => fetchCisContactLogRegister({ utmSource })),
