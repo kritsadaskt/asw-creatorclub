@@ -105,6 +105,12 @@ export interface Project {
   projectStatus?: string;
   startComm?: string;
   maxComm?: string;
+  /**
+   * When true, affiliate links page shows a promo label (table amounts stay unchanged).
+   */
+  commMultiplyEnabled?: boolean;
+  /** Factor shown on the affiliate promo label (e.g. x2). Default 2. */
+  commMultiplyFactor?: number;
   baseUrl: string;
   createdAt: string;
   /** AssetWise CIS ProjectID (int). Stored as `projects.cis_id`. */

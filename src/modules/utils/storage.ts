@@ -16,6 +16,7 @@ import { verifyPassword } from './password';
 import { getSession, setSession, clearSession } from './auth';
 import { sanitizeSocialAccounts } from './social-url';
 import { BASE_PATH } from '@/lib/publicPath';
+import { DEFAULT_COMM_MULTIPLY_FACTOR } from '@/lib/commission-display';
 import { isCreatorLoginAllowed } from '@/lib/creator-approval';
 import {
   buildCreatorCategoryMaps,
@@ -630,6 +631,8 @@ export const saveProject = async (project: Project): Promise<void> => {
       project_status: project.projectStatus,
       start_comm: project.startComm,
       max_comm: project.maxComm,
+      comm_multiply_enabled: Boolean(project.commMultiplyEnabled),
+      comm_multiply_factor: project.commMultiplyFactor ?? DEFAULT_COMM_MULTIPLY_FACTOR,
       base_url: project.baseUrl,
       created_at: project.createdAt,
       cis_id: project.cisId ?? null,
@@ -749,6 +752,11 @@ const mapDbToProject = (row: any): Project => ({
   projectStatus: row.project_status ?? undefined,
   startComm: row.start_comm || undefined,
   maxComm: row.max_comm || undefined,
+  commMultiplyEnabled: Boolean(row.comm_multiply_enabled),
+  commMultiplyFactor:
+    row.comm_multiply_factor != null && Number.isFinite(Number(row.comm_multiply_factor))
+      ? Number(row.comm_multiply_factor)
+      : DEFAULT_COMM_MULTIPLY_FACTOR,
   baseUrl: row.base_url || '',
   createdAt: row.created_at || new Date().toISOString(),
   cisId: row.cis_id != null && Number.isFinite(Number(row.cis_id)) ? Number(row.cis_id) : undefined,

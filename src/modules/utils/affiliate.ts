@@ -1,3 +1,4 @@
+import { formatCommissionInput, formatCommissionRange } from '@/lib/commission-display';
 import { getProjects } from './storage';
 import type { Project } from '../types';
 
@@ -34,6 +35,12 @@ export interface AffiliateProject {
   startComm?: string;
   maxComm?: string;
   /**
+   * When true, affiliate links page shows a promo label (table amounts stay unchanged).
+   */
+  commMultiplyEnabled?: boolean;
+  /** Factor shown on the affiliate promo label (e.g. x2). Default 2. */
+  commMultiplyFactor?: number;
+  /**
    * Base URL for materials or landing page related to this project.
    */
   materialsUrl: string;
@@ -49,79 +56,27 @@ export interface AffiliateProject {
 export const fetchAffiliateProjects = async (): Promise<AffiliateProject[]> => {
   const projects: Project[] = await getProjects();  
 
-  return projects.map((project) => ({
-    id: project.id,
-    name: project.name,
-    imageUrl: project.imageUrl,
-    thumbUrl: project.thumbUrl,
-    projectStatus: project.projectStatus ?? '',
-    // Format commission numbers with comma as thousand separator
-    commission: (() => {
-      const formatNum = (value?: string) => {
-        if (!value) return undefined;
-        // Only insert commas if not already present
-        if (/,\d{3}/.test(value)) return value;
-        // Remove any non-digit (such as % or others), format, and add back trailing non-digit
-        const match = value.match(/^(\d+)(.*)$/);
-        if (match) {
-          const numStr = parseInt(match[1], 10).toLocaleString('en-US');
-          return numStr + match[2];
-        }
-        return value;
-      };
+  return projects.map((project) => {
+    const startComm = formatCommissionInput(project.startComm);
+    const maxComm = formatCommissionInput(project.maxComm);
 
-      const startComm = formatNum(project.startComm);
-      const maxComm = formatNum(project.maxComm);
-
-      // Both start and max present
-      if (startComm && maxComm) {
-        if (startComm !== maxComm) {
-          return `${startComm} - ${maxComm} บ.`;
-        }
-        if (startComm === maxComm && maxComm !== undefined) {
-          return `${maxComm} บ.`;
-        }
-      }
-
-      // Only max commission present
-      if (!startComm && maxComm) {
-        return `${maxComm} บ.`;
-      }
-
-      // Only start commission present
-      if (startComm && !maxComm) {
-        return `${startComm} บ.`;
-      }
-
-      return undefined;
-    })(),
-    googleDriveUrl: project.googleDriveUrl,
-    googleDrivePassword: project.googleDrivePassword,
-    startComm: (() => {
-      const value = project.startComm;
-      if (!value) return value;
-      if (/,\d{3}/.test(value)) return value;
-      const match = value.match(/^(\d+)(.*)$/);
-      if (match) {
-        const numStr = parseInt(match[1], 10).toLocaleString('en-US');
-        return numStr + match[2];
-      }
-      return value;
-    })(),
-    maxComm: (() => {
-      const value = project.maxComm;
-      if (!value) return value;
-      if (/,\d{3}/.test(value)) return value;
-      const match = value.match(/^(\d+)(.*)$/);
-      if (match) {
-        const numStr = parseInt(match[1], 10).toLocaleString('en-US');
-        return numStr + match[2];
-      }
-      return value;
-    })(),
-    materialsUrl: project.baseUrl,
-    description: project.description,
-    cis_id: project.cisId,
-  }));
+    return {
+      id: project.id,
+      name: project.name,
+      imageUrl: project.imageUrl,
+      thumbUrl: project.thumbUrl,
+      projectStatus: project.projectStatus ?? '',
+      commission: formatCommissionRange(startComm, maxComm),
+      googleDriveUrl: project.googleDriveUrl,
+      googleDrivePassword: project.googleDrivePassword,
+      startComm,
+      maxComm,
+      commMultiplyEnabled: Boolean(project.commMultiplyEnabled),
+      commMultiplyFactor: project.commMultiplyFactor,
+      materialsUrl: project.baseUrl,
+      description: project.description,
+      cis_id: project.cisId,
+    };
+  });
 };
 
