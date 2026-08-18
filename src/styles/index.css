@@ -39,3 +39,18 @@
 button, a {
   @apply cursor-pointer;
 }
+
+@keyframes pulse-effect {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+.pulse-effect {
+  animation: pulse-effect 800ms ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-effect {
+    animation: none;
+  }
+}

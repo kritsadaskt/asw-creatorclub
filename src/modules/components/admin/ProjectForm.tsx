@@ -6,8 +6,12 @@ import { Building2, Home } from 'lucide-react';
 import { FaGoogleDrive } from 'react-icons/fa';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
+import { Switch } from '../ui/switch';
 import type { Project } from '../../types';
 import { saveProject, generateUUID, uploadProjectImage } from '../../utils/storage';
+import {
+  DEFAULT_COMM_MULTIPLY_FACTOR,
+} from '@/lib/commission-display';
 
 export type ProjectFormProps = {
   mode: 'create' | 'edit';
@@ -33,6 +37,8 @@ export function ProjectForm({ mode, initialProject, onCancel, onSaved, heading }
   const [projectStatus, setProjectStatus] = useState<string | undefined>(undefined);
   const [startComm, setStartComm] = useState('');
   const [maxComm, setMaxComm] = useState('');
+  const [commMultiplyEnabled, setCommMultiplyEnabled] = useState(false);
+  const [commMultiplyFactor, setCommMultiplyFactor] = useState(String(DEFAULT_COMM_MULTIPLY_FACTOR));
 
   useEffect(() => {
     const p = initialProject;
@@ -49,6 +55,8 @@ export function ProjectForm({ mode, initialProject, onCancel, onSaved, heading }
       setProjectStatus(undefined);
       setStartComm('');
       setMaxComm('');
+      setCommMultiplyEnabled(false);
+      setCommMultiplyFactor(String(DEFAULT_COMM_MULTIPLY_FACTOR));
       setImageFile(null);
       setImagePreviewUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
@@ -68,6 +76,8 @@ export function ProjectForm({ mode, initialProject, onCancel, onSaved, heading }
     setProjectStatus(p.projectStatus || '');
     setStartComm(p.startComm || '');
     setMaxComm(p.maxComm || '');
+    setCommMultiplyEnabled(Boolean(p.commMultiplyEnabled));
+    setCommMultiplyFactor(String(p.commMultiplyFactor ?? DEFAULT_COMM_MULTIPLY_FACTOR));
     setImageFile(null);
     setImagePreviewUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
@@ -117,6 +127,11 @@ export function ProjectForm({ mode, initialProject, onCancel, onSaved, heading }
     try {
       setSaving(true);
       const projectId = initialProject?.id || generateUUID();
+      const parsedFactor = Number(commMultiplyFactor);
+      const resolvedFactor =
+        Number.isFinite(parsedFactor) && parsedFactor > 0
+          ? parsedFactor
+          : DEFAULT_COMM_MULTIPLY_FACTOR;
 
       let resolvedImageUrl: string | undefined = imageUrl || undefined;
 
@@ -144,8 +159,11 @@ export function ProjectForm({ mode, initialProject, onCancel, onSaved, heading }
         projectStatus,
         startComm: startComm || undefined,
         maxComm: maxComm || undefined,
+        commMultiplyEnabled,
+        commMultiplyFactor: resolvedFactor,
         baseUrl,
         createdAt: initialProject?.createdAt || new Date().toISOString(),
+        cisId: initialProject?.cisId,
       };
 
       await saveProject(project);
@@ -161,6 +179,8 @@ export function ProjectForm({ mode, initialProject, onCancel, onSaved, heading }
 
   const title =
     heading ?? (mode === 'edit' ? 'แก้ไขโครงการ' : 'เพิ่มโครงการใหม่');
+
+  const previewFactor = Number(commMultiplyFactor) > 0 ? Number(commMultiplyFactor) : DEFAULT_COMM_MULTIPLY_FACTOR;
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-border p-6">
@@ -278,6 +298,44 @@ export function ProjectForm({ mode, initialProject, onCancel, onSaved, heading }
             onChange={setMaxComm}
             placeholder="เช่น 100,000 บาท"
           />
+        </div>
+
+        <div className="rounded-lg border border-border p-4 space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">เปิดใช้การคูณค่าแนะนำ</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                เมื่อเปิดใช้ หน้า Affiliate Links จะติด label บนรายการโครงการ โดยตัวเลขค่าแนะนำในตารางยังเป็นค่าเดิม
+              </p>
+            </div>
+            <Switch
+              checked={commMultiplyEnabled}
+              onCheckedChange={(checked) => {
+                setCommMultiplyEnabled(checked);
+                if (checked && (!commMultiplyFactor || Number(commMultiplyFactor) <= 0)) {
+                  setCommMultiplyFactor(String(DEFAULT_COMM_MULTIPLY_FACTOR));
+                }
+              }}
+              aria-label="เปิดใช้การคูณค่าแนะนำ"
+            />
+          </div>
+
+          {commMultiplyEnabled && (
+            <>
+              <Input
+                label="ตัวคูณค่าแนะนำ"
+                type="number"
+                value={commMultiplyFactor}
+                onChange={setCommMultiplyFactor}
+                placeholder={String(DEFAULT_COMM_MULTIPLY_FACTOR)}
+                min={1}
+                step={0.5}
+              />
+              <p className="text-xs text-muted-foreground">
+                ค่าเริ่มต้นคือ {DEFAULT_COMM_MULTIPLY_FACTOR} — ใช้แสดงบน label เช่น x{previewFactor}
+              </p>
+            </>
+          )}
         </div>
 
         <div>

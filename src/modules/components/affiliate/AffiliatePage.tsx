@@ -47,6 +47,8 @@ import {
 } from '@/modules/utils/storage';
 import type { AffiliateMaterial, Campaign } from '@/modules/types';
 import { StatusLabel } from '../ui/status-label';
+import { CommissionBoostLabel } from '../ui/commission-boost-label';
+import { getAffiliateCommissionDisplay } from '@/lib/commission-display';
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || '';
 const DEFAULT_ITEMS_PER_PAGE = 10;
@@ -119,6 +121,10 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
         return matchesSearch && matchesStatus;
       })
       .sort((a, b) => {
+        const aBoosted = a.commMultiplyEnabled ? 1 : 0;
+        const bBoosted = b.commMultiplyEnabled ? 1 : 0;
+        if (aBoosted !== bBoosted) return bBoosted - aBoosted;
+
         const aCis =
           a.cis_id != null && Number.isFinite(a.cis_id) ? a.cis_id : Number.POSITIVE_INFINITY;
         const bCis =
@@ -323,6 +329,10 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
     loadMaterials(project.id);
   };
 
+  const selectedCommissionDisplay = selectedProject
+    ? getAffiliateCommissionDisplay(selectedProject)
+    : null;
+
   return (
     <div id="affiliate_page">
       <div id="aff_intro_box" className='py-7 md:py-10'>
@@ -513,7 +523,9 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {paginatedProjects.map((project) => (
+                      {paginatedProjects.map((project) => {
+                        const commissionDisplay = getAffiliateCommissionDisplay(project);
+                        return (
                         <tr key={project.id} className="hover:bg-muted/30">
                           <td className="p-2 md:px-6 md:py-4">
                             <div className="flex items-center gap-4 lg:gap-7">
@@ -536,11 +548,15 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
                                   <StatusBadge className="hidden md:flex" status={project.projectStatus ?? null} />
                                 </h4>
                                 <div className="commission-m-box lg:hidden">
-                                  <p className="text-neutral-500 text-xs">
+                                  {!commissionDisplay.boosted && <p className="text-neutral-500 text-xs">
                                     ค่าแนะนำเริ่มต้น
                                   </p>
+                                  }
+                                  {commissionDisplay.boosted && (
+                                    <CommissionBoostLabel factor={commissionDisplay.factor} />
+                                  )}
                                   <p className="text-accent text-xl font-medium">
-                                    {project.startComm + ' บาท'}
+                                    {commissionDisplay.startComm ? `${commissionDisplay.startComm} บาท` : 'จะประกาศค่าแนะนำเร็วๆ นี้'}
                                   </p>  
                                 </div>
 
@@ -566,8 +582,11 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
                             </div>
                           </td>
                           <td className="px-4 md:px-6 py-4 align-center hidden lg:table-cell">
-                            <div className="text-accent text-xl font-medium max-w-xs text-center">
-                              {project.commission || 'จะประกาศค่าแนะนำเร็วๆ นี้'}
+                            <div className="text-accent text-xl font-medium max-w-xs text-center flex flex-col items-center gap-1.5">
+                              {commissionDisplay.boosted && (
+                                <CommissionBoostLabel factor={commissionDisplay.factor} />
+                              )}
+                              {commissionDisplay.commission || 'จะประกาศค่าแนะนำเร็วๆ นี้'}
                             </div>
                           </td>
                           <td className="px-4 md:px-6 py-4 align-center hidden lg:table-cell">
@@ -583,7 +602,8 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
                             </div>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -773,7 +793,7 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
 
                 {/* Project Info */}
                 <div className="flex flex-col lg:flex-row items-center gap-5">
-                  <div className="w-full lg:w-1/3 h-auto rounded-sm bg-muted overflow-hidden flex items-center justify-center text-xs text-muted-foreground flex-shrink-0">
+                  <div className="w-full lg:w-1/3 h-auto rounded-sm bg-muted overflow-hidden flex items-center justify-center text-xs text-muted-foreground flex-shrink-0 relative">
                     {selectedProject.imageUrl || selectedProject.thumbUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -800,12 +820,15 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
                       <StatusBadge status={selectedProject.projectStatus ?? null} />
                     )}
                     <div className='mt-2 mb-5'>
-                      {selectedProject.commission && (
-                        <p className="font-medium">
-                          ค่าแนะนำ: <span className="text-2xl text-green-700">{selectedProject.commission}</span>
+                      {selectedCommissionDisplay?.commission ? (
+                        <p className="font-medium flex flex-wrap items-center gap-2">
+                          ค่าแนะนำ:{' '}
+                          <span className="text-2xl text-green-700">{selectedCommissionDisplay.commission}</span>
+                          {selectedCommissionDisplay.boosted && (
+                            <CommissionBoostLabel factor={selectedCommissionDisplay.factor} />
+                          )}
                         </p>
-                      )}
-                      {!selectedProject.commission && (
+                      ) : (
                         <p className="text-sm text-neutral-500">สอบถามค่าแนะนำที่ Line Official</p>
                       )}
                     </div>
