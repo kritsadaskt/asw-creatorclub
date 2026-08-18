@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.14.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.13.1...v2.14.0) (2026-08-18)
+
+
+### Features
+
+* เพิ่ม label ค่าแนะนำx2 ([3b8ee95](https://github.com/kritsadaskt/asw-creatorclub/commit/3b8ee951584dcb21d6658f12862e80d7f8e93573))
+
 ### [2.13.1](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.13.0...v2.13.1) (2026-08-17)
 
 
