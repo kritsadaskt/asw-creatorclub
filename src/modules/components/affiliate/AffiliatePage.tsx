@@ -332,6 +332,7 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
   const selectedCommissionDisplay = selectedProject
     ? getAffiliateCommissionDisplay(selectedProject)
     : null;
+  const listingMaterialsUrl = activeCampaigns.find((campaign) => campaign.materialsUrl)?.materialsUrl;
 
   return (
     <div id="affiliate_page">
@@ -367,8 +368,8 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
         )}
 
         <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
-          {!isCampaignMode && (
-            <a href={selectedCampaign?.materialsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-7 py-4 rounded-full border-2 border-primary text-primary font-medium hover:bg-primary hover:text-white transition-colors leading-none">
+          {!isCampaignMode && listingMaterialsUrl && (
+            <a href={listingMaterialsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-7 py-4 rounded-full border-2 border-primary text-primary font-medium hover:bg-primary hover:text-white transition-colors leading-none">
               <Download className="w-4 h-4" />
               ดาวน์โหลด Materials
             </a>
