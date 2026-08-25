@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.15.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.14.1...v2.15.0) (2026-08-25)
+
+
+### Features
+
+* เพิ่มฟีเจอร์ Pin โครงการไว้ต้นตารางของ AFF , FGF ([5684956](https://github.com/kritsadaskt/asw-creatorclub/commit/5684956e24534d200c60bbde1bade40bd5c9e917))
+
 ### [2.14.1](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.14.0...v2.14.1) (2026-08-24)
 
 
