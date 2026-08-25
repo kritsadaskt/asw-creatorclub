@@ -6,6 +6,7 @@ import { Loader2 } from 'lucide-react';
 
 import { fetchFriendGetFriendProjects } from '@/modules/utils/friendgetfriend';
 import type { AffiliateProject } from '@/modules/utils/affiliate';
+import { compareFgfProjects } from '@/modules/utils/projectListSort';
 
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -63,7 +64,8 @@ export function FriendGetFriendProjectList({
         const matchesStatus =
           statusValue === null || (p.projectStatus ?? '') === statusValue;
         return matchesSearch && matchesStatus;
-      });
+      })
+      .sort(compareFgfProjects);
   }, [projects, searchQuery, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProjects.length / itemsPerPage));

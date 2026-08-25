@@ -633,6 +633,8 @@ export const saveProject = async (project: Project): Promise<void> => {
       max_comm: project.maxComm,
       comm_multiply_enabled: Boolean(project.commMultiplyEnabled),
       comm_multiply_factor: project.commMultiplyFactor ?? DEFAULT_COMM_MULTIPLY_FACTOR,
+      pin_affiliate: Boolean(project.pinAffiliate),
+      pin_fgf: Boolean(project.pinFgf),
       base_url: project.baseUrl,
       created_at: project.createdAt,
       cis_id: project.cisId ?? null,
@@ -757,6 +759,8 @@ const mapDbToProject = (row: any): Project => ({
     row.comm_multiply_factor != null && Number.isFinite(Number(row.comm_multiply_factor))
       ? Number(row.comm_multiply_factor)
       : DEFAULT_COMM_MULTIPLY_FACTOR,
+  pinAffiliate: Boolean(row.pin_affiliate),
+  pinFgf: Boolean(row.pin_fgf),
   baseUrl: row.base_url || '',
   createdAt: row.created_at || new Date().toISOString(),
   cisId: row.cis_id != null && Number.isFinite(Number(row.cis_id)) ? Number(row.cis_id) : undefined,
