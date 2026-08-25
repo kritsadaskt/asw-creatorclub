@@ -39,6 +39,8 @@ export function ProjectForm({ mode, initialProject, onCancel, onSaved, heading }
   const [maxComm, setMaxComm] = useState('');
   const [commMultiplyEnabled, setCommMultiplyEnabled] = useState(false);
   const [commMultiplyFactor, setCommMultiplyFactor] = useState(String(DEFAULT_COMM_MULTIPLY_FACTOR));
+  const [pinAffiliate, setPinAffiliate] = useState(false);
+  const [pinFgf, setPinFgf] = useState(false);
 
   useEffect(() => {
     const p = initialProject;
@@ -57,6 +59,8 @@ export function ProjectForm({ mode, initialProject, onCancel, onSaved, heading }
       setMaxComm('');
       setCommMultiplyEnabled(false);
       setCommMultiplyFactor(String(DEFAULT_COMM_MULTIPLY_FACTOR));
+      setPinAffiliate(false);
+      setPinFgf(false);
       setImageFile(null);
       setImagePreviewUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
@@ -78,6 +82,8 @@ export function ProjectForm({ mode, initialProject, onCancel, onSaved, heading }
     setMaxComm(p.maxComm || '');
     setCommMultiplyEnabled(Boolean(p.commMultiplyEnabled));
     setCommMultiplyFactor(String(p.commMultiplyFactor ?? DEFAULT_COMM_MULTIPLY_FACTOR));
+    setPinAffiliate(Boolean(p.pinAffiliate));
+    setPinFgf(Boolean(p.pinFgf));
     setImageFile(null);
     setImagePreviewUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
@@ -161,6 +167,8 @@ export function ProjectForm({ mode, initialProject, onCancel, onSaved, heading }
         maxComm: maxComm || undefined,
         commMultiplyEnabled,
         commMultiplyFactor: resolvedFactor,
+        pinAffiliate,
+        pinFgf,
         baseUrl,
         createdAt: initialProject?.createdAt || new Date().toISOString(),
         cisId: initialProject?.cisId,
@@ -336,6 +344,35 @@ export function ProjectForm({ mode, initialProject, onCancel, onSaved, heading }
               </p>
             </>
           )}
+        </div>
+
+        <div className="rounded-lg border border-border p-4 space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">Pin ในรายการ Affiliate Links</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                เมื่อเปิดใช้ โครงการจะถูกจัดไว้ต้นรายการในหน้า Affiliate Links
+              </p>
+            </div>
+            <Switch
+              checked={pinAffiliate}
+              onCheckedChange={setPinAffiliate}
+              aria-label="Pin ในรายการ Affiliate Links"
+            />
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">Pin ในรายการ Friend Get Friends</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                เมื่อเปิดใช้ โครงการจะถูกจัดไว้ต้นรายการในหน้า Friend Get Friends
+              </p>
+            </div>
+            <Switch
+              checked={pinFgf}
+              onCheckedChange={setPinFgf}
+              aria-label="Pin ในรายการ Friend Get Friends"
+            />
+          </div>
         </div>
 
         <div>

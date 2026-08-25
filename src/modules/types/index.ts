@@ -111,6 +111,10 @@ export interface Project {
   commMultiplyEnabled?: boolean;
   /** Factor shown on the affiliate promo label (e.g. x2). Default 2. */
   commMultiplyFactor?: number;
+  /** When true, sorted to the top of /affiliate project lists. */
+  pinAffiliate?: boolean;
+  /** When true, sorted to the top of /friendgetfriends project lists. */
+  pinFgf?: boolean;
   baseUrl: string;
   createdAt: string;
   /** AssetWise CIS ProjectID (int). Stored as `projects.cis_id`. */

@@ -36,6 +36,7 @@ import {
 } from '../ui/pagination';
 import { FaGoogleDrive, FaLink } from 'react-icons/fa';
 import { Loader2, Copy, Check, Download, FileImage, FileText, Film, ExternalLink, ArrowRight, X } from 'lucide-react';
+import { compareAffiliateProjects } from '../../utils/projectListSort';
 import { HeroBanner } from '../landing/HeroBanner';
 import { StatusBadge } from '../ui/status-badge';
 import { LoginModal } from '../landing/LoginModal';
@@ -120,17 +121,7 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
           statusValue === null || (p.projectStatus ?? '') === statusValue;
         return matchesSearch && matchesStatus;
       })
-      .sort((a, b) => {
-        const aBoosted = a.commMultiplyEnabled ? 1 : 0;
-        const bBoosted = b.commMultiplyEnabled ? 1 : 0;
-        if (aBoosted !== bBoosted) return bBoosted - aBoosted;
-
-        const aCis =
-          a.cis_id != null && Number.isFinite(a.cis_id) ? a.cis_id : Number.POSITIVE_INFINITY;
-        const bCis =
-          b.cis_id != null && Number.isFinite(b.cis_id) ? b.cis_id : Number.POSITIVE_INFINITY;
-        return aCis - bCis;
-      });
+      .sort(compareAffiliateProjects);
   }, [projects, searchQuery, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProjects.length / itemsPerPage));
@@ -545,7 +536,7 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
                               </div>
                               <div>
                                 <h4 className="text-xl mb-2 font-medium text-foreground flex items-center gap-2">
-                                  { project.name }
+                                  {project.name}
                                   <StatusBadge className="hidden md:flex" status={project.projectStatus ?? null} />
                                 </h4>
                                 <div className="commission-m-box lg:hidden">

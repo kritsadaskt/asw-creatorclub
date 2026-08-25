@@ -40,6 +40,10 @@ export interface AffiliateProject {
   commMultiplyEnabled?: boolean;
   /** Factor shown on the affiliate promo label (e.g. x2). Default 2. */
   commMultiplyFactor?: number;
+  /** When true, sorted to the top of /affiliate project lists. */
+  pinAffiliate?: boolean;
+  /** When true, sorted to the top of /friendgetfriends project lists. */
+  pinFgf?: boolean;
   /**
    * Base URL for materials or landing page related to this project.
    */
@@ -73,6 +77,8 @@ export const fetchAffiliateProjects = async (): Promise<AffiliateProject[]> => {
       maxComm,
       commMultiplyEnabled: Boolean(project.commMultiplyEnabled),
       commMultiplyFactor: project.commMultiplyFactor,
+      pinAffiliate: Boolean(project.pinAffiliate),
+      pinFgf: Boolean(project.pinFgf),
       materialsUrl: project.baseUrl,
       description: project.description,
       cis_id: project.cisId,
