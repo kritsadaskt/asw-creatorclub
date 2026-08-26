@@ -11,6 +11,7 @@ import type { Project } from '../../types';
 import { saveProject, generateUUID, uploadProjectImage } from '../../utils/storage';
 import {
   DEFAULT_COMM_MULTIPLY_FACTOR,
+  formatCommissionInput,
 } from '@/lib/commission-display';
 
 export type ProjectFormProps = {
@@ -78,8 +79,8 @@ export function ProjectForm({ mode, initialProject, onCancel, onSaved, heading }
     setGoogleDriveUrl(p.googleDriveUrl || '');
     setGoogleDrivePassword(p.googleDrivePassword || 'creatorclub');
     setProjectStatus(p.projectStatus || '');
-    setStartComm(p.startComm || '');
-    setMaxComm(p.maxComm || '');
+    setStartComm(formatCommissionInput(p.startComm) ?? '');
+    setMaxComm(formatCommissionInput(p.maxComm) ?? '');
     setCommMultiplyEnabled(Boolean(p.commMultiplyEnabled));
     setCommMultiplyFactor(String(p.commMultiplyFactor ?? DEFAULT_COMM_MULTIPLY_FACTOR));
     setPinAffiliate(Boolean(p.pinAffiliate));
@@ -163,8 +164,8 @@ export function ProjectForm({ mode, initialProject, onCancel, onSaved, heading }
         googleDriveUrl: googleDriveUrl || undefined,
         googleDrivePassword: googleDrivePassword || 'creatorclub',
         projectStatus,
-        startComm: startComm || undefined,
-        maxComm: maxComm || undefined,
+        startComm: formatCommissionInput(startComm) || undefined,
+        maxComm: formatCommissionInput(maxComm) || undefined,
         commMultiplyEnabled,
         commMultiplyFactor: resolvedFactor,
         pinAffiliate,
@@ -297,13 +298,13 @@ export function ProjectForm({ mode, initialProject, onCancel, onSaved, heading }
           <Input
             label="ค่าแนะนำเริ่มต้น"
             value={startComm}
-            onChange={setStartComm}
+            onChange={(value) => setStartComm(formatCommissionInput(value) ?? '')}
             placeholder="เช่น 50,000 บาท"
           />
           <Input
             label="ค่าแนะนำสูงสุด"
             value={maxComm}
-            onChange={setMaxComm}
+            onChange={(value) => setMaxComm(formatCommissionInput(value) ?? '')}
             placeholder="เช่น 100,000 บาท"
           />
         </div>

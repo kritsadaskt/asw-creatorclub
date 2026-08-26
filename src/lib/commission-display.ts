@@ -3,12 +3,11 @@ export const DEFAULT_COMM_MULTIPLY_FACTOR = 2;
 /** Format a stored commission string with thousand separators, preserving any suffix. */
 export function formatCommissionInput(value?: string): string | undefined {
   if (!value) return undefined;
-  if (/,\d{3}/.test(value)) return value;
-  const match = value.match(/^(\d+)(.*)$/);
-  if (match) {
-    return parseInt(match[1], 10).toLocaleString('en-US') + match[2];
-  }
-  return value;
+  const match = value.trim().match(/^([\d,]+)(.*)$/);
+  if (!match) return value;
+  const digits = match[1].replace(/,/g, '');
+  if (!digits) return value;
+  return parseInt(digits, 10).toLocaleString('en-US') + match[2];
 }
 
 export function formatCommissionRange(startComm?: string, maxComm?: string): string | undefined {

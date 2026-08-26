@@ -17,6 +17,13 @@ describe('commission-display', () => {
   describe('formatCommissionInput', () => {
     it('inserts thousand separators', () => {
       expect(formatCommissionInput('5000')).toBe('5,000');
+      expect(formatCommissionInput('50000')).toBe('50,000');
+    });
+
+    it('reformats values that already contain commas', () => {
+      expect(formatCommissionInput('5,000')).toBe('5,000');
+      expect(formatCommissionInput('50,000 บาท')).toBe('50,000 บาท');
+      expect(formatCommissionInput('5,0000')).toBe('50,000');
     });
   });
 
