@@ -15,6 +15,7 @@ import { supabase } from './supabase';
 import { verifyPassword } from './password';
 import { getSession, setSession, clearSession } from './auth';
 import { sanitizeSocialAccounts } from './social-url';
+import { isUsableEventSlug, nextEventSlugCandidate, slugifyEventName } from './event-slug';
 import { BASE_PATH } from '@/lib/publicPath';
 import { DEFAULT_COMM_MULTIPLY_FACTOR } from '@/lib/commission-display';
 import { isCreatorLoginAllowed } from '@/lib/creator-approval';
@@ -975,8 +976,32 @@ const mapDbToEvent = (row: any): Event => ({
   mBanner: row.m_banner || undefined,
   location: row.location || undefined,
   locationMapUrl: row.location_map_url || undefined,
+  slug: row.slug || undefined,
   isActive: row.is_active !== false,
 });
+
+/** Postgres undefined_column — the events.slug migration has not been applied yet. */
+const isMissingSlugColumn = (error: any): boolean => error?.code === '42703';
+
+async function ensureUniqueEventSlug(base: string, excludeId: string): Promise<string | null> {
+  for (let attempt = 1; attempt <= 50; attempt += 1) {
+    const candidate = nextEventSlugCandidate(base, attempt);
+    const { data, error } = await supabase
+      .from('events')
+      .select('id')
+      .eq('slug', candidate)
+      .maybeSingle();
+
+    if (error) {
+      if (isMissingSlugColumn(error)) return null;
+      console.error('Error checking event slug:', error);
+      throw error;
+    }
+    if (!data || data.id === excludeId) return candidate;
+  }
+
+  return `${base.slice(0, 64)}-${Date.now().toString(36)}`;
+}
 
 export const getEvents = async (): Promise<Event[]> => {
   const { data, error } = await supabase
@@ -1033,24 +1058,48 @@ export const getCurrentEvent = async (): Promise<Event | null> => {
   return latest ? mapDbToEvent(latest) : null;
 };
 
+export const getEventBySlug = async (
+  slug: string,
+  options?: { includeInactive?: boolean },
+): Promise<Event | null> => {
+  const normalized = slug.trim();
+  if (!normalized) return null;
+
+  let query = supabase.from('events').select('*').eq('slug', normalized);
+  if (!options?.includeInactive) {
+    query = query.eq('is_active', true);
+  }
+
+  const { data, error } = await query.maybeSingle();
+  if (error) {
+    if (isMissingSlugColumn(error)) return null;
+    console.error('Error getting event by slug:', error);
+    throw error;
+  }
+  return data ? mapDbToEvent(data) : null;
+};
+
 export const saveEvent = async (event: Event): Promise<void> => {
-  const { error } = await supabase
-    .from('events')
-    .upsert(
-      {
-        id: event.id,
-        created_at: event.createdAt,
-        name: event.name,
-        date: event.date,
-        desc: event.desc ?? null,
-        d_banner: event.dBanner ?? null,
-        m_banner: event.mBanner ?? null,
-        location: event.location ?? null,
-        location_map_url: event.locationMapUrl ?? null,
-        is_active: event.isActive ?? true,
-      },
-      { onConflict: 'id' },
-    );
+  const baseSlug = isUsableEventSlug(event.slug ?? '')
+    ? (event.slug as string).trim()
+    : slugifyEventName(event.name, event.id);
+  const slug = await ensureUniqueEventSlug(baseSlug, event.id);
+
+  const row: Record<string, unknown> = {
+    id: event.id,
+    created_at: event.createdAt,
+    name: event.name,
+    date: event.date,
+    desc: event.desc ?? null,
+    d_banner: event.dBanner ?? null,
+    m_banner: event.mBanner ?? null,
+    location: event.location ?? null,
+    location_map_url: event.locationMapUrl ?? null,
+    is_active: event.isActive ?? true,
+  };
+  if (slug) row.slug = slug;
+
+  const { error } = await supabase.from('events').upsert(row, { onConflict: 'id' });
 
   if (error) {
     console.error('Error saving event:', error);

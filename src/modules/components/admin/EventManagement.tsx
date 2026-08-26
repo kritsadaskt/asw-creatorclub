@@ -3,7 +3,7 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { Loader2, Mail, Pencil, Phone, Plus, Trash2 } from 'lucide-react';
+import { Eye, Loader2, Mail, Pencil, Phone, Plus, Trash2 } from 'lucide-react';
 import Select from 'react-select';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
@@ -28,6 +28,7 @@ import {
   getProjects,
   saveEvent,
 } from '../../utils/storage';
+import { eventPreviewPath } from '../../utils/event-slug';
 import type { CreatorProfile, EventParticipant } from '../../types';
 import {
   FaFacebook,
@@ -301,6 +302,7 @@ export function EventManagement() {
   };
 
   const submitLabel = editingId ? 'บันทึกการแก้ไข' : 'เพิ่มอีเวนต์';
+  const editingSlug = editingId ? events.find((event) => event.id === editingId)?.slug : undefined;
 
   const handleSubmit = async () => {
     if (!form.name.trim() || !form.date.trim()) {
@@ -323,6 +325,7 @@ export function EventManagement() {
         location: form.location.trim() || undefined,
         locationMapUrl: form.locationMapUrl.trim() || undefined,
         isActive: form.isActive,
+        slug: editingId ? events.find((event) => event.id === editingId)?.slug : undefined,
       };
       await saveEvent(payload);
       toast.success(editingId ? 'บันทึกการแก้ไขสำเร็จ' : 'เพิ่มอีเวนต์สำเร็จ');
@@ -459,6 +462,11 @@ export function EventManagement() {
                     <tr key={event.id} className="hover:bg-muted/20">
                         <td className="px-4 py-3 font-medium">
                           <div className="font-medium">{event.name.replace(/<[^>]+>/g, '')}</div>
+                          {event.slug ? (
+                            <div className="mt-0.5 font-mono text-xs text-muted-foreground">
+                              /event/{event.slug}
+                            </div>
+                          ) : null}
                         </td>
                         <td className="px-4 py-3 text-sm">{event.date}</td>
                         <td className="px-4 py-3 text-sm text-muted-foreground">{event.location || '-'}</td>
@@ -476,6 +484,33 @@ export function EventManagement() {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="inline-flex items-center gap-1">
+                            {event.slug ? (
+                              <Link
+                                href={eventPreviewPath(event.slug)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex rounded-lg p-2 text-foreground hover:bg-muted hover:text-neutral-800"
+                                aria-label="Preview หน้าอีเวนต์"
+                                title={
+                                  event.isActive !== false
+                                    ? 'เปิดหน้า /event'
+                                    : 'Preview หน้าอีเวนต์ (เฉพาะแอดมิน)'
+                                }
+                              >
+                                <Eye className="h-4 w-4 text-primary" />
+                              </Link>
+                            ) : (
+                              <span title="บันทึกอีเวนต์อีกครั้งเพื่อสร้างลิงก์ preview">
+                                <Button
+                                  variant="ghost"
+                                  className="p-2"
+                                  disabled
+                                  aria-label="ยังไม่มี slug สำหรับ preview"
+                                >
+                                  <Eye className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                              </span>
+                            )}
                             <Button variant="ghost" className="p-2" onClick={() => handleEdit(event)} aria-label="แก้ไข">
                               <Pencil className="h-4 w-4 text-primary" />
                             </Button>
@@ -822,7 +857,14 @@ export function EventManagement() {
                 aria-label="แสดงบนหน้า /event"
               />
             </div>
-            <Input label="ชื่อ Event" value={form.name} onChange={(value) => setForm((prev) => ({ ...prev, name: value }))} />
+            <div>
+              <Input label="ชื่อ Event" value={form.name} onChange={(value) => setForm((prev) => ({ ...prev, name: value }))} />
+              <p className="mt-1 text-xs text-muted-foreground">
+                {editingSlug
+                  ? `ลิงก์หน้า: /event/${editingSlug}`
+                  : 'ระบบจะสร้าง slug จากชื่ออีเวนต์อัตโนมัติ สำหรับลิงก์ preview ของแอดมิน'}
+              </p>
+            </div>
             <Input label="วันที่จัดงาน" type="date" value={form.date} onChange={(value) => setForm((prev) => ({ ...prev, date: value }))} />
             <Input label="สถานที่" value={form.location} onChange={(value) => setForm((prev) => ({ ...prev, location: value }))} />
             <Input
