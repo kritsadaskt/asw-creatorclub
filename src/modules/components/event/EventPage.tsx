@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CalendarDays, Loader2, MapPin, PartyPopper } from 'lucide-react';
+import { useParams } from 'next/navigation';
+import { CalendarDays, Eye, Loader2, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { Header } from '../landing/Header';
 import { LoginModal } from '../landing/LoginModal';
@@ -11,27 +12,36 @@ import { useSession } from '../../context/SessionContext';
 import {
   getCreatorEventParticipation,
   getCurrentEvent,
+  getEventBySlug,
   joinCurrentEvent,
 } from '../../utils/storage';
 import type { Event } from '../../types';
 import { stripHtmlTags } from '../../utils/strip-html-tags';
 import { formatGenericErrorToast } from '../../utils/toast-error';
+import { normalizeEventSlugParam } from '../../utils/event-slug';
 
 const DEFAULT_PAGE_TITLE = 'AssetWise Creator Club';
 
 export function EventPage() {
-  const { currentUserId, userRole, handleLogin } = useSession();
+  const params = useParams<{ slug?: string | string[] }>();
+  const slug = normalizeEventSlugParam(params.slug);
+  const { currentUserId, userRole, sessionReady, handleLogin } = useSession();
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [joined, setJoined] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const isAdminPreview = Boolean(event && event.isActive === false && userRole === 'admin');
 
   useEffect(() => {
+    if (slug && !sessionReady) return;
+
     const loadEvent = async () => {
       try {
         setLoading(true);
-        const currentEvent = await getCurrentEvent();
+        const currentEvent = slug
+          ? await getEventBySlug(slug, { includeInactive: userRole === 'admin' })
+          : await getCurrentEvent();
         setEvent(currentEvent);
       } catch (error) {
         console.error('loadEvent error:', error);
@@ -41,7 +51,7 @@ export function EventPage() {
       }
     };
     void loadEvent();
-  }, []);
+  }, [slug, sessionReady, userRole]);
 
   useEffect(() => {
     const checkJoined = async () => {
@@ -114,14 +124,26 @@ export function EventPage() {
       ) : !event ? (
         <div className="container mx-auto px-6 py-20 text-center">
           <div className="mx-auto max-w-xl rounded-xl border border-border bg-white p-8 shadow-sm">
-            <h2 className="mb-2">ไม่มีอีเวนต์ที่เปิดรับลงทะเบียน</h2>
+            <h2 className="mb-2">
+              {slug ? 'ไม่พบอีเวนต์นี้' : 'ไม่มีอีเวนต์ที่เปิดรับลงทะเบียน'}
+            </h2>
             <p className="text-muted-foreground">
-              อาจยังไม่มีกิจกรรม หรืออีเวนต์ถูกปิดชั่วคราว — โปรดติดตามประกาศจากทีมงาน Creator Club
+              {slug
+                ? 'ลิงก์อาจไม่ถูกต้อง หรืออีเวนต์ยังไม่เปิดให้ลงทะเบียน'
+                : 'อาจยังไม่มีกิจกรรม หรืออีเวนต์ถูกปิดชั่วคราว — โปรดติดตามประกาศจากทีมงาน Creator Club'}
             </p>
           </div>
         </div>
       ) : (
         <>
+          {isAdminPreview ? (
+            <div className="border-b border-amber-200 bg-amber-50">
+              <div className="container mx-auto flex items-center justify-center gap-2 px-4 py-2 text-sm text-amber-900">
+                <Eye className="h-4 w-4 shrink-0" />
+                โหมด Preview สำหรับแอดมิน — อีเวนต์นี้ยังไม่เปิดสาธารณะ
+              </div>
+            </div>
+          ) : null}
           {event.dBanner ? (
             <section className="w-full">
               <picture>

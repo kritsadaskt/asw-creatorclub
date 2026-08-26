@@ -1,13 +1,19 @@
 import type { Metadata } from 'next';
 import { EventPage } from '@/modules/components/event/EventPage';
 import { stripHtmlTags } from '@/modules/utils/strip-html-tags';
-import { getCurrentEvent } from '@/modules/utils/storage';
+import { normalizeEventSlugParam } from '@/modules/utils/event-slug';
+import { getCurrentEvent, getEventBySlug } from '@/modules/utils/storage';
 
 const DEFAULT_TITLE = 'AssetWise Creator Club';
 
-export async function generateMetadata(): Promise<Metadata> {
+type EventRoutePageProps = {
+  params: Promise<{ slug?: string[] }>;
+};
+
+export async function generateMetadata({ params }: EventRoutePageProps): Promise<Metadata> {
   try {
-    const event = await getCurrentEvent();
+    const slug = normalizeEventSlugParam((await params).slug);
+    const event = slug ? await getEventBySlug(slug) : await getCurrentEvent();
     if (!event?.name?.trim()) {
       return { title: DEFAULT_TITLE };
     }

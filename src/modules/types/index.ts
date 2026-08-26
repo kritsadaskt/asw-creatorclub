@@ -167,6 +167,8 @@ export interface Event {
   mBanner?: string;
   location?: string;
   locationMapUrl?: string;
+  /** URL slug for /event/[slug]. Generated from the event name. */
+  slug?: string;
   /** When false, public /event does not show this event (admin can still manage & check-in). */
   isActive?: boolean;
 }
