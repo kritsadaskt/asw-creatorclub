@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.15.1](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.15.0...v2.15.1) (2026-08-26)
+
+
+### Bug Fixes
+
+* แก้การแสดงผลรายชื่อคนเข้าร่วม Event ([11b7e1d](https://github.com/kritsadaskt/asw-creatorclub/commit/11b7e1d64568928dc824a49f6c14703ee051a6bd))
+* เพิ่มเครื่องหมายบอกหลักพันในตัวเลข ([5e7903a](https://github.com/kritsadaskt/asw-creatorclub/commit/5e7903aecbd833c5edb37eda8655831d004ceb84))
+
 ## [2.15.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.14.1...v2.15.0) (2026-08-25)
 
 
