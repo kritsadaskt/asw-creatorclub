@@ -3,7 +3,7 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Mail, Pencil, Phone, Plus, Trash2 } from 'lucide-react';
 import Select from 'react-select';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
@@ -27,7 +27,6 @@ import {
   getEvents,
   getProjects,
   saveEvent,
-  updateEventParticipant,
 } from '../../utils/storage';
 import type { CreatorProfile, EventParticipant } from '../../types';
 import {
@@ -133,6 +132,7 @@ export function EventManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [participantEventFilter, setParticipantEventFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [participantPage, setParticipantPage] = useState(1);
   const [form, setForm] = useState<EventFormState>(DEFAULT_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isFormDrawerOpen, setIsFormDrawerOpen] = useState(false);
@@ -186,6 +186,10 @@ export function EventManagement() {
     if (participantEventFilter === 'all') return participants;
     return participants.filter((participant) => participant.eventId === participantEventFilter);
   }, [participants, participantEventFilter]);
+  const participantTotalPages = Math.max(1, Math.ceil(filteredParticipants.length / PAGE_SIZE));
+  const safeParticipantPage = Math.min(Math.max(participantPage, 1), participantTotalPages);
+  const participantStart = (safeParticipantPage - 1) * PAGE_SIZE;
+  const pagedParticipants = filteredParticipants.slice(participantStart, participantStart + PAGE_SIZE);
   const participantEventOptions = useMemo(
     () => [
       { value: 'all', label: 'ทั้งหมด' },
@@ -293,21 +297,6 @@ export function EventManagement() {
       setIsCreatorDrawerOpen(false);
     } finally {
       setCreatorLoading(false);
-    }
-  };
-
-  const handleConfirmParticipation = async (participantId: string, isConfirmed: boolean) => {
-    try {
-      await updateEventParticipant(participantId, { isConfirm: isConfirmed });
-      setParticipants((prev) =>
-        prev.map((participant) =>
-          participant.id === participantId ? { ...participant, isConfirm: isConfirmed } : participant,
-        ),
-      );
-      toast.success(isConfirmed ? 'ยืนยันผู้สนใจเรียบร้อยแล้ว' : 'ยกเลิกการยืนยันเรียบร้อยแล้ว');
-    } catch (error) {
-      console.error('Error updating participation confirmation:', error);
-      toast.error('ไม่สามารถอัปเดตสถานะการยืนยันได้');
     }
   };
 
@@ -550,7 +539,10 @@ export function EventManagement() {
                 <Select
                   options={participantEventOptions}
                   value={participantEventOptions.find((option) => option.value === participantEventFilter)}
-                  onChange={(option) => setParticipantEventFilter(option?.value ?? 'all')}
+                  onChange={(option) => {
+                    setParticipantEventFilter(option?.value ?? 'all');
+                    setParticipantPage(1);
+                  }}
                   isClearable={false}
                   classNamePrefix="react-select"
                   placeholder="ทั้งหมด"
@@ -565,27 +557,28 @@ export function EventManagement() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px]">
+          <table className="w-full min-w-[720px]">
             <thead className="bg-muted/30">
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-medium">Event</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">ชื่อ</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">อีเมล</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">โทรศัพท์</th>
+                <th className="px-4 py-3 text-center text-sm font-medium">อีเมล</th>
+                <th className="px-4 py-3 text-center text-sm font-medium">โทรศัพท์</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">หมวดหมู่</th>
-                <th className="px-4 py-3 text-left text-sm font-medium"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filteredParticipants.length === 0 ? (
+              {pagedParticipants.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  <td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">
                     ไม่พบข้อมูลผู้สนใจเข้าร่วม
                   </td>
                 </tr>
               ) : (
-                filteredParticipants.map((participant) => {
+                pagedParticipants.map((participant) => {
                   const creator = creatorById.get(participant.creatorId);
+                  const email = creator?.email?.trim();
+                  const phone = creator?.phone?.trim();
                   return (
                     <tr key={participant.id} className="hover:bg-muted/20">
                       <td className="px-4 py-3 text-sm">{(eventNameById.get(participant.eventId)?.replace(/<[^>]+>/g, '') || participant.eventId)}</td>
@@ -605,25 +598,42 @@ export function EventManagement() {
                         )}
                       </td>
 
-                      <td className="px-4 py-3 text-sm">{creator?.email || '-'}</td>
-                      <td className="px-4 py-3 text-sm">{creator?.phone || '-'}</td>
+                      <td className="px-4 py-3 text-center">
+                        {email ? (
+                          <a
+                            href={`mailto:${email}`}
+                            aria-label={`ส่งอีเมลถึง ${email}`}
+                            title={email}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-primary hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                          >
+                            <Mail className="h-4 w-4" />
+                          </a>
+                        ) : (
+                          <span className="inline-flex h-8 w-8 items-center justify-center text-muted-foreground/40" aria-hidden>
+                            <Mail className="h-4 w-4" />
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {phone ? (
+                          <a
+                            href={`tel:${phone}`}
+                            aria-label={`โทรหา ${phone}`}
+                            title={phone}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-primary hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                          >
+                            <Phone className="h-4 w-4" />
+                          </a>
+                        ) : (
+                          <span className="inline-flex h-8 w-8 items-center justify-center text-muted-foreground/40" aria-hidden>
+                            <Phone className="h-4 w-4" />
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-sm">
                         {creator?.categories && creator.categories.length > 0
                           ? creator.categories.join(', ')
                           : '-'}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        <div className="inline-flex items-center gap-2">
-                          <Switch
-                            checked={participant.isConfirm}
-                            onCheckedChange={(checked) =>
-                              void handleConfirmParticipation(participant.id, checked)
-                            }
-                          />
-                          <span className="text-xs text-muted-foreground">
-                            {participant.isConfirm ? 'ยืนยันแล้ว' : 'รอยืนยัน'}
-                          </span>
-                        </div>
                       </td>
                     </tr>
                   );
@@ -632,6 +642,36 @@ export function EventManagement() {
             </tbody>
           </table>
         </div>
+
+        {filteredParticipants.length > 0 && (
+          <div className="flex flex-col items-center justify-between gap-3 border-t border-border px-6 py-4 text-sm text-muted-foreground md:flex-row">
+            <div>
+              แสดง {participantStart + 1}–{Math.min(participantStart + PAGE_SIZE, filteredParticipants.length)} จาก{' '}
+              {filteredParticipants.length} รายการ
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                className="px-3 py-1 text-sm"
+                onClick={() => setParticipantPage((prev) => Math.max(prev - 1, 1))}
+                disabled={safeParticipantPage === 1}
+              >
+                ก่อนหน้า
+              </Button>
+              <span>
+                หน้า {safeParticipantPage} จาก {participantTotalPages}
+              </span>
+              <Button
+                variant="outline"
+                className="px-3 py-1 text-sm"
+                onClick={() => setParticipantPage((prev) => Math.min(prev + 1, participantTotalPages))}
+                disabled={safeParticipantPage >= participantTotalPages}
+              >
+                ถัดไป
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <Drawer
