@@ -98,7 +98,9 @@ export function EventPage() {
       const result = await joinCurrentEvent(event.id, currentUserId);
       setJoined(true);
       if (result.created) {
-        toast.success('ลงทะเบียนเข้าร่วมอีเวนต์เรียบร้อยแล้ว');
+        toast.success('ลงทะเบียนเข้าร่วมอีเวนต์เรียบร้อยแล้ว', {
+          description: 'กรุณารอการติดต่อจากทีมงานเพื่อยืนยันการเข้าร่วม',
+        });
       } else {
         toast.info('คุณลงทะเบียนอีเวนต์นี้แล้ว');
       }
