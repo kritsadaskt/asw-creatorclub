@@ -39,11 +39,23 @@ function TermsAndConditions() {
             <p>สำหรับสมาชิก AssetWise Creator Club ที่ Get Link จากหน้า Website และสามารถแนะนำเพื่อนญาติหรือลูกค้า มาจองบ้านหรือห้องชุดกับบริษัท แอสเซทไวส์ จำกัด (มหาชน)และบริษัทในเครือ (เฉพาะยูนิตและโครงการที่บริษัทฯ กำหนด รายละเอียดยูนิตและโครงการที่เข้าร่วม สอบถามเพิ่มเติมได้ที่สำนักงานขายโครงการนั้นๆหรือ <a href='tel:02-168-0000' className='text-primary underline'>02-168-0000</a>)</p>
             <p>ตราการจ่ายค่าตอบแทน สำหรับ 36 โครงการที่เข้าร่วมแคมเปญ รับค่าแนะนําสูงสุด 500,000 บาท* AFFILIATE COMMISSION RATE 2026 ดังนี้</p>
             <div className="h-5"></div>
-            <Link href={'/aff-policy-01.jpg'} target="_blank">
-              <img src={'/creatorclub/aff-policy-01.jpg'} alt="AFFILIATE COMMISSION RATE 2026" width={1000} height={1000} className="w-full h-auto" />
+            <Link href={'/118713.jpg'} target="_blank">
+              <img src={'/creatorclub/118713.jpg'} alt="AFFILIATE COMMISSION RATE 2026" width={1000} height={1000} className="w-full h-auto" />
             </Link>
-            <Link href={'/aff-policy-02.jpg'} target="_blank">
-              <img src={'/creatorclub/aff-policy-02.jpg'} alt="AFFILIATE COMMISSION RATE 2026" width={1000} height={1000} className="w-full h-auto" />
+            <Link href={'/118714.jpg'} target="_blank">
+              <img src={'/creatorclub/118714.jpg'} alt="AFFILIATE COMMISSION RATE 2026" width={1000} height={1000} className="w-full h-auto" />
+            </Link>
+            <Link href={'/118715.jpg'} target="_blank">
+              <img src={'/creatorclub/118715.jpg'} alt="AFFILIATE COMMISSION RATE 2026" width={1000} height={1000} className="w-full h-auto" />
+            </Link>
+            <Link href={'/118716.jpg'} target="_blank">
+              <img src={'/creatorclub/118716.jpg'} alt="AFFILIATE COMMISSION RATE 2026" width={1000} height={1000} className="w-full h-auto" />
+            </Link>
+            <Link href={'/118717.jpg'} target="_blank">
+              <img src={'/creatorclub/118717.jpg'} alt="AFFILIATE COMMISSION RATE 2026" width={1000} height={1000} className="w-full h-auto" />
+            </Link>
+            <Link href={'/118718.jpg'} target="_blank">
+              <img src={'/creatorclub/118718.jpg'} alt="AFFILIATE COMMISSION RATE 2026" width={1000} height={1000} className="w-full h-auto" />
             </Link>
           </div>
         </main>
