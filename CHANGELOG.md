@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.16.1](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.16.0...v2.16.1) (2026-08-31)
+
+
+### Bug Fixes
+
+* update commision image in T&C page ([e97e3a6](https://github.com/kritsadaskt/asw-creatorclub/commit/e97e3a629167cd6ae49a3a7cfc87fc070620d8d9))
+* update text in toast after submit to join event ([3c7b8ea](https://github.com/kritsadaskt/asw-creatorclub/commit/3c7b8ea921661984046019a3c45e50bf1cc5e262))
+
 ## [2.16.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.15.1...v2.16.0) (2026-08-26)
 
 
