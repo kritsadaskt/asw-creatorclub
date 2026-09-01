@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.17.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.16.1...v2.17.0) (2026-09-01)
+
+
+### Features
+
+* เพิ่ม badge และ timeline leads ([7ed7847](https://github.com/kritsadaskt/asw-creatorclub/commit/7ed784730b4ccd2f76403041d900ad8dec78135d))
+
 ### [2.16.1](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.16.0...v2.16.1) (2026-08-31)
 
 
