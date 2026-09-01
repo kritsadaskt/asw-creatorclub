@@ -34,18 +34,38 @@ import {
   formatFgfReferrerName,
   resolveFgfReferrer,
 } from '@/lib/fgf-lead-referrer';
+import type { CisContactLogHistoryRow } from '@/lib/cis-contact-log-history';
+import {
+  buildLeadTimeline,
+  earliestContactDate,
+  groupHistoryByCustomer,
+  resolveLeadStage,
+  scopeHistoryToLead,
+  shiftDateByDays,
+  todayIsoDate,
+  type LeadStage,
+} from '@/lib/lead-timeline';
+import { LEAD_EVENT_VISUALS, LeadStageBadge } from './LeadStageBadge';
+import { LeadContactTimeline } from './LeadContactTimeline';
 
 const DEFAULT_UTM_SOURCES = ['creator_club_affiliate', 'creatorclub'] as const;
 
+/** Field names below match the CIS GetContactLogRegister payload exactly. */
 interface ContactLogItem {
-  ContactLogID: number;
-  Fname: string;
-  Lname: string;
-  Tel: string;
-  Email: string;
   ProjectID?: number;
+  ProjectCode?: string;
   ProjectName?: string;
-  RefDate?: string;
+  CustomerID?: number;
+  CustomerFirstName?: string;
+  CustomerLastName?: string;
+  CustomerMobile?: string;
+  CustomerLineID?: string;
+  CustomerGrade?: string;
+  ContactChannelName?: string;
+  ContactType?: string;
+  ContactDate?: string;
+  ContactTime?: string;
+  ContactDetail?: string;
   utm_source?: string;
   utm_medium?: string;
   utm_campaign?: string;
@@ -55,10 +75,21 @@ interface ContactLogItem {
   ModelInterest?: string;
   PromoCode?: string;
   PurchasePurpose?: string;
-  LineID?: string;
-  ContactDetail?: string;
   Ref?: string;
   [key: string]: any;
+}
+
+/** Stable across pagination — CIS does not return a ContactLogID on this endpoint. */
+function contactLogRowKey(log: ContactLogItem): string {
+  return [log.CustomerID, log.ProjectID, log.ContactDate, log.ContactTime, log.utm_source]
+    .map((part) => String(part ?? ''))
+    .join('|');
+}
+
+/** CIS prefixes mobile numbers with an apostrophe to stop Excel mangling them. */
+function cleanMobile(value?: string): string {
+  const trimmed = String(value ?? '').trim().replace(/^'/, '');
+  return trimmed && trimmed !== 'NULL' ? trimmed : '';
 }
 
 interface UtmContactLogsTableProps {
@@ -96,6 +127,14 @@ export function UtmContactLogsTable({
   const [referrerCreatorLoading, setReferrerCreatorLoading] = useState(false);
   const [referrerCreatorNotFound, setReferrerCreatorNotFound] = useState(false);
 
+  // CIS contact history — loaded after the table renders so leads are never blocked on it.
+  const [historyByCustomer, setHistoryByCustomer] = useState<Map<number, CisContactLogHistoryRow[]>>(
+    () => new Map(),
+  );
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [historyReloadToken, setHistoryReloadToken] = useState(0);
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -120,8 +159,15 @@ export function UtmContactLogsTable({
   }, []);
 
   // Fetch logs function
-  const fetchLogs = async (sourceValue = searchSource, campaignValue = searchCampaign, mediumValue = searchMedium) => {
+  const fetchLogs = async (
+    sourceValue = searchSource,
+    campaignValue = searchCampaign,
+    mediumValue = searchMedium,
+    options?: { signal?: AbortSignal },
+  ) => {
     const trimmedSource = sourceValue.trim();
+    const isStale = () => options?.signal?.aborted ?? false;
+
     setLoading(true);
     setError(null);
     setCurrentPage(1); // Reset pagination
@@ -138,7 +184,9 @@ export function UtmContactLogsTable({
         params.set('utm_medium', mediumValue.trim());
       }
 
-      const res = await fetch(`/creatorclub/api/admin/contact-logs?${params.toString()}`);
+      const res = await fetch(`/creatorclub/api/admin/contact-logs?${params.toString()}`, {
+        signal: options?.signal,
+      });
       const payload = await res.json().catch(() => ({}));
 
       if (!res.ok) {
@@ -163,6 +211,7 @@ export function UtmContactLogsTable({
         }
       }
 
+      if (isStale()) return;
       setLogs(list);
 
       if (list.length === 0) {
@@ -171,25 +220,121 @@ export function UtmContactLogsTable({
         toast.success(`โหลดข้อมูลสำเร็จ ${list.length} รายการ`);
       }
     } catch (err: any) {
+      if (isStale()) return;
       console.error('Error fetching contact logs:', err);
       setError(err.message || 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       setLogs([]);
       toast.error(err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
     } finally {
-      setLoading(false);
+      if (!isStale()) setLoading(false);
     }
   };
 
-  // Fetch when enabled (e.g. Leads tab is active) — avoids cold-start CIS 500 on dashboard load.
+  /**
+   * Fetch when enabled (e.g. Leads tab is active) — avoids cold-start CIS 500 on dashboard load.
+   *
+   * Aborting on cleanup matters: React Strict Mode runs this twice on mount, and each run
+   * costs a ~15s CIS round trip plus a duplicate success toast.
+   */
   useEffect(() => {
     if (!enabled) return;
+
+    const controller = new AbortController();
     if (allowSearch) {
-      fetchLogs(utmSource, utmCampaign, utmMedium);
+      void fetchLogs(utmSource, utmCampaign, utmMedium, { signal: controller.signal });
     } else {
-      fetchLogs('', '', '');
+      void fetchLogs('', '', '', { signal: controller.signal });
     }
+
+    return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, allowSearch, utmSource, utmCampaign, utmMedium]);
+
+  useEffect(() => {
+    const customerIds = [
+      ...new Set(
+        logs
+          .map((log) => Number(log.CustomerID))
+          .filter((id) => Number.isFinite(id) && id > 0),
+      ),
+    ];
+
+    if (customerIds.length === 0) {
+      setHistoryByCustomer(new Map());
+      setHistoryError(null);
+      setHistoryLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    let cancelled = false;
+    setHistoryLoading(true);
+    setHistoryError(null);
+
+    void (async () => {
+      try {
+        const earliest = earliestContactDate(logs);
+        const res = await fetch('/creatorclub/api/admin/contact-logs/history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customerIds,
+            startDate: earliest ? shiftDateByDays(earliest, -1) : undefined,
+            endDate: todayIsoDate(),
+          }),
+          signal: controller.signal,
+        });
+        const payload = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          const detail = typeof payload.detail === 'string' ? payload.detail.trim() : '';
+          throw new Error(detail || payload.error || 'ดึงประวัติการติดต่อไม่สำเร็จ');
+        }
+
+        if (cancelled) return;
+        setHistoryByCustomer(groupHistoryByCustomer(payload.data ?? []));
+      } catch (err: any) {
+        if (cancelled) return;
+        console.error('Error fetching contact log history:', err);
+        setHistoryByCustomer(new Map());
+        setHistoryError(err.message || 'เกิดข้อผิดพลาดในการโหลดประวัติการติดต่อ');
+      } finally {
+        if (!cancelled) setHistoryLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [logs, historyReloadToken]);
+
+  /**
+   * Keyed per row rather than per customer: one customer can register several times on
+   * different dates, and each registration only owns the touchpoints that followed it.
+   */
+  const stageByRow = useMemo(() => {
+    const stages = new Map<string, LeadStage>();
+
+    for (const log of logs) {
+      const customerId = Number(log.CustomerID);
+      if (!Number.isFinite(customerId)) continue;
+
+      const rows = historyByCustomer.get(customerId);
+      if (!rows) continue;
+
+      stages.set(contactLogRowKey(log), resolveLeadStage(scopeHistoryToLead(rows, log)));
+    }
+
+    return stages;
+  }, [logs, historyByCustomer]);
+
+  const selectedTimeline = useMemo(() => {
+    if (!selectedLog) return [];
+    const customerId = Number(selectedLog.CustomerID);
+    const rows = Number.isFinite(customerId) ? (historyByCustomer.get(customerId) ?? []) : [];
+    return buildLeadTimeline(selectedLog, rows);
+  }, [selectedLog, historyByCustomer]);
 
   useEffect(() => {
     const creatorId = selectedLog?.utm_content?.trim();
@@ -225,13 +370,7 @@ export function UtmContactLogsTable({
     return () => {
       cancelled = true;
     };
-  }, [selectedLog?.utm_content, selectedLog?.ContactLogID]);
-
-  const contactDetailText = useMemo(() => {
-    if (!selectedLog) return '';
-    const raw = selectedLog.ContactDetail ?? selectedLog.Ref ?? '';
-    return decodeCisContactDetail(String(raw)).trim();
-  }, [selectedLog]);
+  }, [selectedLog?.utm_content, selectedLog?.CustomerID]);
 
   const fgfReferrer = useMemo(() => {
     if (!selectedLog) return null;
@@ -249,14 +388,17 @@ export function UtmContactLogsTable({
         const projId = log.ProjectID;
         const projName = projId != null && projectMap[projId] ? projectMap[projId] : (log.ProjectName || projId || '-');
 
+        const stage = stageByRow.get(contactLogRowKey(log));
+
         return {
           'ลำดับ': index + 1,
-          'ContactLogID': log.ContactLogID ?? '',
+          'CustomerID': log.CustomerID ?? '',
           'ชื่อ': log.CustomerFirstName ?? '',
           'นามสกุล': log.CustomerLastName ?? '',
-          'เบอร์โทร': log.Tel === 'NULL' ? '-' : (log.Tel ?? ''),
-          'อีเมล': log.Email === 'NULL' ? '-' : (log.Email ?? ''),
-          'LINE ID': log.LineID ?? '-',
+          'เบอร์โทร': cleanMobile(log.CustomerMobile) || '-',
+          'LINE ID': log.CustomerLineID ?? '-',
+          'สถานะล่าสุด': stage ? LEAD_EVENT_VISUALS[stage].label : '-',
+          'เกรดลูกค้า': log.CustomerGrade ?? '-',
           'รหัสโครงการ': log.ProjectID ?? '',
           'ชื่อโครงการ': projName,
           'ราคาที่สนใจ': log.PriceInterest ?? '-',
@@ -269,7 +411,7 @@ export function UtmContactLogsTable({
           'UTM Content': log.utm_content ?? '',
           'UTM Term': log.utm_term ?? '',
           'Contact Detail': decodeCisContactDetail(String(log.ContactDetail ?? log.Ref ?? '')).trim(),
-          'วันที่ลงทะเบียน': log.RefDate ? new Date(log.RefDate).toLocaleString('th-TH') : '-',
+          'วันที่ลงทะเบียน': [log.ContactDate, log.ContactTime].filter(Boolean).join(' ') || '-',
         };
       });
 
@@ -448,6 +590,22 @@ export function UtmContactLogsTable({
           </div>
         ) : (
           <>
+            {/* Stage badges come from a separate CIS call — degrade without breaking the table. */}
+            {historyError && (
+              <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
+                <Info className="h-4 w-4 shrink-0" />
+                <span>ไม่สามารถโหลดสถานะล่าสุดของ Lead ได้</span>
+                <span className="text-xs text-amber-700/90">({historyError})</span>
+                <button
+                  type="button"
+                  onClick={() => setHistoryReloadToken((token) => token + 1)}
+                  className="cursor-pointer text-xs font-medium text-amber-900 underline underline-offset-2"
+                >
+                  ลองอีกครั้ง
+                </button>
+              </div>
+            )}
+
             {/* Table */}
             <div className="overflow-x-auto overflow-y-visible">
               <table className="w-full">
@@ -467,11 +625,14 @@ export function UtmContactLogsTable({
                     const projId = log.ProjectID;
                     const projName = projId != null && projectMap[projId] ? projectMap[projId] : (log.ProjectName || projId || 'ไม่ระบุโครงการ');
 
+                    const stage = stageByRow.get(contactLogRowKey(log)) ?? null;
+
                     return (
-                      <tr key={log.ContactLogID || globalIndex} className="hover:bg-neutral-50/30 transition-colors">
+                      <tr key={contactLogRowKey(log)} className="hover:bg-neutral-50/30 transition-colors">
                         <td className="py-4 px-4 text-sm text-muted-foreground">{globalIndex}</td>
                         <td className="py-4 px-4 text-sm font-medium text-foreground">
                           {log.CustomerFirstName} {log.CustomerLastName}
+                          <LeadStageBadge stage={stage} loading={historyLoading && !historyError} />
                         </td>
                         <td className="py-4 px-4 text-sm text-foreground">
                           <span className="font-medium text-neutral-700">{projName}</span>
@@ -584,9 +745,9 @@ export function UtmContactLogsTable({
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <span className="block text-xs text-muted-foreground mb-0.5">เบอร์โทรศัพท์</span>
-                      {selectedLog.CustomerMobile && selectedLog.CustomerMobile !== 'NULL' ? (
+                      {cleanMobile(selectedLog.CustomerMobile) ? (
                         <span className='flex gap-1 items-center'>
-                          <Phone className="w-3.5 h-3.5" /> {selectedLog.CustomerMobile.replace('\'', '')}
+                          <Phone className="w-3.5 h-3.5" /> {cleanMobile(selectedLog.CustomerMobile)}
                         </span>
                       ) : <span className="text-sm text-muted-foreground">-</span>}
                     </div>
@@ -642,16 +803,18 @@ export function UtmContactLogsTable({
                   </div>
                 </div>
 
-                {contactDetailText ? (
-                  <div className="bg-neutral-50 rounded-xl p-4 space-y-2 border border-border/50">
-                    <h4 className="font-semibold text-neutral-700 text-sm border-b border-border/70 pb-1.5">
-                      Contact Detail
-                    </h4>
-                    <p className="text-sm text-foreground whitespace-pre-wrap break-words leading-relaxed">
-                      {contactDetailText}
-                    </p>
+                {Number.isFinite(Number(selectedLog.CustomerID)) ? (
+                  <LeadContactTimeline
+                    events={selectedTimeline}
+                    loading={historyLoading}
+                    error={historyError}
+                    onRetry={() => setHistoryReloadToken((token) => token + 1)}
+                  />
+                ) : (
+                  <div className="rounded-xl border border-border/50 bg-neutral-50 p-4 text-sm text-muted-foreground">
+                    ไม่มีรหัสลูกค้า (CustomerID) จาก CIS จึงดูไทม์ไลน์การติดต่อไม่ได้
                   </div>
-                ) : null}
+                )}
 
                 {/* Project & Interest */}
                 <div className="bg-neutral-50 rounded-xl p-4 space-y-3.5 border border-border/50">
@@ -733,7 +896,9 @@ export function UtmContactLogsTable({
                       <span className="block text-xs text-muted-foreground mb-0.5">วันที่และเวลานำส่ง</span>
                       <span className="text-sm font-medium text-foreground flex items-center gap-1">
                         <Calendar className="w-3.5 h-3.5 text-neutral-400" />
-                        {selectedLog.RefDate ? new Date(selectedLog.RefDate).toLocaleString('th-TH') : '-'}
+                        {selectedLog.ContactDate
+                          ? `${new Date(`${selectedLog.ContactDate}T00:00:00`).toLocaleDateString('th-TH')}${selectedLog.ContactTime ? ` ${selectedLog.ContactTime} น.` : ''}`
+                          : '-'}
                       </span>
                     </div>
                   </div>

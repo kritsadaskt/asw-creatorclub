@@ -1,12 +1,17 @@
 import type { ContactLogLike } from '@/lib/excluded-contact-log-leads';
 import { filterExcludedContactLogLeads } from '@/lib/excluded-contact-log-leads';
+import {
+  CIS_FETCH_MAX_ATTEMPTS,
+  CIS_FETCH_RETRY_DELAY_MS,
+  isRetryableCisFailure,
+  parseCisDataList,
+  postCis,
+  sleep,
+  type CisFetchFailure,
+  type CisFetchResult,
+} from '@/lib/cis-http';
 
 const CIS_CONTACT_LOG_ENDPOINT = 'https://api.assetwise.co.th/api/Customer/GetContactLogRegister';
-
-/** Soft timeout per CIS request. */
-const CIS_FETCH_TIMEOUT_MS = 55_000;
-const CIS_FETCH_MAX_ATTEMPTS = 3;
-const CIS_FETCH_RETRY_DELAY_MS = 700;
 
 /** Creator Club utm_source values — admin Leads tab merges both. */
 export const CIS_CONTACT_LOG_UTM_SOURCES = ['creator_club_affiliate', 'creatorclub'] as const;
@@ -14,8 +19,16 @@ export const CIS_CONTACT_LOG_UTM_SOURCES = ['creator_club_affiliate', 'creatorcl
 export type CisContactLogRow = ContactLogLike & {
   ContactLogID?: number | string;
   ProjectID?: number | string;
+  ProjectCode?: string;
+  ProjectName?: string;
   CustomerID?: number | string;
   CustomerMobile?: string;
+  CustomerGrade?: string;
+  /** Register endpoint names this field `ContactChannelName`; GetContactLog uses `ContactChannel`. */
+  ContactChannelName?: string;
+  ContactChannelID?: number | string;
+  ContactType?: string;
+  ContactDetail?: string;
   ContactDate?: string;
   ContactTime?: string;
   Email?: string;
@@ -25,63 +38,14 @@ export type CisContactLogRow = ContactLogLike & {
   utm_source?: string;
   utm_campaign?: string;
   utm_medium?: string;
+  utm_term?: string;
 };
 
-export type FetchCisContactLogsFailure = {
-  ok: false;
-  reason: string;
-  status?: number;
-};
-
-export type FetchCisContactLogsResult =
-  | { ok: true; data: CisContactLogRow[] }
-  | FetchCisContactLogsFailure;
+export type FetchCisContactLogsFailure = CisFetchFailure;
+export type FetchCisContactLogsResult = CisFetchResult<CisContactLogRow>;
 
 export function parseCisContactLogList(rawData: unknown): CisContactLogRow[] {
-  if (!rawData || typeof rawData !== 'object') return [];
-  if (Array.isArray(rawData)) {
-    return rawData as CisContactLogRow[];
-  }
-  const obj = rawData as Record<string, unknown>;
-  if (Array.isArray(obj.Data)) {
-    return obj.Data as CisContactLogRow[];
-  }
-  if (Array.isArray(obj.data)) {
-    return obj.data as CisContactLogRow[];
-  }
-  return [];
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function isRetryableCisFailure(result: FetchCisContactLogsFailure): boolean {
-  if (result.status != null && result.status >= 500) return true;
-  return (
-    result.reason.includes('timed out') ||
-    result.reason.includes('request failed') ||
-    result.reason.includes('Success=false')
-  );
-}
-
-function parseCisContactLogResponse(responseData: unknown): FetchCisContactLogsResult {
-  if (responseData && typeof responseData === 'object' && !Array.isArray(responseData)) {
-    const obj = responseData as Record<string, unknown>;
-    if (obj.Success === false) {
-      return {
-        ok: false,
-        reason: `CIS returned Success=false: ${String(obj.Message ?? 'unknown error')}`,
-      };
-    }
-  }
-
-  return { ok: true, data: parseCisContactLogList(responseData) };
-}
-
-function authorizationHeader(token: string): string {
-  const trimmed = token.trim();
-  return trimmed.toLowerCase().startsWith('basic ') ? trimmed : `Basic ${trimmed}`;
+  return parseCisDataList<CisContactLogRow>(rawData);
 }
 
 /** CIS expects application/x-www-form-urlencoded (same as Bruno), not JSON. */
@@ -113,57 +77,12 @@ export async function fetchCisContactLogRegisterResult(params?: {
     return { ok: false, reason: 'CONTACT_LOGS_TOKEN is not configured' };
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), CIS_FETCH_TIMEOUT_MS);
-
-  let res: Response;
-  try {
-    res = await fetch(CIS_CONTACT_LOG_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Authorization: authorizationHeader(token),
-      },
-      body: buildCisContactLogFormBody(params).toString(),
-      signal: controller.signal,
-      cache: 'no-store',
-    });
-  } catch (err) {
-    const aborted = err instanceof Error && err.name === 'AbortError';
-    return {
-      ok: false,
-      reason: aborted
-        ? `CIS contact-log request timed out after ${CIS_FETCH_TIMEOUT_MS}ms`
-        : err instanceof Error
-          ? `CIS contact-log request failed: ${err.message}`
-          : 'CIS contact-log request failed',
-    };
-  } finally {
-    clearTimeout(timeout);
-  }
-
-  const responseText = await res.text().catch(() => '');
-  if (!res.ok) {
-    return {
-      ok: false,
-      status: res.status,
-      reason: `CIS returned HTTP ${res.status}${responseText ? `: ${responseText.slice(0, 300)}` : ''}`,
-    };
-  }
-
-  let responseData: unknown;
-  try {
-    responseData = responseText ? JSON.parse(responseText) : null;
-  } catch {
-    return {
-      ok: false,
-      status: res.status,
-      reason: 'CIS returned a non-JSON body',
-    };
-  }
-
-  return parseCisContactLogResponse(responseData);
+  return postCis<CisContactLogRow>({
+    endpoint: CIS_CONTACT_LOG_ENDPOINT,
+    token,
+    body: buildCisContactLogFormBody(params),
+    label: 'CIS contact-log',
+  });
 }
 
 export async function fetchCisContactLogRegisterResultWithRetry(params?: {
