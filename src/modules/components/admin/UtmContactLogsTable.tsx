@@ -159,8 +159,15 @@ export function UtmContactLogsTable({
   }, []);
 
   // Fetch logs function
-  const fetchLogs = async (sourceValue = searchSource, campaignValue = searchCampaign, mediumValue = searchMedium) => {
+  const fetchLogs = async (
+    sourceValue = searchSource,
+    campaignValue = searchCampaign,
+    mediumValue = searchMedium,
+    options?: { signal?: AbortSignal },
+  ) => {
     const trimmedSource = sourceValue.trim();
+    const isStale = () => options?.signal?.aborted ?? false;
+
     setLoading(true);
     setError(null);
     setCurrentPage(1); // Reset pagination
@@ -177,7 +184,9 @@ export function UtmContactLogsTable({
         params.set('utm_medium', mediumValue.trim());
       }
 
-      const res = await fetch(`/creatorclub/api/admin/contact-logs?${params.toString()}`);
+      const res = await fetch(`/creatorclub/api/admin/contact-logs?${params.toString()}`, {
+        signal: options?.signal,
+      });
       const payload = await res.json().catch(() => ({}));
 
       if (!res.ok) {
@@ -202,6 +211,7 @@ export function UtmContactLogsTable({
         }
       }
 
+      if (isStale()) return;
       setLogs(list);
 
       if (list.length === 0) {
@@ -210,23 +220,33 @@ export function UtmContactLogsTable({
         toast.success(`โหลดข้อมูลสำเร็จ ${list.length} รายการ`);
       }
     } catch (err: any) {
+      if (isStale()) return;
       console.error('Error fetching contact logs:', err);
       setError(err.message || 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       setLogs([]);
       toast.error(err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
     } finally {
-      setLoading(false);
+      if (!isStale()) setLoading(false);
     }
   };
 
-  // Fetch when enabled (e.g. Leads tab is active) — avoids cold-start CIS 500 on dashboard load.
+  /**
+   * Fetch when enabled (e.g. Leads tab is active) — avoids cold-start CIS 500 on dashboard load.
+   *
+   * Aborting on cleanup matters: React Strict Mode runs this twice on mount, and each run
+   * costs a ~15s CIS round trip plus a duplicate success toast.
+   */
   useEffect(() => {
     if (!enabled) return;
+
+    const controller = new AbortController();
     if (allowSearch) {
-      fetchLogs(utmSource, utmCampaign, utmMedium);
+      void fetchLogs(utmSource, utmCampaign, utmMedium, { signal: controller.signal });
     } else {
-      fetchLogs('', '', '');
+      void fetchLogs('', '', '', { signal: controller.signal });
     }
+
+    return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, allowSearch, utmSource, utmCampaign, utmMedium]);
 
@@ -246,6 +266,7 @@ export function UtmContactLogsTable({
       return;
     }
 
+    const controller = new AbortController();
     let cancelled = false;
     setHistoryLoading(true);
     setHistoryError(null);
@@ -261,6 +282,7 @@ export function UtmContactLogsTable({
             startDate: earliest ? shiftDateByDays(earliest, -1) : undefined,
             endDate: todayIsoDate(),
           }),
+          signal: controller.signal,
         });
         const payload = await res.json().catch(() => ({}));
 
@@ -283,6 +305,7 @@ export function UtmContactLogsTable({
 
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [logs, historyReloadToken]);
 
