@@ -50,6 +50,7 @@ import type { AffiliateMaterial, Campaign } from '@/modules/types';
 import { StatusLabel } from '../ui/status-label';
 import { CommissionBoostLabel } from '../ui/commission-boost-label';
 import { getAffiliateCommissionDisplay } from '@/lib/commission-display';
+import staticMissionImage from '@/public/images/affiliate/static-mission.png';
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || '';
 const DEFAULT_ITEMS_PER_PAGE = 10;
@@ -432,6 +433,12 @@ function AffiliateProjectList({ campaignKey }: AffiliatePageProps) {
           ))}
         </div>
       )}
+
+      {/* ── STATIC MISSION IMAGE ── */}
+      <img src="/creatorclub/20260901_creator-boost-mission.webp" alt="Creator Boost Mission" className="w-full xl:w-4/5 mx-auto h-auto rounded-xl shadow-xl border border-border mb-7 hidden lg:block" />
+      <img src="/creatorclub/20260901_creator-boost-mission-m.webp" alt="Creator Boost Mission" className="w-full h-auto rounded-xl shadow-xl border border-border mb-7 block lg:hidden" />
+
+
       <div className="bg-white rounded-2xl shadow-xl border border-border p-6 lg:p-8">
 
         {isLoading ? (
