@@ -39,13 +39,50 @@ function Aff_Policy() {
             <p>สำหรับสมาชิก AssetWise Creator Club ที่ Get Link จากหน้า Website และสามารถแนะนำเพื่อนญาติหรือลูกค้า มาจองบ้านหรือห้องชุดกับบริษัท แอสเซทไวส์ จำกัด (มหาชน)และบริษัทในเครือ (เฉพาะยูนิตและโครงการที่บริษัทฯ กำหนด รายละเอียดยูนิตและโครงการที่เข้าร่วม สอบถามเพิ่มเติมได้ที่สำนักงานขายโครงการนั้นๆหรือ <a href='tel:02-168-0000' className='text-primary underline'>02-168-0000</a>)</p>
             <p>ตราการจ่ายค่าตอบแทน สำหรับ 36 โครงการที่เข้าร่วมแคมเปญ รับค่าแนะนําสูงสุด 500,000 บาท* AFFILIATE COMMISSION RATE 2026 ดังนี้</p>
             <div className="h-5"></div>
-            <Link href={'/aff-policy-01.jpg'} target="_blank">
-              <img src={'/creatorclub/aff-policy-01.jpg'} alt="AFFILIATE COMMISSION RATE 2026" width={1000} height={1000} className="w-full h-auto" />
+            <Link href={'/118713.jpg'} target="_blank">
+              <img src={'/creatorclub/118713.jpg'} alt="AFFILIATE COMMISSION RATE 2026" width={1000} height={1000} className="w-full h-auto" />
             </Link>
-            <Link href={'/aff-policy-02.jpg'} target="_blank">
-              <img src={'/creatorclub/aff-policy-02.jpg'} alt="AFFILIATE COMMISSION RATE 2026" width={1000} height={1000} className="w-full h-auto" />
+            <Link href={'/118714.jpg'} target="_blank">
+              <img src={'/creatorclub/118714.jpg'} alt="AFFILIATE COMMISSION RATE 2026" width={1000} height={1000} className="w-full h-auto" />
+            </Link>
+            <Link href={'/118715.jpg'} target="_blank">
+              <img src={'/creatorclub/118715.jpg'} alt="AFFILIATE COMMISSION RATE 2026" width={1000} height={1000} className="w-full h-auto" />
+            </Link>
+            <Link href={'/118716.jpg'} target="_blank">
+              <img src={'/creatorclub/118716.jpg'} alt="AFFILIATE COMMISSION RATE 2026" width={1000} height={1000} className="w-full h-auto" />
+            </Link>
+            <Link href={'/118717.jpg'} target="_blank">
+              <img src={'/creatorclub/118717.jpg'} alt="AFFILIATE COMMISSION RATE 2026" width={1000} height={1000} className="w-full h-auto" />
+            </Link>
+            <Link href={'/118718.jpg'} target="_blank">
+              <img src={'/creatorclub/118718.jpg'} alt="AFFILIATE COMMISSION RATE 2026" width={1000} height={1000} className="w-full h-auto" />
             </Link>
           </div>
+          <div className="h-10"></div>
+          <section id="creator_boost_mission">
+            <h2 className="text-2xl text-center mb-5">สคบ.  โปรโมชั่นส่งเสริมและเร่งการลงทะเบียนสำหรับ Creator</h2>
+            <h3 className="text-xl text-center text-primary mb-5">
+              AssetWise Creator Club 2026<br/>แคมเปญ Affiliate Program และ แคมเปญ Friend Gets Friends 2026
+            </h3>
+            <p>โปรโมชัน เพื่อส่งเสริมและเร่งการลงทะเบียนสำหรับ Creator มีโครงการที่เข้าร่วมงานทั้งหมดรวม 36 โครงการ ทั้งโครงการคอนโดมิเนียม พรีเซลล์-พร้อมอยู่ และโครงการบ้านเดี่ยว ระยะเวลาตั้งแต่ วันที่ 1 กันยายน 2569 - 30 พฤศจิกายน 2569 มีรายละเอียดและเงื่อนไขดังต่อไปนี้</p>
+            <div className="h-5"></div>
+            <h4 className="font-medium mb-2">โปรโมชัน AFFILIATE MISSION</h4>
+            <ol className="list-decimal flex flex-col gap-2 font-normal pl-5">
+              <li>ดีลพิเศษ! เฉพาะลูกค้าที่มาจาก AFFILIATE PROGRAM หรือ Friend Gets Friends ของ CREATOR รับเพิ่ม VOUCHER ทองคำ มูลค่า 10,000 บาท* ON TOP จากโปรโมชันปกติของแต่ละโครงการ*</li>
+              <li>Creator ที่มียอด Lead ได้รวม 5 Leads รับ Coupon LINEMAN มูลค่า 200 บาท* โดย 5 LEADS ต้องเป็น Lead ที่สามารถติดต่อได้ ไม่เป็น Lead ต่างชาติ พม่า เขมร ที่ไม่มีคุณภาพ</li>
+              <li>Creator ที่มียอดลูกค้าเข้าชมโครงการ(Walk) รับ CENTRAL Voucher มูลค่า 300 บาท* ต่อ 1 Walk
+              </li>
+            </ol>
+            <div className="h-5"></div>
+            <h4 className="font-medium mb-2">เงื่อนไขโปรโมชัน ในข้อ 1</h4>
+            <ol className="list-decimal flex flex-col gap-2 font-normal pl-5">
+              <li>สำหรับลูกค้า ที่ซื้อโครงการคอนโดมิเนียมและบ้าน ที่เป็นโครงการพร้อมอยู่ จะต้องโอนกรรมสิทธิ์ภายใน 31 ธันวาคม 2569 จะมีสิทธิ์ได้รับของรางวัลดังกล่าว และจะได้รับหลังโอนกรรมสิทธิ์ภายใน 60 วัน</li>
+              <li>ลูกค้าที่ซื้อโครงการคอนโดมิเนียมและบ้าน ที่เป็นโครงการ Presale จะได้รับหลังจากที่ลูกค้าจองและทำสัญญาและชำระเงินดาวน์ มูลค่า Cover ของรางวัล ภายใน 31 ธันวาคม 2569 จึงจะมีสิทธิ์ได้รับของรางวัลดังกล่าว และจะได้รับหลังชำระครบภายใน 60 วัน</li>
+              <li>ผู้ที่ได้รับรางวัล มูลค่า 1,000 บาทขึ้นไป ต้องชำ ระเงินภาษีหัก ณ ที่จ่าย 5% ณ วันที่ได้รับรางวัล ตามคำ สั่งกรมสรรพากร ที่ ทป. 101/254</li>
+            </ol>
+            <div className="h-7"></div>
+            <span className="text-sm text-gray-500">*Remark : ข้อมูล ณ วันที่ 1 กันายน 2569 ศึกษารายละเอียดเพิ่มเติมได้ที่ <Link href={'https://assetwise.co.th/creatorclub/affiliate/terms-and-conditions'} className="text-primary underline">เว็บไซต์ AssetWiser Creator Club</Link></span>
+          </section>
         </main>
       </div>
       <Footer/>
