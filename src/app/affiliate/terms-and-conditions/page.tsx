@@ -57,6 +57,12 @@ function Aff_Policy() {
             <Link href={'/118718.jpg'} target="_blank">
               <img src={'/creatorclub/118718.jpg'} alt="AFFILIATE COMMISSION RATE 2026" width={1000} height={1000} className="w-full h-auto" />
             </Link>
+            <Link href={'/119403.jpg'} target="_blank">
+              <img src={'/creatorclub/119403.jpg'} alt="AFFILIATE COMMISSION RATE 2026" width={1000} height={1000} className="w-full h-auto" />
+            </Link>
+            <Link href={'/119404.jpg'} target="_blank">
+              <img src={'/creatorclub/119404.jpg'} alt="AFFILIATE COMMISSION RATE 2026" width={1000} height={1000} className="w-full h-auto" />
+            </Link>
           </div>
           <div className="h-10"></div>
           <section id="creator_boost_mission">
