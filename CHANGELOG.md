@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.17.2](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.17.1...v2.17.2) (2026-09-02)
+
+
+### Bug Fixes
+
+* เพิ่มภาพ สคบ aff ([faed74e](https://github.com/kritsadaskt/asw-creatorclub/commit/faed74ed2359c7f41b44fef5d669c2840081afd0))
+
 ### [2.17.1](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.17.0...v2.17.1) (2026-09-01)
 
 
