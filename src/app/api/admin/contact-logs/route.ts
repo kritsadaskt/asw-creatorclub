@@ -13,7 +13,7 @@ export const maxDuration = 60;
 /**
  * GET /api/admin/contact-logs
  *
- * Default (no query): merged leads from utm_source creator_club_affiliate + creatorclub.
+ * Default (no query): merged leads from utm_source creator_club_affiliate, creatorclub, and creatorclub_friend_get_friend.
  * Optional query params for ad-hoc lookup: utm_source, utm_campaign, utm_medium.
  */
 export async function GET(request: NextRequest) {

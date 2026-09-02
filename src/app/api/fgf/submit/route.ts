@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
       FollowUpID:       42,
       FlagPersonalAccept: true,
       FlagContactAccept:  true,
-      utm_source:       'creatorclub',
+      utm_source:       'creatorclub_friend_get_friend',
       utm_medium:       'referral',
       utm_campaign:     'friend_get_friend',
       utm_content:      sessionUserId ?? String(numericRefId),
