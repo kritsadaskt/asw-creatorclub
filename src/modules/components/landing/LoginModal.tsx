@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { X } from 'lucide-react';
+import { ArrowRight, ArrowRightCircle, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
+import Link from 'next/link';
 import {
   getCreatorByEmail,
   getCreatorByFacebookId,
@@ -134,10 +135,20 @@ export function LoginModal({ onClose, onLogin }: LoginModalProps) {
           <X className="w-5 h-5" />
         </button>
 
-        <h3 className="text-primary text-center mb-4 text-2xl font-bold pt-7">
-          เข้าสู่ระบบ Creators Club
+        <h3 className="text-primary text-center mb-10 text-3xl font-bold pt-7">
+          เข้าสู่ระบบ
         </h3>
 
+        <hr className='border-border my-4' />
+        <p className='text-muted-foreground text-center translate-y-[-27px]'>
+          <span className='px-4 bg-white text-muted-foreground inline-block'>หรือ</span>
+        </p>
+
+        <p className='text-muted-foreground text-center'>
+          <Link href="/#register-section" className='text-primary hover:underline cursor-pointer'>
+            สมัครเข้าร่วม AssetWise Creator Club <ArrowRightCircle className='w-4 h-4 inline-block ml-1' />
+          </Link>
+        </p>
         {error && (
           <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
             {error}
