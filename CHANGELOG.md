@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.17.3](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.17.2...v2.17.3) (2026-09-07)
+
+
+### Bug Fixes
+
+* ปรับเพิ่ม FGF utm_source ([5cb2cc9](https://github.com/kritsadaskt/asw-creatorclub/commit/5cb2cc9e40cc051c6330d6511a19752d2ee72df0))
+* เพิ่มปุ่มไปหน้าสมัครจาก popup login ([2b1427e](https://github.com/kritsadaskt/asw-creatorclub/commit/2b1427ea2fa68f2271d1934264c24629872d4cfe))
+
 ### [2.17.2](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.17.1...v2.17.2) (2026-09-02)
 
 
