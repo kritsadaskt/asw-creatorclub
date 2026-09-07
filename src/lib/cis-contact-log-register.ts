@@ -13,8 +13,12 @@ import {
 
 const CIS_CONTACT_LOG_ENDPOINT = 'https://api.assetwise.co.th/api/Customer/GetContactLogRegister';
 
-/** Creator Club utm_source values — admin Leads tab merges both. */
-export const CIS_CONTACT_LOG_UTM_SOURCES = ['creator_club_affiliate', 'creatorclub'] as const;
+/** Creator Club utm_source values — admin Leads tab merges all of these. */
+export const CIS_CONTACT_LOG_UTM_SOURCES = [
+  'creator_club_affiliate',
+  'creatorclub',
+  'creatorclub_friend_get_friend',
+] as const;
 
 export type CisContactLogRow = ContactLogLike & {
   ContactLogID?: number | string;
@@ -152,7 +156,7 @@ function mergeContactLogRows(lists: CisContactLogRow[][]): CisContactLogRow[] {
 }
 
 /**
- * Admin Leads tab — merge CIS rows from creator_club_affiliate + creatorclub only.
+ * Admin Leads tab — merge CIS rows from creator_club_affiliate, creatorclub, and creatorclub_friend_get_friend.
  * (Unfiltered CIS `{}` returns HTTP 500 — do not call without utm_source.)
  */
 export async function fetchAllContactLogs(): Promise<FetchCisContactLogsResult> {
@@ -188,7 +192,7 @@ export async function fetchCreatorClubContactLogsResult(): Promise<FetchCisConta
   };
 }
 
-/** Creator Club CIS leads (both fixed utm_source values) — for attribution / funnel stats. */
+/** Creator Club CIS leads (all fixed utm_source values) — for attribution / funnel stats. */
 export async function fetchCreatorClubContactLogs(): Promise<CisContactLogRow[] | null> {
   const result = await fetchCreatorClubContactLogsResult();
   return result.ok ? result.data : null;

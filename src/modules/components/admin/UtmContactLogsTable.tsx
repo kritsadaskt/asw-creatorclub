@@ -48,7 +48,11 @@ import {
 import { LEAD_EVENT_VISUALS, LeadStageBadge } from './LeadStageBadge';
 import { LeadContactTimeline } from './LeadContactTimeline';
 
-const DEFAULT_UTM_SOURCES = ['creator_club_affiliate', 'creatorclub'] as const;
+const DEFAULT_UTM_SOURCES = [
+  'creator_club_affiliate',
+  'creatorclub',
+  'creatorclub_friend_get_friend',
+] as const;
 
 /** Field names below match the CIS GetContactLogRegister payload exactly. */
 interface ContactLogItem {
@@ -465,8 +469,12 @@ export function UtmContactLogsTable({
           </h3>
 
           <div className="mb-4 rounded-lg border border-border bg-neutral-50 px-4 py-3 text-sm text-muted-foreground">
-            ดึงข้อมูลอัตโนมัติจาก utm_source: <code className="mx-1 rounded bg-white px-1.5 py-0.5 text-xs text-foreground">creator_club_affiliate</code>
-            และ <code className="mx-1 rounded bg-white px-1.5 py-0.5 text-xs text-foreground">creatorclub</code>
+            ดึงข้อมูลอัตโนมัติจาก utm_source:{' '}
+            <code className="mx-1 rounded bg-white px-1.5 py-0.5 text-xs text-foreground">creator_club_affiliate</code>
+            ,{' '}
+            <code className="mx-1 rounded bg-white px-1.5 py-0.5 text-xs text-foreground">creatorclub</code>
+            {' '}และ{' '}
+            <code className="mx-1 rounded bg-white px-1.5 py-0.5 text-xs text-foreground">creatorclub_friend_get_friend</code>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
