@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.17.5](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.17.4...v2.17.5) (2026-09-18)
+
+
+### Bug Fixes
+
+* ลบชื่อเทสออกจากรายชื่อ Lead, ปรับ badge ของ Visit Site ([94648b9](https://github.com/kritsadaskt/asw-creatorclub/commit/94648b903ff49a861ef6a66dd503acb1754ce781))
+
 ### [2.17.4](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.17.3...v2.17.4) (2026-09-18)
 
 
