@@ -15,6 +15,8 @@ const EXCLUDED_CONTACT_LOG_FULL_NAMES = new Set([
   'yoyo yuyu',
   'test test',
   'test test 2',
+  'weerachai [test] nilla',
+  'ทดลอง test affiliate',
 ]);
 
 function normalizeFullNameKey(first: string, last: string): string {

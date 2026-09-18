@@ -65,7 +65,8 @@ export function classifyContactEvent(
   const channel = normalizeContactChannel(row).toLowerCase();
   const type = String(row.ContactType ?? '').trim().toLowerCase();
 
-  if (channel === 'walk in' || type.startsWith('re-visit')) return 'walk_in';
+  // Walk In channel, or Visit Site / Re-Visit Site contact types.
+  if (channel === 'walk in' || type.includes('visit site')) return 'walk_in';
   if (channel === 'outbound') return 'outbound';
   if (channel === 'inbound') return 'inbound';
   if (channel === 'web site') return 'register';
@@ -126,17 +127,9 @@ function normalizeTime(value: unknown): string {
   return String(value ?? '').trim().slice(0, 5);
 }
 
-/**
- * Outbound rows carry a cumulative log ("Call out 3 / ... \r\n Call out 2 / ..."), so every
- * row repeats the history of the rows before it. Only the newest line belongs to this event.
- */
-function firstMeaningfulLine(raw: string): string {
-  const decoded = decodeCisContactDetail(raw);
-  for (const line of decoded.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (trimmed) return trimmed;
-  }
-  return '';
+/** Decode HTML entities and keep the full cumulative ContactDetail text. */
+function formatContactDetailNote(raw: string): string {
+  return decodeCisContactDetail(raw).trim();
 }
 
 function eventDedupeKey(date: string, time: string, projectCode: string): string {
@@ -206,8 +199,7 @@ export function buildLeadTimeline(
     type: String(registerRow.ContactType ?? '').trim(),
     projectName: String(registerRow.ProjectName ?? '').trim() || undefined,
     projectCode: originProjectCode || undefined,
-    // Registration details are single-line and hold the submitted URL — keep them whole.
-    note: decodeCisContactDetail(String(registerRow.ContactDetail ?? '')).trim(),
+    note: formatContactDetailNote(String(registerRow.ContactDetail ?? '')),
     utm: toUtm(registerRow),
     isOrigin: true,
   };
@@ -232,7 +224,8 @@ export function buildLeadTimeline(
       type: String(row.ContactType ?? '').trim(),
       projectName: String(row.ProjectName ?? '').trim() || undefined,
       projectCode: projectCode || undefined,
-      note: firstMeaningfulLine(String(row.ContactDetail ?? '')),
+      // CIS ContactDetail is cumulative — show the full multi-line note as stored.
+      note: formatContactDetailNote(String(row.ContactDetail ?? '')),
       utm: toUtm(row),
       isOrigin: false,
     });

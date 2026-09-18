@@ -540,9 +540,6 @@ export function UtmContactLogsTable({
             <h3 className="text-primary text-2xl font-medium">
               Leads ทั้งหมด {logs.length > 0 && `(${logs.length})`}
             </h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              ซ่อนรายการที่ชื่อ/นามสกุลเป็น Test และชื่อทดสอบที่รู้จัก
-            </p>
           </div>
 
           <div className="flex gap-2 w-full sm:w-auto">
