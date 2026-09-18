@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.17.4](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.17.3...v2.17.4) (2026-09-18)
+
+
+### Bug Fixes
+
+* adjust css for front page ([8f8c948](https://github.com/kritsadaskt/asw-creatorclub/commit/8f8c94845a0e04f208223f295ea1399056cf318f))
+
 ### [2.17.3](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.17.2...v2.17.3) (2026-09-07)
 
 
