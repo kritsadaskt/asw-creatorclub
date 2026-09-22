@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.18.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.17.5...v2.18.0) (2026-09-22)
+
+
+### Features
+
+* ปรับ style ของหน้า Boot camp mission ([fcce00c](https://github.com/kritsadaskt/asw-creatorclub/commit/fcce00c95ad6e9bb5d4472345812e840825d3a77))
+* เพิ่มหน้า Creator Bootup Mission + ปรับขนาด font ทั้งโปรเจ็คต์ ([c416ef1](https://github.com/kritsadaskt/asw-creatorclub/commit/c416ef1c86ca5178698963649491c0544f6c4cf8))
+
+
+### Bug Fixes
+
+* adjusted base font size ([6e5334c](https://github.com/kritsadaskt/asw-creatorclub/commit/6e5334cbbe9ad77b1e800b1329edb778e3d7692c))
+* ปรับขนาด font ใน footer ([1844e63](https://github.com/kritsadaskt/asw-creatorclub/commit/1844e63ba429558a40f684af458b9ddfcea507ea))
+* ปรับตารางผ๔้เข้าร่วม event ให้แสดงสถานะ ([bda5de5](https://github.com/kritsadaskt/asw-creatorclub/commit/bda5de538c12936d4bb0ed1b6b7e05ecca50f291))
+
 ### [2.17.5](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.17.4...v2.17.5) (2026-09-18)
 
 
