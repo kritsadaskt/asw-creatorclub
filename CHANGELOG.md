@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.22.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.21.0...v2.22.0) (2026-09-22)
+
+
+### Features
+
+* เพิ่มส่วนของที่อยู่ปัจจุบันลงใน profile ของ Creator ([66d6fb6](https://github.com/kritsadaskt/asw-creatorclub/commit/66d6fb6506bfc448217a9a777ff8daa71ce29d38))
+
 ## [2.21.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.20.0...v2.21.0) (2026-09-22)
 
 
