@@ -4,18 +4,37 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Select from 'react-select';
 import { toast } from 'sonner';
-import { CheckCircle2, QrCode, UserRoundSearch } from 'lucide-react';
+import { CheckCircle2, Loader2, QrCode, UserRoundSearch } from 'lucide-react';
 import { Header } from '../landing/Header';
 import Footer from '../landing/Footer';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
-import { checkInConfirmedEventParticipant, getEvents } from '../../utils/storage';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog';
+import {
+  checkInConfirmedEventParticipant,
+  getCreatorById,
+  getCreatorEventParticipation,
+  getEvents,
+} from '../../utils/storage';
 import type { Event } from '../../types';
 
 const QrScanner = dynamic(
   () => import('@yudiel/react-qr-scanner').then((mod) => mod.Scanner),
   { ssr: false },
 );
+
+type PendingCheckIn = {
+  eventId: string;
+  creatorId: string;
+  creatorName: string;
+};
 
 function extractCreatorIdFromQr(raw: string): string | null {
   const text = raw.trim();
@@ -50,8 +69,10 @@ export function EventCheckInPage() {
   const [selectedEventId, setSelectedEventId] = useState<string>('all');
   const [manualQrText, setManualQrText] = useState('');
   const [lastScanMessage, setLastScanMessage] = useState('ยังไม่มีรายการสแกน');
-  const [checking, setChecking] = useState(false);
+  const [lookingUp, setLookingUp] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [loadingEvents, setLoadingEvents] = useState(true);
+  const [pendingCheckIn, setPendingCheckIn] = useState<PendingCheckIn | null>(null);
   const lastHandledRef = useRef<{ value: string; at: number } | null>(null);
 
   useEffect(() => {
@@ -78,6 +99,8 @@ export function EventCheckInPage() {
   );
 
   const processScanText = async (rawText: string) => {
+    if (pendingCheckIn || lookingUp || confirming) return;
+
     if (!selectedEventId || selectedEventId === 'all') {
       toast.error('กรุณาเลือก Event ก่อนสแกน');
       return;
@@ -97,30 +120,87 @@ export function EventCheckInPage() {
     }
 
     try {
-      setChecking(true);
-      const result = await checkInConfirmedEventParticipant({
-        eventId: selectedEventId,
-        creatorId,
-      });
-      if (result.ok) {
-        setLastScanMessage(`Check-in สำเร็จ: ${creatorId}`);
-        toast.success('Check-in สำเร็จ');
+      setLookingUp(true);
+      const [participant, creator] = await Promise.all([
+        getCreatorEventParticipation(selectedEventId, creatorId),
+        getCreatorById(creatorId),
+      ]);
+
+      if (!participant || !participant.isConfirm) {
+        setLastScanMessage(`ไม่พบผู้ยืนยันในรายการ: ${creatorId}`);
+        toast.error('ไม่พบผู้เข้าร่วมที่ยืนยันแล้วสำหรับ Event นี้');
         return;
       }
-      if (result.reason === 'ALREADY_CHECKED_IN') {
-        setLastScanMessage(`เช็กอินแล้วก่อนหน้า: ${creatorId}`);
+
+      if (participant.isShowup) {
+        const name = creator
+          ? `${creator.name} ${creator.lastName ?? ''}`.trim()
+          : creatorId;
+        setLastScanMessage(`เช็กอินแล้วก่อนหน้า: ${name}`);
         toast.info('Creator คนนี้เช็กอินแล้ว');
         return;
       }
-      setLastScanMessage(`ไม่พบผู้ยืนยันในรายการ: ${creatorId}`);
+
+      const creatorName = creator
+        ? `${creator.name} ${creator.lastName ?? ''}`.trim() || creator.email || creatorId
+        : creatorId;
+
+      setPendingCheckIn({
+        eventId: selectedEventId,
+        creatorId,
+        creatorName,
+      });
+      setLastScanMessage(`รอการยืนยัน: ${creatorName}`);
+    } catch (error) {
+      console.error('check-in lookup failed:', error);
+      toast.error('เกิดข้อผิดพลาดระหว่างค้นหาผู้เข้าร่วม');
+    } finally {
+      setLookingUp(false);
+    }
+  };
+
+  const handleConfirmCheckIn = async () => {
+    if (!pendingCheckIn) return;
+
+    try {
+      setConfirming(true);
+      const result = await checkInConfirmedEventParticipant({
+        eventId: pendingCheckIn.eventId,
+        creatorId: pendingCheckIn.creatorId,
+      });
+
+      if (result.ok) {
+        setLastScanMessage(`Check-in สำเร็จ: ${pendingCheckIn.creatorName}`);
+        toast.success(`Check-in สำเร็จ: ${pendingCheckIn.creatorName}`);
+        setPendingCheckIn(null);
+        return;
+      }
+      if (result.reason === 'ALREADY_CHECKED_IN') {
+        setLastScanMessage(`เช็กอินแล้วก่อนหน้า: ${pendingCheckIn.creatorName}`);
+        toast.info('Creator คนนี้เช็กอินแล้ว');
+        setPendingCheckIn(null);
+        return;
+      }
+      setLastScanMessage(`ไม่พบผู้ยืนยันในรายการ: ${pendingCheckIn.creatorId}`);
       toast.error('ไม่พบผู้เข้าร่วมที่ยืนยันแล้วสำหรับ Event นี้');
+      setPendingCheckIn(null);
     } catch (error) {
       console.error('check-in failed:', error);
       toast.error('เกิดข้อผิดพลาดระหว่างเช็กอิน');
     } finally {
-      setChecking(false);
+      setConfirming(false);
     }
   };
+
+  const handleCancelCheckIn = () => {
+    if (confirming) return;
+    if (pendingCheckIn) {
+      setLastScanMessage(`ยกเลิกการเช็กอิน: ${pendingCheckIn.creatorName}`);
+    }
+    setPendingCheckIn(null);
+  };
+
+  const busy = lookingUp || confirming || Boolean(pendingCheckIn);
 
   return (
     <div className="min-h-screen bg-background">
@@ -131,7 +211,9 @@ export function EventCheckInPage() {
             <QrCode className="h-6 w-6 text-primary" />
             Event Check-in
           </h2>
-          <p className="text-sm text-muted-foreground">เลือก Event แล้วสแกน QR จากอีเมลผู้เข้าร่วมที่ยืนยันแล้ว</p>
+          <p className="text-xs text-muted-foreground">
+            เลือก Event แล้วสแกน QR จากอีเมลผู้เข้าร่วมที่ยืนยันแล้ว
+          </p>
         </div>
 
         <div className="mb-5 max-w-xl">
@@ -142,6 +224,7 @@ export function EventCheckInPage() {
             onChange={(option) => setSelectedEventId(option?.value ?? 'all')}
             isLoading={loadingEvents}
             isClearable={false}
+            isDisabled={busy}
             classNamePrefix="react-select"
             placeholder="เลือก Event"
           />
@@ -153,6 +236,7 @@ export function EventCheckInPage() {
             <div className="overflow-hidden rounded-lg border border-border">
               <QrScanner
                 constraints={{ facingMode: 'environment' }}
+                paused={busy}
                 onScan={(detectedCodes) => {
                   const value = detectedCodes?.[0]?.rawValue ?? '';
                   if (value) {
@@ -164,6 +248,13 @@ export function EventCheckInPage() {
                 }}
               />
             </div>
+            {busy ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {pendingCheckIn
+                  ? 'รอการยืนยันการเช็กอิน — กล้องหยุดชั่วคราว'
+                  : 'กำลังตรวจสอบข้อมูล...'}
+              </p>
+            ) : null}
           </div>
 
           <div className="rounded-xl border border-border bg-white p-4 shadow-sm">
@@ -177,11 +268,15 @@ export function EventCheckInPage() {
             <div className="mt-3">
               <Button
                 onClick={() => void processScanText(manualQrText)}
-                disabled={manualQrText.trim() === '' || checking}
+                disabled={manualQrText.trim() === '' || busy}
                 className="gap-2"
                 center
               >
-                <UserRoundSearch className="h-4 w-4" />
+                {lookingUp ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <UserRoundSearch className="h-4 w-4" />
+                )}
                 ตรวจสอบและเช็กอิน
               </Button>
             </div>
@@ -197,6 +292,50 @@ export function EventCheckInPage() {
         </div>
       </div>
       <Footer />
+
+      <Dialog
+        open={Boolean(pendingCheckIn)}
+        onOpenChange={(open) => {
+          if (!open) handleCancelCheckIn();
+        }}
+      >
+        <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>ยืนยันการเช็กอิน</DialogTitle>
+            <DialogDescription>
+              ตรวจสอบชื่อผู้เข้าร่วมก่อนยืนยัน เมื่อกดยืนยันสถานะจะเปลี่ยนเป็นเช็กอินแล้ว
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-xl border border-border bg-muted/20 px-4 py-5 text-center">
+            <p className="text-xs text-muted-foreground">ชื่อ-นามสกุล</p>
+            <p className="mt-1 text-xl font-semibold text-foreground">
+              {pendingCheckIn?.creatorName ?? '-'}
+            </p>
+          </div>
+
+          <DialogFooter className="gap-2 sm:justify-center">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCancelCheckIn}
+              disabled={confirming}
+              className="cursor-pointer"
+            >
+              ยกเลิก
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void handleConfirmCheckIn()}
+              disabled={confirming}
+              className="cursor-pointer gap-2 flex items-center justify-center"
+            >
+              {confirming ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> : null}
+              <span>ยืนยัน</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
