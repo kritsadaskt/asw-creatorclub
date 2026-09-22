@@ -624,22 +624,21 @@ export function EventManagement() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px]">
+          <table className="w-full min-w-[820px]">
             <thead className="bg-muted/30">
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-medium">Event</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">ชื่อ</th>
-                <th className="px-4 py-3 text-center text-sm font-medium">อีเมล</th>
-                <th className="px-4 py-3 text-center text-sm font-medium">โทรศัพท์</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">หมวดหมู่</th>
-                <th className="px-4 py-3 text-center text-sm font-medium">สถานะ</th>
+                <th className="px-4 py-3 text-center text-sm font-medium">คอนเฟิร์ม</th>
+                <th className="px-4 py-3 text-center text-sm font-medium">เช็คอิน</th>
                 <th className="px-4 py-3 text-center text-sm font-medium">ยืนยัน</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {pagedParticipants.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
                     ไม่พบข้อมูลผู้สนใจเข้าร่วม
                   </td>
                 </tr>
@@ -651,55 +650,62 @@ export function EventManagement() {
                   const confirming = confirmingId === participant.id;
                   return (
                     <tr key={participant.id} className="hover:bg-muted/20">
-                      <td className="px-4 py-3 text-sm">{(eventNameById.get(participant.eventId)?.replace(/<[^>]+>/g, '') || participant.eventId)}</td>
-                 
+                      <td className="px-4 py-3 text-sm">
+                        {eventNameById.get(participant.eventId)?.replace(/<[^>]+>/g, '') ||
+                          participant.eventId}
+                      </td>
+
                       <td className="px-4 py-3 text-sm">
                         {creator ? (
-                          <button
-                            type="button"
-                            onClick={() => void openCreatorDrawer(participant.creatorId)}
-                            className="inline-flex flex-wrap items-center gap-1.5 text-left text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-sm"
-                          >
-                            <span>{`${creator.name} ${creator.lastName ?? ''}`.trim()}</span>
-                            <CreatorBadge type={creator.type ?? ''} />
-                          </button>
+                          <div className="inline-flex flex-wrap items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => void openCreatorDrawer(participant.creatorId)}
+                              className="inline-flex flex-wrap items-center gap-1.5 text-left text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-sm"
+                            >
+                              <span>{`${creator.name} ${creator.lastName ?? ''}`.trim()}</span>
+                              <CreatorBadge type={creator.type ?? ''} />
+                            </button>
+                            {email ? (
+                              <a
+                                href={`mailto:${email}`}
+                                aria-label={`ส่งอีเมลถึง ${email}`}
+                                title={email}
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-primary hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                              >
+                                <Mail className="h-3.5 w-3.5" />
+                              </a>
+                            ) : (
+                              <span
+                                className="inline-flex h-7 w-7 items-center justify-center text-muted-foreground/40"
+                                aria-hidden
+                              >
+                                <Mail className="h-3.5 w-3.5" />
+                              </span>
+                            )}
+                            {phone ? (
+                              <a
+                                href={`tel:${phone}`}
+                                aria-label={`โทรหา ${phone}`}
+                                title={phone}
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-primary hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                              >
+                                <Phone className="h-3.5 w-3.5" />
+                              </a>
+                            ) : (
+                              <span
+                                className="inline-flex h-7 w-7 items-center justify-center text-muted-foreground/40"
+                                aria-hidden
+                              >
+                                <Phone className="h-3.5 w-3.5" />
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           '-'
                         )}
                       </td>
 
-                      <td className="px-4 py-3 text-center">
-                        {email ? (
-                          <a
-                            href={`mailto:${email}`}
-                            aria-label={`ส่งอีเมลถึง ${email}`}
-                            title={email}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-primary hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                          >
-                            <Mail className="h-4 w-4" />
-                          </a>
-                        ) : (
-                          <span className="inline-flex h-8 w-8 items-center justify-center text-muted-foreground/40" aria-hidden>
-                            <Mail className="h-4 w-4" />
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {phone ? (
-                          <a
-                            href={`tel:${phone}`}
-                            aria-label={`โทรหา ${phone}`}
-                            title={phone}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-primary hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                          >
-                            <Phone className="h-4 w-4" />
-                          </a>
-                        ) : (
-                          <span className="inline-flex h-8 w-8 items-center justify-center text-muted-foreground/40" aria-hidden>
-                            <Phone className="h-4 w-4" />
-                          </span>
-                        )}
-                      </td>
                       <td className="px-4 py-3 text-sm">
                         {creator?.categories && creator.categories.length > 0
                           ? creator.categories.join(', ')
@@ -709,11 +715,21 @@ export function EventManagement() {
                         {participant.isConfirm ? (
                           <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
                             ยืนยันแล้ว
-                            {participant.isShowup ? ' · เช็คอิน' : ''}
                           </span>
                         ) : (
                           <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800">
                             รอยืนยัน
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center text-sm">
+                        {participant.isShowup ? (
+                          <span className="inline-flex rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-medium text-sky-700">
+                            เช็คอินแล้ว
+                          </span>
+                        ) : (
+                          <span className="inline-flex rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                            ยังไม่เช็คอิน
                           </span>
                         )}
                       </td>
