@@ -113,6 +113,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       setUserRole(role);
       setSession({ id, role });
 
+      // Only navigate when caller explicitly requests it — otherwise stay on the current page.
+      const navigateAfterLogin = () => {
+        if (redirectTo) router.push(redirectTo);
+      };
+
       if (role === 'creator') {
         void (async () => {
           try {
@@ -136,7 +141,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
             }
             setApprovalStatus(data.approvalStatus ?? null);
             toast.success('เข้าสู่ระบบสำเร็จ!');
-            router.push(redirectTo ?? '/profile');
+            navigateAfterLogin();
           } catch {
             toast.error('ไม่สามารถเข้าสู่ระบบได้');
           }
@@ -144,12 +149,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      if (role === 'admin') {
+      if (role === 'admin' || role === 'marketing') {
         toast.success('เข้าสู่ระบบสำเร็จ!');
-        router.push(redirectTo ?? '/admin/dashboard');
-      } else if (role === 'marketing') {
-        toast.success('เข้าสู่ระบบสำเร็จ!');
-        router.push(redirectTo ?? '/creators');
+        navigateAfterLogin();
       }
     },
     [router],
