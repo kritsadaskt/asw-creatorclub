@@ -180,6 +180,12 @@ export interface EventParticipant {
   isShowup: boolean;
   isConfirm: boolean;
   submitAt: string;
+  /** Bootcamp mission survey answers `{ q1: "...", q2: "..." }`. */
+  surveyAnswers?: Record<string, string>;
+  /** When the bootcamp mission survey was submitted. */
+  surveySubmittedAt?: string;
+  /** Bootcamp mission post URLs (FB/TikTok/IG). */
+  missionPostLinks?: string[];
 }
 
 export type FgfLeadStatus = 'new' | 'contacting' | 'verified' | 'uploaded';

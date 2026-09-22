@@ -1121,6 +1121,20 @@ export const deleteEvent = async (id: string): Promise<void> => {
 
 // ===== Event Participant Operations =====
 
+const mapSurveyAnswers = (raw: unknown): Record<string, string> | undefined => {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof value === 'string') out[key] = value;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+};
+
+const mapMissionPostLinks = (raw: unknown): string[] => {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((item): item is string => typeof item === 'string');
+};
+
 const mapDbToEventParticipant = (row: any): EventParticipant => ({
   id: row.id,
   eventId: row.event_id,
@@ -1128,6 +1142,9 @@ const mapDbToEventParticipant = (row: any): EventParticipant => ({
   isShowup: Boolean(row.is_showup),
   isConfirm: Boolean(row.is_confirm),
   submitAt: row.submit_at || new Date().toISOString(),
+  surveyAnswers: mapSurveyAnswers(row.survey_answers),
+  surveySubmittedAt: row.survey_submitted_at || undefined,
+  missionPostLinks: mapMissionPostLinks(row.mission_post_links),
 });
 
 export const getEventParticipants = async (): Promise<EventParticipant[]> => {
@@ -1145,19 +1162,24 @@ export const getEventParticipants = async (): Promise<EventParticipant[]> => {
 };
 
 export const saveEventParticipant = async (participant: EventParticipant): Promise<void> => {
-  const { error } = await supabase
-    .from('event_participant')
-    .upsert(
-      {
-        id: participant.id,
-        event_id: participant.eventId,
-        creator_id: participant.creatorId,
-        is_showup: participant.isShowup,
-        is_confirm: participant.isConfirm,
-        submit_at: participant.submitAt,
-      },
-      { onConflict: 'id' },
-    );
+  const row: Record<string, unknown> = {
+    id: participant.id,
+    event_id: participant.eventId,
+    creator_id: participant.creatorId,
+    is_showup: participant.isShowup,
+    is_confirm: participant.isConfirm,
+    submit_at: participant.submitAt,
+  };
+  // Only write bootcamp columns when present so join works before migration is applied.
+  if (participant.surveyAnswers !== undefined) row.survey_answers = participant.surveyAnswers;
+  if (participant.surveySubmittedAt !== undefined) {
+    row.survey_submitted_at = participant.surveySubmittedAt;
+  }
+  if (participant.missionPostLinks !== undefined) {
+    row.mission_post_links = participant.missionPostLinks;
+  }
+
+  const { error } = await supabase.from('event_participant').upsert(row, { onConflict: 'id' });
 
   if (error) {
     console.error('Error saving event participant:', error);
@@ -1167,12 +1189,20 @@ export const saveEventParticipant = async (participant: EventParticipant): Promi
 
 export const updateEventParticipant = async (
   id: string,
-  patch: Partial<Pick<EventParticipant, 'isShowup' | 'isConfirm' | 'submitAt'>>,
+  patch: Partial<
+    Pick<
+      EventParticipant,
+      'isShowup' | 'isConfirm' | 'submitAt' | 'surveyAnswers' | 'surveySubmittedAt' | 'missionPostLinks'
+    >
+  >,
 ): Promise<void> => {
   const payload: Record<string, unknown> = {};
   if (patch.isShowup !== undefined) payload.is_showup = patch.isShowup;
   if (patch.isConfirm !== undefined) payload.is_confirm = patch.isConfirm;
   if (patch.submitAt !== undefined) payload.submit_at = patch.submitAt;
+  if (patch.surveyAnswers !== undefined) payload.survey_answers = patch.surveyAnswers;
+  if (patch.surveySubmittedAt !== undefined) payload.survey_submitted_at = patch.surveySubmittedAt;
+  if (patch.missionPostLinks !== undefined) payload.mission_post_links = patch.missionPostLinks;
 
   const { error } = await supabase
     .from('event_participant')

@@ -146,10 +146,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
       if (role === 'admin') {
         toast.success('เข้าสู่ระบบสำเร็จ!');
-        router.push('/admin/dashboard');
+        router.push(redirectTo ?? '/admin/dashboard');
       } else if (role === 'marketing') {
         toast.success('เข้าสู่ระบบสำเร็จ!');
-        router.push('/creators');
+        router.push(redirectTo ?? '/creators');
       }
     },
     [router],
