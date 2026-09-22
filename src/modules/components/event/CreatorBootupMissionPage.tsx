@@ -7,10 +7,8 @@
  */
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import {
-  ArrowUpRight,
   Check,
   CheckCircle2,
   ClipboardList,
@@ -25,9 +23,6 @@ import {
 } from 'lucide-react';
 import { FaRegTrashAlt } from 'react-icons/fa';
 import { toast } from 'sonner';
-import creatorImg from '@/assets/creator-img.webp';
-import affImg from '@/assets/aff-img.webp';
-import fgfImg from '@/assets/fgf-img.webp';
 import { Header } from '../landing/Header';
 import { LoginModal } from '../landing/LoginModal';
 import Footer from '../landing/Footer';
@@ -129,13 +124,13 @@ function ProgressGauge({ completed, total }: { completed: number; total: number 
   const gap = circumference - dash;
 
   return (
-    <div className="relative mx-auto flex h-36 w-full max-w-[240px] items-end justify-center">
+    <div className="relative flex h-16 w-[120px] shrink-0 items-end justify-center sm:h-[72px] sm:w-[140px]">
       <svg viewBox="0 0 180 100" className="h-full w-full" aria-hidden>
         <path
           d="M 20 95 A 70 70 0 0 1 160 95"
           fill="none"
           stroke="#e8e4df"
-          strokeWidth="14"
+          strokeWidth="16"
           strokeLinecap="round"
           strokeDasharray="4 6"
         />
@@ -143,17 +138,16 @@ function ProgressGauge({ completed, total }: { completed: number; total: number 
           d="M 20 95 A 70 70 0 0 1 160 95"
           fill="none"
           stroke="#f26f06"
-          strokeWidth="14"
+          strokeWidth="16"
           strokeLinecap="round"
           strokeDasharray={`${dash} ${gap}`}
         />
       </svg>
-      <div className="absolute bottom-1 left-0 right-0 text-center">
-        <div className="text-3xl font-bold tabular-nums text-foreground">
+      <div className="absolute bottom-0 left-0 right-0 text-center leading-none">
+        <div className="text-lg font-bold tabular-nums text-foreground sm:text-xl">
           {completed}
-          <span className="text-lg font-medium text-muted-foreground"> / {total}</span>
+          <span className="text-sm font-medium text-muted-foreground"> / {total}</span>
         </div>
-        <div className="text-xs text-muted-foreground">missions</div>
       </div>
     </div>
   );
@@ -383,7 +377,7 @@ export function CreatorBootupMissionPage() {
 
       {isAdminPreview && gate === 'ready' ? (
         <div className="border-b border-amber-200 bg-amber-50">
-          <div className="container mx-auto flex flex-col gap-2 px-4 py-2 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+          <div className="container mx-auto flex flex-col gap-2 px-4 py-2 text-xs text-amber-900 sm:flex-row sm:items-center sm:justify-between">
             <span className="inline-flex items-center gap-2">
               <Eye className="h-4 w-4 shrink-0" />
               โหมด Preview สำหรับแอดมิน — ไม่บันทึกลงฐานข้อมูล
@@ -392,14 +386,14 @@ export function CreatorBootupMissionPage() {
               <button
                 type="button"
                 onClick={togglePreviewCheckIn}
-                className="cursor-pointer rounded-lg border border-amber-300 bg-white px-3 py-1 text-xs font-medium hover:bg-amber-100"
+                className="cursor-pointer rounded-lg border border-amber-300 bg-white px-3 py-1 text-[13px] font-medium hover:bg-amber-100"
               >
                 {step1Done ? 'ยกเลิกเช็คอิน (จำลอง)' : 'จำลองเช็คอิน'}
               </button>
               <button
                 type="button"
                 onClick={resetPreviewProgress}
-                className="cursor-pointer rounded-lg border border-amber-300 bg-white px-3 py-1 text-xs font-medium hover:bg-amber-100"
+                className="cursor-pointer rounded-lg border border-amber-300 bg-white px-3 py-1 text-[13px] font-medium hover:bg-amber-100"
               >
                 รีเซ็ต
               </button>
@@ -408,7 +402,12 @@ export function CreatorBootupMissionPage() {
         </div>
       ) : null}
 
-      <main className="container mx-auto max-w-lg px-4 py-8 md:max-w-2xl md:px-6">
+      <main>
+        <div className='banner'>
+          <img src="https://assetwise.co.th/wp-content/uploads/2026/08/bootcamp-banner-m.webp" alt="Creators Bootcamp" className="md:hidden" />
+          <img src="https://assetwise.co.th/wp-content/uploads/2026/08/bootcamp-banner-d.webp" alt="Creators Bootcamp" className="hidden md:block" />
+        </div>
+        <div className='container mx-auto max-w-lg px-4 py-8 md:max-w-2xl md:px-6'>
         {gate === 'loading' && (
           <div className="flex items-center justify-center gap-2 py-24 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
@@ -467,34 +466,29 @@ export function CreatorBootupMissionPage() {
         {gate === 'ready' && participant && (
           <div className="space-y-5">
             <div className="text-center">
-              <p className="text-sm font-medium text-accent">Creators Bootcamp</p>
-              <h1 className="mt-1 text-2xl font-bold text-foreground md:text-3xl">{eventTitle}</h1>
-              <p className="mt-1 text-sm text-muted-foreground">ทำภารกิจให้ครบ 3 สเต็ป</p>
+              <h1 className="mt-1 hidden text-2xl font-bold text-foreground md:text-3xl">{eventTitle}</h1>
+              <p className="mt-1 text-sm text-muted-foreground">แค่ทำภารกิจให้ครบ<br/>รับรางวัลขาตั้งกล้อง <span className="text-accent font-bold ">XXXXX</span> มูลค่า <span className="text-accent font-bold">699</span> บาท</p>
             </div>
 
             {/* Progress card */}
-            <div className="relative overflow-hidden rounded-[28px] border border-white/80 bg-white p-6 shadow-[0_12px_40px_-12px_rgba(242,111,6,0.25)]">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h2 className="text-lg font-bold text-foreground">Mission Progress</h2>
-                  <p className="text-sm text-muted-foreground">ติดตามสถานะภารกิจของคุณ</p>
+            <div className="relative overflow-hidden rounded-2xl border border-white/80 bg-white px-4 py-3 shadow-[0_8px_24px_-10px_rgba(242,111,6,0.22)] sm:px-5 sm:py-3.5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="text-base font-bold text-foreground">Mission Progress</h2>
+                  <p className="text-xs text-muted-foreground">ติดตามสถานะภารกิจของคุณ</p>
                 </div>
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-50 text-accent">
-                  <ArrowUpRight className="h-4 w-4" />
-                </span>
+                <ProgressGauge completed={completedCount} total={3} />
               </div>
-              <ProgressGauge completed={completedCount} total={3} />
             </div>
 
-            {/* Step cards grid */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* Step cards grid — 1+2 same row, 3 full width (mobile + desktop) */}
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <MissionStepCard
                 title="เช็คอิน"
                 statusLabel={step1Done ? 'Success' : 'รอเช็คอิน'}
                 success={step1Done}
                 locked={false}
-                image={creatorImg}
-                imageAlt="เช็คอิน"
+                watermark={QrCode}
                 onClick={() => {
                   if (step1Done) {
                     toast.success('คุณเช็คอินเรียบร้อยแล้ว');
@@ -520,8 +514,7 @@ export function CreatorBootupMissionPage() {
                 statusLabel={step2Done ? 'Success' : step1Done ? 'พร้อมทำ' : 'ล็อก'}
                 success={step2Done}
                 locked={!step1Done}
-                image={affImg}
-                imageAlt="แบบสอบถาม"
+                watermark={ClipboardList}
                 onClick={openSurvey}
                 footer={
                   step2Done ? (
@@ -545,9 +538,8 @@ export function CreatorBootupMissionPage() {
                 statusLabel={step3Done ? 'Success' : step1Done ? 'พร้อมส่ง' : 'ล็อก'}
                 success={step3Done}
                 locked={!step1Done}
-                image={fgfImg}
-                imageAlt="ส่งผลงาน"
-                className="sm:col-span-2"
+                watermark={Link2}
+                className="col-span-2"
                 onClick={openSubmit}
                 footer={
                   step3Done ? (
@@ -575,8 +567,9 @@ export function CreatorBootupMissionPage() {
                 </span>
               </div>
             )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </main>
 
       <Footer />
@@ -652,25 +645,25 @@ export function CreatorBootupMissionPage() {
 
       {/* Submit work dialog */}
       <Dialog open={submitOpen} onOpenChange={setSubmitOpen}>
-        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>ส่งผลงาน</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="flex max-h-[min(90dvh,720px)] w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+          <DialogHeader className="shrink-0 space-y-1.5 border-b border-border px-6 py-4 pr-12 text-left">
+            <DialogTitle className="text-lg">ส่งผลงาน</DialogTitle>
+            <DialogDescription className="text-xs">
               คัดลอกลิงก์ย่อไปโพสต์ แล้ววางลิงก์โพสต์ของคุณกลับมาที่นี่
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-5 py-2">
+          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-6 py-4">
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-foreground">ลิงก์ย่อสำหรับโพสต์</h4>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 truncate rounded-lg border border-border bg-muted/40 px-3 py-2.5 font-mono text-sm select-all">
+              <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
+                <div className="min-w-0 flex-1 overflow-hidden rounded-lg border border-border bg-muted/40 px-3 py-2.5 font-mono text-xs break-all select-all">
                   {mockShortLink}
                 </div>
                 <button
                   type="button"
                   onClick={handleCopyShortLink}
-                  className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-3 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                  className="flex w-full shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 sm:w-auto"
                 >
                   {copied ? (
                     <>
@@ -685,17 +678,20 @@ export function CreatorBootupMissionPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="min-w-0 space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <h4 className="text-sm font-medium text-foreground">
-                  ลิงก์โพสต์ของคุณ (Facebook / TikTok / IG)
+                <h4 className="min-w-0 flex-1 text-sm font-medium text-foreground">
+                  ลิงก์โพสต์ของคุณ
+                  <span className="block text-[13px] font-normal text-muted-foreground">
+                    Facebook / TikTok / IG และอื่น ๆ
+                  </span>
                 </h4>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => setPostLinksDraft((prev) => [...prev, ''])}
-                  className="cursor-pointer flex items-center gap-1"
+                  className="cursor-pointer flex shrink-0 items-center gap-1 text-[13px]"
                 >
                   เพิ่ม
                   <Plus className="h-4 w-4" />
@@ -703,8 +699,8 @@ export function CreatorBootupMissionPage() {
               </div>
               <div className="space-y-2">
                 {postLinksDraft.map((postLink, index) => (
-                  <div key={`mission-post-${index}`} className="flex items-end gap-2">
-                    <div className="flex-1">
+                  <div key={`mission-post-${index}`} className="flex min-w-0 items-end gap-2">
+                    <div className="min-w-0 flex-1 overflow-hidden">
                       <Input
                         label={`Post Link ${index + 1}`}
                         value={postLink}
@@ -714,18 +710,20 @@ export function CreatorBootupMissionPage() {
                           )
                         }
                         placeholder="https://facebook.com/... หรือ https://tiktok.com/..."
+                        className="max-w-full text-[13px]"
                       />
                     </div>
                     <Button
                       type="button"
                       variant="ghost"
+                      size="sm"
                       onClick={() =>
                         setPostLinksDraft((prev) => {
                           const next = prev.filter((_, i) => i !== index);
                           return next.length > 0 ? next : [''];
                         })
                       }
-                      className="cursor-pointer rounded-full p-2"
+                      className="mb-0.5 cursor-pointer shrink-0 rounded-full p-2"
                       disabled={postLinksDraft.length === 1 && !postLinksDraft[0].trim()}
                     >
                       <FaRegTrashAlt className="h-4 w-4 text-destructive" />
@@ -736,12 +734,12 @@ export function CreatorBootupMissionPage() {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="shrink-0 border-t border-border px-6 py-4">
             <Button
               type="button"
               variant="outline"
               onClick={() => setSubmitOpen(false)}
-              className="cursor-pointer"
+              className="cursor-pointer text-[13px]"
             >
               ปิด
             </Button>
@@ -749,7 +747,7 @@ export function CreatorBootupMissionPage() {
               type="button"
               onClick={() => void handleSavePosts()}
               disabled={savingPosts}
-              className="cursor-pointer gap-2"
+              className="cursor-pointer gap-2 text-[13px]"
             >
               {savingPosts ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               บันทึก
@@ -794,8 +792,7 @@ function MissionStepCard({
   statusLabel,
   success,
   locked,
-  image,
-  imageAlt,
+  watermark: WatermarkIcon,
   footer,
   onClick,
   className = '',
@@ -804,17 +801,18 @@ function MissionStepCard({
   statusLabel: string;
   success: boolean;
   locked: boolean;
-  image: typeof creatorImg;
-  imageAlt: string;
+  watermark: typeof QrCode;
   footer: ReactNode;
   onClick: () => void;
   className?: string;
 }) {
+  const Watermark = success ? CheckCircle2 : locked ? Lock : WatermarkIcon;
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`group relative flex min-h-[200px] cursor-pointer flex-col overflow-hidden rounded-[24px] border bg-white p-4 text-left shadow-[0_8px_24px_-8px_rgba(0,0,0,0.12)] transition-transform hover:-translate-y-0.5 ${
+      className={`group relative flex min-h-[120px] cursor-pointer flex-col overflow-hidden rounded-[24px] border bg-white p-4 text-left shadow-[0_8px_24px_-8px_rgba(0,0,0,0.12)] transition-transform hover:-translate-y-0.5 ${
         success
           ? 'border-emerald-200 bg-gradient-to-br from-white to-emerald-50'
           : locked
@@ -822,41 +820,30 @@ function MissionStepCard({
             : 'border-white/80'
       } ${className}`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <h3 className="text-base font-bold text-foreground">{title}</h3>
-          <p
-            className={`mt-0.5 text-xs font-medium ${
-              success ? 'text-emerald-600' : locked ? 'text-muted-foreground' : 'text-accent'
-            }`}
-          >
-            {statusLabel}
-          </p>
-        </div>
-        <span
-          className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
-            success
-              ? 'bg-emerald-100 text-emerald-600'
-              : locked
-                ? 'bg-muted text-muted-foreground'
-                : 'bg-orange-50 text-accent group-hover:bg-orange-100'
+      <span
+        aria-hidden
+        className={`pointer-events-none absolute -bottom-3 -right-3 select-none ${
+          success
+            ? 'text-emerald-500/15'
+            : locked
+              ? 'text-foreground/[0.08]'
+              : 'text-accent/15'
+        }`}
+      >
+        <Watermark className="h-24 w-24 stroke-[1.25]" />
+      </span>
+
+      <div className="relative z-10 flex min-h-[88px] min-w-0 flex-1 flex-col">
+        <h3 className="text-base font-bold text-foreground">{title}</h3>
+        <p
+          className={`mt-0.5 text-xs font-medium ${
+            success ? 'text-emerald-600' : locked ? 'text-muted-foreground' : 'text-accent'
           }`}
         >
-          {success ? (
-            <CheckCircle2 className="h-4 w-4" />
-          ) : locked ? (
-            <Lock className="h-3.5 w-3.5" />
-          ) : (
-            <ArrowUpRight className="h-4 w-4" />
-          )}
-        </span>
+          {statusLabel}
+        </p>
+        <div className="mt-auto pt-3 text-xs">{footer}</div>
       </div>
-
-      <div className="relative mx-auto my-3 h-24 w-24 shrink-0">
-        <Image src={image} alt={imageAlt} fill className="object-contain" sizes="96px" />
-      </div>
-
-      <div className="mt-auto text-xs">{footer}</div>
     </button>
   );
 }
