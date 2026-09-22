@@ -234,7 +234,7 @@ function Footer() {
           </div>
         </div>
         <div className="h-7"></div>
-        <p className="text-white border-t border-t-neutral-400 text-sm py-7">© สงวนลิขสิทธิ์ พ.ศ. 2569 บริษัท แอสเซทไวส์ จำกัด (มหาชน)</p>
+        <p className="text-white border-t border-t-neutral-400 text-xs py-7">© สงวนลิขสิทธิ์ พ.ศ. 2569 บริษัท แอสเซทไวส์ จำกัด (มหาชน)</p>
       </div>
     </footer>
   );
