@@ -426,15 +426,15 @@ export function EventManagement() {
     <div className="container mx-auto p-6">
       <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <h2>จัดการ Events ({filteredEvents.length})</h2>
-        <div className="flex items-center gap-2">
-          <Link href="/event/check-in">
-            <Button variant="outline" className="gap-2" center>
+        <div className="flex flex-col md:flex-row items-center gap-2">
+          <Link href="/event/check-in" className="w-full md:w-auto">
+            <Button variant="outline" className="gap-2 w-full md:w-auto" center>
               <FaQrcode className="h-4 w-4" />
               Check-in QR
             </Button>
           </Link>
           <Button
-            className="gap-2"
+            className="gap-2 w-full md:w-auto"
             center
             onClick={() => {
               setEditingId(null);
@@ -741,16 +741,17 @@ export function EventManagement() {
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="cursor-pointer inline-flex items-center gap-1.5 text-sm"
+                            center
+                            className="cursor-pointer flex items-center gap-2 text-sm"
                             disabled={confirming}
                             onClick={() => void handleConfirmParticipant(participant)}
                           >
                             {confirming ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
                             ) : (
-                              <UserCheck className="h-3.5 w-3.5" />
+                              <UserCheck className="h-3.5 w-3.5 shrink-0" />
                             )}
-                            ยืนยัน
+                            <span>ยืนยัน</span>
                           </Button>
                         )}
                       </td>
