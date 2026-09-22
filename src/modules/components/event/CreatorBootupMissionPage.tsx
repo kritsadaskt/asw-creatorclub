@@ -3,7 +3,7 @@
 /**
  * Temporary Creators Bootcamp mission page.
  * Disable with BOOTCAMP_MISSION_ENABLED = false when the event ends,
- * or delete src/app/creator-bootup-mission/.
+ * or delete src/app/creator-bootcamp-mission/.
  */
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -761,7 +761,7 @@ export function CreatorBootupMissionPage() {
           onClose={() => setShowLoginModal(false)}
           onLogin={(id, role) => {
             setShowLoginModal(false);
-            handleLogin(id, role, '/creator-bootup-mission');
+            handleLogin(id, role, '/creator-bootcamp-mission');
           }}
         />
       )}

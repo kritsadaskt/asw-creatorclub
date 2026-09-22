@@ -1,5 +1,5 @@
 -- Bootcamp mission fields on event_participant (temporary Creators Bootcamp flow).
--- Used by /creator-bootup-mission for survey answers and submitted post links.
+-- Used by /creator-bootcamp-mission for survey answers and submitted post links.
 
 alter table public.event_participant
   add column if not exists survey_answers jsonb,
