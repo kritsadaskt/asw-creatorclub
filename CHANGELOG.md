@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.21.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.20.0...v2.21.0) (2026-09-22)
+
+
+### Features
+
+* เพิ่ม popup แสดงชื่อ/นามสกุล ยืนยันหลังแสกน QR ([460294f](https://github.com/kritsadaskt/asw-creatorclub/commit/460294ffd76c7278e8d9996861a75ba2d231007f))
+
 ## [2.20.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.19.0...v2.20.0) (2026-09-22)
 
 
