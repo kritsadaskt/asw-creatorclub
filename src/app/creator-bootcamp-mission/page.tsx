@@ -5,6 +5,6 @@ export const metadata: Metadata = {
   title: 'Creators Bootcamp Mission',
 };
 
-export default function CreatorBootupMissionRoutePage() {
+export default function CreatorBootcampMissionRoutePage() {
   return <CreatorBootupMissionPage />;
 }
