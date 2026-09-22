@@ -27,6 +27,22 @@ export interface CreatorProfile {
   phone: string;
   baseLocation: string;
   province?: string; // For when baseLocation is 'ต่างจังหวัด'
+  /** Current address — house number (`profiles.address_house_no`). */
+  addressHouseNo?: string;
+  /** Current address — village / mooban (`profiles.address_village`). */
+  addressVillage?: string;
+  /** Current address — soi (`profiles.address_soi`). */
+  addressSoi?: string;
+  /** Current address — road (`profiles.address_road`). */
+  addressRoad?: string;
+  /** Current address — sub-district / tambon (`profiles.address_sub_district`). */
+  addressSubDistrict?: string;
+  /** Current address — district / amphure (`profiles.address_district`). */
+  addressDistrict?: string;
+  /** Current address — province (`profiles.address_province`). Distinct from registration `province`. */
+  addressProvince?: string;
+  /** Current address — postal code (`profiles.address_postal_code`). */
+  addressPostalCode?: string;
   /**
    * Canonical category ids from `profiles.category_ids` (text[] of `creator_categories.id` as string).
    */

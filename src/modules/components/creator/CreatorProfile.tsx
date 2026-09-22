@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type ChangeEvent } from 'react';
+import { useState, useEffect, useMemo, useRef, type ChangeEvent } from 'react';
 import { Camera, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../shared/Button';
@@ -18,12 +18,21 @@ import { hashPassword, validatePassword, validatePasswordConfirm } from '../../u
 import Select from 'react-select';
 import SocialAccounts from '../layout/SocialAccounts';
 import { FaArrowLeft, FaCopy, FaEdit, FaSave, FaUndo } from 'react-icons/fa';
+import {
+  findDistrictByNameTh,
+  findProvinceByNameTh,
+  getDistrictOptionsByProvinceId,
+  getPostalCodeForSubDistrict,
+  getProvinceOptions,
+  getSubDistrictOptionsByDistrictId,
+} from '@/lib/thai-province-data';
 
 interface CreatorProfileProps {
   creatorId: string;
 }
 
 type CategorySelectOption = { value: string; label: string };
+type AddressSelectOption = { value: string; label: string };
 
 export function CreatorProfile({ creatorId }: CreatorProfileProps) {
   const [profile, setProfile] = useState<CreatorProfileType | null>(null);
@@ -40,6 +49,28 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
   const [imageUploading, setImageUploading] = useState(false);
   const [categoryOptions, setCategoryOptions] = useState<CategorySelectOption[]>([]);
   const profileImageInputRef = useRef<HTMLInputElement>(null);
+
+  const provinceOptions = useMemo(() => getProvinceOptions(), []);
+
+  const selectedProvince = useMemo(
+    () => findProvinceByNameTh(profile?.addressProvince),
+    [profile?.addressProvince],
+  );
+
+  const districtOptions = useMemo(
+    () => (selectedProvince ? getDistrictOptionsByProvinceId(selectedProvince.id) : []),
+    [selectedProvince],
+  );
+
+  const selectedDistrict = useMemo(
+    () => findDistrictByNameTh(profile?.addressDistrict, selectedProvince?.id),
+    [profile?.addressDistrict, selectedProvince?.id],
+  );
+
+  const subDistrictOptions = useMemo(
+    () => (selectedDistrict ? getSubDistrictOptionsByDistrictId(selectedDistrict.id) : []),
+    [selectedDistrict],
+  );
 
   useEffect(() => {
     loadProfile();
@@ -393,6 +424,135 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                     required
                   />
                 )}
+
+                <div className="h-5"></div>
+                <h3 className="text-primary font-bold">ที่อยู่ปัจจุบัน</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-7">
+                  <Input
+                    label="บ้านเลขที่"
+                    value={profile.addressHouseNo || ''}
+                    onChange={(value) =>
+                      setProfile({ ...profile, addressHouseNo: value || undefined })
+                    }
+                    disabled={!isEditing}
+                    placeholder="กรอกบ้านเลขที่"
+                  />
+                  <Input
+                    label="หมู่บ้าน"
+                    value={profile.addressVillage || ''}
+                    onChange={(value) =>
+                      setProfile({ ...profile, addressVillage: value || undefined })
+                    }
+                    disabled={!isEditing}
+                    placeholder="กรอกหมู่บ้าน"
+                  />
+                  <Input
+                    label="ซอย"
+                    value={profile.addressSoi || ''}
+                    onChange={(value) =>
+                      setProfile({ ...profile, addressSoi: value || undefined })
+                    }
+                    disabled={!isEditing}
+                    placeholder="กรอกซอย"
+                  />
+                  <Input
+                    label="ถนน"
+                    value={profile.addressRoad || ''}
+                    onChange={(value) =>
+                      setProfile({ ...profile, addressRoad: value || undefined })
+                    }
+                    disabled={!isEditing}
+                    placeholder="กรอกถนน"
+                  />
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-foreground">จังหวัด</label>
+                    <Select<AddressSelectOption>
+                      options={provinceOptions}
+                      value={
+                        profile.addressProvince
+                          ? { value: profile.addressProvince, label: profile.addressProvince }
+                          : null
+                      }
+                      onChange={(selected) =>
+                        setProfile({
+                          ...profile,
+                          addressProvince: selected?.value || undefined,
+                          addressDistrict: undefined,
+                          addressSubDistrict: undefined,
+                          addressPostalCode: undefined,
+                        })
+                      }
+                      placeholder="เลือกจังหวัด"
+                      classNamePrefix="react-select"
+                      isDisabled={!isEditing}
+                      isClearable
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-foreground">อำเภอ/เขต</label>
+                    <Select<AddressSelectOption>
+                      options={districtOptions}
+                      value={
+                        profile.addressDistrict
+                          ? { value: profile.addressDistrict, label: profile.addressDistrict }
+                          : null
+                      }
+                      onChange={(selected) =>
+                        setProfile({
+                          ...profile,
+                          addressDistrict: selected?.value || undefined,
+                          addressSubDistrict: undefined,
+                          addressPostalCode: undefined,
+                        })
+                      }
+                      placeholder="เลือกอำเภอ/เขต"
+                      classNamePrefix="react-select"
+                      isDisabled={!isEditing || !selectedProvince}
+                      isClearable
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-foreground">ตำบล/แขวง</label>
+                    <Select<AddressSelectOption>
+                      options={subDistrictOptions}
+                      value={
+                        profile.addressSubDistrict
+                          ? {
+                              value: profile.addressSubDistrict,
+                              label: profile.addressSubDistrict,
+                            }
+                          : null
+                      }
+                      onChange={(selected) => {
+                        const subDistrictName = selected?.value || undefined;
+                        const postalCode = subDistrictName
+                          ? getPostalCodeForSubDistrict(subDistrictName, selectedDistrict?.id)
+                          : undefined;
+                        setProfile({
+                          ...profile,
+                          addressSubDistrict: subDistrictName,
+                          addressPostalCode: postalCode,
+                        });
+                      }}
+                      placeholder="เลือกตำบล/แขวง"
+                      classNamePrefix="react-select"
+                      isDisabled={!isEditing || !selectedDistrict}
+                      isClearable
+                    />
+                  </div>
+
+                  <Input
+                    label="รหัสไปรษณีย์"
+                    value={profile.addressPostalCode || ''}
+                    onChange={() => {}}
+                    disabled
+                    placeholder="เลือกตำบล/แขวงเพื่อเติมอัตโนมัติ"
+                  />
+                </div>
+
                 <div className="h-5"></div>
                 <div className="grid grid-cols-2 gap-7">
                   <div className="flex flex-col gap-1.5">
