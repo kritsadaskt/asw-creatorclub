@@ -159,7 +159,7 @@ function Footer() {
               className="h-auto w-[220px] mb-5"
             />
             <h4 className="text-white text-[20px] font-normal">ติดตามแอสเซทไวส์</h4>
-            <div className="social-listed flex gap-3 mb-3">
+            <div className="social-listed flex gap-2 mb-3">
               <a href="https://th-th.facebook.com/AssetWiseThailand/" title="Facebook" className="opacity-80 hover:opacity-100 transition">
                 <Image src={footerFbIcon} alt="Facbook" width={45} height={45} />
               </a>
@@ -176,57 +176,57 @@ function Footer() {
                 <Image src={footerTiktokIcon} alt="Tiktok" width={45} height={45} />
               </a>
             </div>
-            <a href="tel:021680000" title='โทรศัพท์' className='text-3xl flex text-[#47ccc7]'>
-              <PhoneCall className='w-7 h-7' /> <span className='ml-2'>02-168-0000</span>
+            <a href="tel:021680000" title='โทรศัพท์' className='text-lg flex text-[#47ccc7] items-center'>
+              <PhoneCall className='w-5 h-5' /> <span className='ml-2'>02-168-0000</span>
             </a>
             
           </div>
           <div className="w-full md:w-8/12 grid grid-cols-2 md:grid-cols-4 gap-5 md:gap-0 md:flex-row justify-between">
             <div className="menu">
-              <h5 className="text-white text-xl mb-2">แอสเซทไวส์</h5>
-              <ul className="flex flex-col gap-3">
+              <h5 className="text-white mb-2">แอสเซทไวส์</h5>
+              <ul className="flex flex-col gap-1">
                 {footerMenus.menu1.map((menu, key) => (
                   <li key={key}>
-                    <a href={menu.link} className="text-neutral-400 hover:text-white transition">{menu.name}</a>
+                    <a href={menu.link} className="text-neutral-400 hover:text-white transition text-sm">{menu.name}</a>
                   </li>
                 ))}
               </ul>
             </div>
             <div className="menu">
-              <h5 className="text-white text-xl mb-2">โครงการตามทำเล</h5>
-              <ul className="flex flex-col gap-3">
+              <h5 className="text-white mb-2">โครงการตามทำเล</h5>
+              <ul className="flex flex-col gap-1">
                 {footerMenus.menu5.map((menu, key) => (
                   <li key={key}>
-                    <a href={menu.link} className="text-neutral-400 hover:text-white transition">{menu.name}</a>
+                    <a href={menu.link} className="text-neutral-400 hover:text-white transition text-sm">{menu.name}</a>
                   </li>
                 ))}
               </ul>
             </div>
             <div className="menu">
-              <h5 className="text-white text-xl mb-2">สนใจทำธุรกิจกับเรา</h5>
-              <ul className="flex flex-col gap-3">
+              <h5 className="text-white mb-2">สนใจทำธุรกิจกับเรา</h5>
+              <ul className="flex flex-col gap-1">
                 {footerMenus.menu3.map((menu, key) => (
                   <li key={key}>
-                    <a href={menu.link} className="text-neutral-400 hover:text-white transition">{menu.name}</a>
+                    <a href={menu.link} className="text-neutral-400 hover:text-white transition text-sm">{menu.name}</a>
                   </li>
                 ))}
               </ul>
               <div className="h-7"></div>
-              <h5 className="text-white text-xl mb-2">บริการ</h5>
-              <ul className="flex flex-col gap-3">
+              <h5 className="text-white mb-2">บริการ</h5>
+              <ul className="flex flex-col gap-1">
                 {footerMenus.menu2.map((menu, key) => (
                   <li key={key}>
-                    <a href={menu.link} className="text-neutral-400 hover:text-white transition">{menu.name}</a>
+                    <a href={menu.link} className="text-neutral-400 hover:text-white transition text-sm">{menu.name}</a>
                   </li>
                 ))}
               </ul>
             </div>
             <div className="menu">
-              <h5 className="text-white text-xl mb-2">ติดต่อ</h5>
-              <ul className="flex flex-col gap-3">
+              <h5 className="text-white mb-2">ติดต่อ</h5>
+              <ul className="flex flex-col gap-1">
                 {footerMenus.menu4.map((menu, key) => (
                   <li key={key}>
-                    <a href={menu.link} className="text-neutral-400 hover:text-white transition">{menu.name}</a>
+                    <a href={menu.link} className="text-neutral-400 hover:text-white transition text-sm">{menu.name}</a>
                   </li>
                 ))}
               </ul>
@@ -234,7 +234,7 @@ function Footer() {
           </div>
         </div>
         <div className="h-7"></div>
-        <p className="text-white border-t border-t-neutral-400 py-7">© สงวนลิขสิทธิ์ พ.ศ. 2569 บริษัท แอสเซทไวส์ จำกัด (มหาชน)</p>
+        <p className="text-white border-t border-t-neutral-400 text-xs py-7">© สงวนลิขสิทธิ์ พ.ศ. 2569 บริษัท แอสเซทไวส์ จำกัด (มหาชน)</p>
       </div>
     </footer>
   );

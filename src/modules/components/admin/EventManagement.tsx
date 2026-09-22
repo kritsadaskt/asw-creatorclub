@@ -3,7 +3,7 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { Eye, Loader2, Mail, Pencil, Phone, Plus, Trash2 } from 'lucide-react';
+import { Eye, Loader2, Mail, Pencil, Phone, Plus, Trash2, UserCheck } from 'lucide-react';
 import Select from 'react-select';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
@@ -27,6 +27,7 @@ import {
   getEvents,
   getProjects,
   saveEvent,
+  updateEventParticipant,
 } from '../../utils/storage';
 import { eventPreviewPath } from '../../utils/event-slug';
 import type { CreatorProfile, EventParticipant } from '../../types';
@@ -140,6 +141,7 @@ export function EventManagement() {
   const [isCreatorDrawerOpen, setIsCreatorDrawerOpen] = useState(false);
   const [selectedCreator, setSelectedCreator] = useState<CreatorProfile | null>(null);
   const [creatorLoading, setCreatorLoading] = useState(false);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   const loadData = async () => {
     try {
@@ -215,6 +217,7 @@ export function EventManagement() {
     const rows = filteredParticipants.map((participant) => {
       const creator = creatorById.get(participant.creatorId);
       const statusLabel = participant.isConfirm ? 'ยืนยันแล้ว' : 'รอยืนยัน';
+      const postLinks = (participant.missionPostLinks ?? []).filter((u) => u.trim());
 
       return {
         eventName: eventNameById.get(participant.eventId) || participant.eventId,
@@ -227,6 +230,10 @@ export function EventManagement() {
         creatorId: participant.creatorId,
         submitAt: participant.submitAt,
         status: statusLabel,
+        checkIn: participant.isShowup ? 'เช็คอินแล้ว' : 'ยังไม่เช็คอิน',
+        survey: participant.surveySubmittedAt ? 'ส่งแล้ว' : 'ยังไม่ส่ง',
+        postLinks: postLinks.length > 0 ? postLinks.join(' | ') : '',
+        postLinkCount: String(postLinks.length),
       };
     });
 
@@ -240,6 +247,10 @@ export function EventManagement() {
       'Creator ID',
       'Submit At',
       'Status',
+      'Check-in',
+      'Survey',
+      'Post Link Count',
+      'Post Links',
     ];
     const csvLines = [
       header.join(','),
@@ -254,6 +265,10 @@ export function EventManagement() {
           row.creatorId,
           row.submitAt,
           row.status,
+          row.checkIn,
+          row.survey,
+          row.postLinkCount,
+          row.postLinks,
         ]
           .map((cell) => escapeCsv(cell))
           .join(','),
@@ -270,6 +285,23 @@ export function EventManagement() {
     anchor.click();
     document.body.removeChild(anchor);
     URL.revokeObjectURL(url);
+  };
+
+  const handleConfirmParticipant = async (participant: EventParticipant) => {
+    if (participant.isConfirm) return;
+    try {
+      setConfirmingId(participant.id);
+      await updateEventParticipant(participant.id, { isConfirm: true });
+      setParticipants((prev) =>
+        prev.map((row) => (row.id === participant.id ? { ...row, isConfirm: true } : row)),
+      );
+      toast.success('ยืนยันผู้เข้าร่วมเรียบร้อยแล้ว');
+    } catch (error) {
+      console.error('confirm participant error:', error);
+      toast.error('ไม่สามารถยืนยันผู้เข้าร่วมได้');
+    } finally {
+      setConfirmingId(null);
+    }
   };
 
   const openCreatorDrawer = async (creatorId: string) => {
@@ -592,20 +624,21 @@ export function EventManagement() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px]">
+          <table className="w-full min-w-[820px]">
             <thead className="bg-muted/30">
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-medium">Event</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">ชื่อ</th>
-                <th className="px-4 py-3 text-center text-sm font-medium">อีเมล</th>
-                <th className="px-4 py-3 text-center text-sm font-medium">โทรศัพท์</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">หมวดหมู่</th>
+                <th className="px-4 py-3 text-center text-sm font-medium">คอนเฟิร์ม</th>
+                <th className="px-4 py-3 text-center text-sm font-medium">เช็คอิน</th>
+                <th className="px-4 py-3 text-center text-sm font-medium">ยืนยัน</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {pagedParticipants.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
                     ไม่พบข้อมูลผู้สนใจเข้าร่วม
                   </td>
                 </tr>
@@ -614,61 +647,112 @@ export function EventManagement() {
                   const creator = creatorById.get(participant.creatorId);
                   const email = creator?.email?.trim();
                   const phone = creator?.phone?.trim();
+                  const confirming = confirmingId === participant.id;
                   return (
                     <tr key={participant.id} className="hover:bg-muted/20">
-                      <td className="px-4 py-3 text-sm">{(eventNameById.get(participant.eventId)?.replace(/<[^>]+>/g, '') || participant.eventId)}</td>
-                 
+                      <td className="px-4 py-3 text-sm">
+                        {eventNameById.get(participant.eventId)?.replace(/<[^>]+>/g, '') ||
+                          participant.eventId}
+                      </td>
+
                       <td className="px-4 py-3 text-sm">
                         {creator ? (
-                          <button
-                            type="button"
-                            onClick={() => void openCreatorDrawer(participant.creatorId)}
-                            className="inline-flex flex-wrap items-center gap-1.5 text-left text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-sm"
-                          >
-                            <span>{`${creator.name} ${creator.lastName ?? ''}`.trim()}</span>
-                            <CreatorBadge type={creator.type ?? ''} />
-                          </button>
+                          <div className="inline-flex flex-wrap items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => void openCreatorDrawer(participant.creatorId)}
+                              className="inline-flex flex-wrap items-center gap-1.5 text-left text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-sm"
+                            >
+                              <span>{`${creator.name} ${creator.lastName ?? ''}`.trim()}</span>
+                              <CreatorBadge type={creator.type ?? ''} />
+                            </button>
+                            {email ? (
+                              <a
+                                href={`mailto:${email}`}
+                                aria-label={`ส่งอีเมลถึง ${email}`}
+                                title={email}
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-primary hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                              >
+                                <Mail className="h-3.5 w-3.5" />
+                              </a>
+                            ) : (
+                              <span
+                                className="inline-flex h-7 w-7 items-center justify-center text-muted-foreground/40"
+                                aria-hidden
+                              >
+                                <Mail className="h-3.5 w-3.5" />
+                              </span>
+                            )}
+                            {phone ? (
+                              <a
+                                href={`tel:${phone}`}
+                                aria-label={`โทรหา ${phone}`}
+                                title={phone}
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-primary hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                              >
+                                <Phone className="h-3.5 w-3.5" />
+                              </a>
+                            ) : (
+                              <span
+                                className="inline-flex h-7 w-7 items-center justify-center text-muted-foreground/40"
+                                aria-hidden
+                              >
+                                <Phone className="h-3.5 w-3.5" />
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           '-'
                         )}
                       </td>
 
-                      <td className="px-4 py-3 text-center">
-                        {email ? (
-                          <a
-                            href={`mailto:${email}`}
-                            aria-label={`ส่งอีเมลถึง ${email}`}
-                            title={email}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-primary hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                          >
-                            <Mail className="h-4 w-4" />
-                          </a>
-                        ) : (
-                          <span className="inline-flex h-8 w-8 items-center justify-center text-muted-foreground/40" aria-hidden>
-                            <Mail className="h-4 w-4" />
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {phone ? (
-                          <a
-                            href={`tel:${phone}`}
-                            aria-label={`โทรหา ${phone}`}
-                            title={phone}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-primary hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                          >
-                            <Phone className="h-4 w-4" />
-                          </a>
-                        ) : (
-                          <span className="inline-flex h-8 w-8 items-center justify-center text-muted-foreground/40" aria-hidden>
-                            <Phone className="h-4 w-4" />
-                          </span>
-                        )}
-                      </td>
                       <td className="px-4 py-3 text-sm">
                         {creator?.categories && creator.categories.length > 0
                           ? creator.categories.join(', ')
                           : '-'}
+                      </td>
+                      <td className="px-4 py-3 text-center text-sm">
+                        {participant.isConfirm ? (
+                          <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+                            ยืนยันแล้ว
+                          </span>
+                        ) : (
+                          <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+                            รอยืนยัน
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center text-sm">
+                        {participant.isShowup ? (
+                          <span className="inline-flex rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-medium text-sky-700">
+                            เช็คอินแล้ว
+                          </span>
+                        ) : (
+                          <span className="inline-flex rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                            ยังไม่เช็คอิน
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {participant.isConfirm ? (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="cursor-pointer inline-flex items-center gap-1.5 text-sm"
+                            disabled={confirming}
+                            onClick={() => void handleConfirmParticipant(participant)}
+                          >
+                            {confirming ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <UserCheck className="h-3.5 w-3.5" />
+                            )}
+                            ยืนยัน
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   );
