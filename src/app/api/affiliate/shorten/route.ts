@@ -10,24 +10,37 @@ type ExistingLinkRow = { id: string; url: string };
 /**
  * Latest affiliate_links row for this creator + project (+ campaign when set).
  * Campaign mode and non-campaign mode are separate scopes.
+ *
+ * Reuse without projectId is allowed when campaignId or campaignName is set
+ * (used by temporary flows like Creators Bootcamp).
  */
 async function findExistingAffiliateLink(params: {
   creatorId: string;
   projectId?: string;
   campaignId?: string;
+  campaignName?: string;
 }): Promise<ExistingLinkRow | null> {
-  if (!params.projectId) return null;
+  const hasCampaignScope = Boolean(params.campaignId || params.campaignName?.trim());
+  if (!params.projectId && !hasCampaignScope) return null;
 
   let query = supabaseAdmin
     .from('affiliate_links')
     .select('id, url')
-    .eq('creator_id', params.creatorId)
-    .eq('project_id', params.projectId);
+    .eq('creator_id', params.creatorId);
+
+  if (params.projectId) {
+    query = query.eq('project_id', params.projectId);
+  } else {
+    query = query.is('project_id', null);
+  }
 
   if (params.campaignId) {
     query = query.eq('campaign_id', params.campaignId);
   } else {
     query = query.is('campaign_id', null);
+    if (!params.projectId && params.campaignName?.trim()) {
+      query = query.eq('campaign_name', params.campaignName.trim());
+    }
   }
 
   const { data, error } = await query
@@ -44,21 +57,6 @@ async function findExistingAffiliateLink(params: {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAffiliateGetLinkEnabled()) {
-    return NextResponse.json(
-      { error: 'Affiliate get link is disabled', code: 'AFFILIATE_GET_LINK_DISABLED' },
-      { status: 503 },
-    );
-  }
-
-  const auth = await requireApprovedCreatorSession(request);
-  if (!auth.ok) return auth.response;
-
-  if (!isTinyurlConfigured()) {
-    return NextResponse.json({ error: 'TinyURL API not configured' }, { status: 503 });
-  }
-
-  const creatorId = auth.session.id;
   let projectUrl: string;
   let projectId: string | undefined;
   let campaignId: string | undefined;
@@ -92,8 +90,30 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
+  const isBootcampMission = campaignKey === 'creator-bootcamp';
+  if (!isAffiliateGetLinkEnabled() && !isBootcampMission) {
+    return NextResponse.json(
+      { error: 'Affiliate get link is disabled', code: 'AFFILIATE_GET_LINK_DISABLED' },
+      { status: 503 },
+    );
+  }
+
+  const auth = await requireApprovedCreatorSession(request);
+  if (!auth.ok) return auth.response;
+
+  if (!isTinyurlConfigured()) {
+    return NextResponse.json({ error: 'TinyURL API not configured' }, { status: 503 });
+  }
+
+  const creatorId = auth.session.id;
+
   // Reuse previously generated short link for the same creator + project (+ campaign)
-  const existing = await findExistingAffiliateLink({ creatorId, projectId, campaignId });
+  const existing = await findExistingAffiliateLink({
+    creatorId,
+    projectId,
+    campaignId,
+    campaignName: isBootcampMission ? campaignName || 'Creators Bootcamp' : campaignName,
+  });
   if (existing) {
     return NextResponse.json({
       shortUrl: existing.url,
@@ -122,11 +142,16 @@ export async function POST(request: NextRequest) {
 
   // Prefer short tags (TinyURL max 45 chars per tag) — skip raw UUIDs that blow the limit
   const tags = [
+    isBootcampMission ? 'creator-bootcamp' : '',
     campaignKey ? `campaign:${campaignKey}` : '',
     projectId && projectId.length <= 36 ? `project:${projectId.slice(0, 32)}` : '',
   ].filter(Boolean);
 
-  const result = await createTinyurlShortUrl({ longUrl, tags });
+  const result = await createTinyurlShortUrl({
+    longUrl,
+    tags,
+    description: isBootcampMission ? 'Creators Bootcamp Mission' : undefined,
+  });
   if (!result.ok) {
     console.error('TinyURL create error:', result.status, result.detail);
     await logServerError({
