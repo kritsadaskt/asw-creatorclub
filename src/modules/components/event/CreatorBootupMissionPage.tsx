@@ -6,7 +6,7 @@
  * or delete src/app/creator-bootcamp-mission/.
  */
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
   Check,
@@ -45,11 +45,24 @@ import {
 import type { Event, EventParticipant } from '../../types';
 import { formatGenericErrorToast } from '../../utils/toast-error';
 import { stripHtmlTags } from '../../utils/strip-html-tags';
+import { BASE_PATH } from '@/lib/publicPath';
 
 // ── Easy-to-edit constants ──────────────────────────────────────────
 const BOOTCAMP_MISSION_ENABLED = true;
 const BOOTCAMP_EVENT_SLUG = 'creator-bootcamp';
-/** Mock short-link template; `{uid}` is replaced with the creator id. */
+
+/** Destination + metadata for TinyURL short links created on Step 3. */
+const BOOTCAMP_SHORT_LINK = {
+  /** Long URL destination (UTM/ref appended by /api/affiliate/shorten). */
+  projectUrl: 'https://assetwise.co.th/condominium/modiz-voyage-srinakarin/',
+  campaignName: 'Modiz Voyage Srinakarin - Creator Bootcamp',
+  campaignKey: 'creator-bootcamp',
+  utmSource: 'creator_club_affiliate',
+  utmMedium: 'bootcamp',
+  utmCampaign: 'creator-bootcamp',
+} as const;
+
+/** Mock short link for admin preview only; `{uid}` is replaced with the admin id. */
 const BOOTCAMP_MOCK_SHORT_LINK = 'https://asw.to/bootcamp?uid={uid}';
 
 type SurveyQuestion =
@@ -97,10 +110,6 @@ type GateState =
   | 'need_register'
   | 'need_confirm'
   | 'ready';
-
-function buildMockShortLink(creatorId: string): string {
-  return BOOTCAMP_MOCK_SHORT_LINK.replace('{uid}', encodeURIComponent(creatorId));
-}
 
 function createAdminPreviewParticipant(eventId: string, adminId: string): EventParticipant {
   return {
@@ -168,6 +177,9 @@ export function CreatorBootupMissionPage() {
   const [savingSurvey, setSavingSurvey] = useState(false);
   const [savingPosts, setSavingPosts] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [shortUrl, setShortUrl] = useState<string | null>(null);
+  const [shortUrlLoading, setShortUrlLoading] = useState(false);
+  const [shortUrlError, setShortUrlError] = useState(false);
 
   const loadMission = useCallback(async () => {
     if (!BOOTCAMP_MISSION_ENABLED) {
@@ -250,10 +262,56 @@ export function CreatorBootupMissionPage() {
   const step3Done = (participant?.missionPostLinks?.filter((u) => u.trim()).length ?? 0) >= 1;
   const completedCount = [step1Done, step2Done, step3Done].filter(Boolean).length;
 
-  const mockShortLink = useMemo(
-    () => (currentUserId ? buildMockShortLink(currentUserId) : ''),
-    [currentUserId],
-  );
+  const displayShortLink = isAdminPreview
+    ? currentUserId
+      ? BOOTCAMP_MOCK_SHORT_LINK.replace('{uid}', encodeURIComponent(currentUserId))
+      : ''
+    : shortUrl;
+
+  const fetchBootcampShortLink = useCallback(async () => {
+    if (isAdminPreview || userRole !== 'creator' || !currentUserId) {
+      setShortUrl(null);
+      setShortUrlError(false);
+      setShortUrlLoading(false);
+      return;
+    }
+
+    try {
+      setShortUrlLoading(true);
+      setShortUrlError(false);
+      const res = await fetch(`${BASE_PATH}/api/affiliate/shorten`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectUrl: BOOTCAMP_SHORT_LINK.projectUrl,
+          campaignName: BOOTCAMP_SHORT_LINK.campaignName,
+          campaignKey: BOOTCAMP_SHORT_LINK.campaignKey,
+          utmSource: BOOTCAMP_SHORT_LINK.utmSource,
+          utmMedium: BOOTCAMP_SHORT_LINK.utmMedium,
+          utmCampaign: BOOTCAMP_SHORT_LINK.utmCampaign,
+          utmContent: currentUserId,
+        }),
+      });
+      if (!res.ok) throw new Error('shorten failed');
+      const data = (await res.json()) as { shortUrl?: string };
+      if (typeof data.shortUrl !== 'string' || !data.shortUrl.trim()) {
+        throw new Error('missing shortUrl');
+      }
+      setShortUrl(data.shortUrl.trim());
+    } catch (error) {
+      console.error('bootcamp short link error:', error);
+      setShortUrl(null);
+      setShortUrlError(true);
+    } finally {
+      setShortUrlLoading(false);
+    }
+  }, [currentUserId, isAdminPreview, userRole]);
+
+  useEffect(() => {
+    if (gate !== 'ready' || isAdminPreview) return;
+    void fetchBootcampShortLink();
+  }, [fetchBootcampShortLink, gate, isAdminPreview]);
 
   const openSurvey = () => {
     if (!step1Done) {
@@ -358,9 +416,9 @@ export function CreatorBootupMissionPage() {
   };
 
   const handleCopyShortLink = () => {
-    if (!mockShortLink) return;
+    if (!displayShortLink) return;
     navigator.clipboard
-      .writeText(mockShortLink)
+      .writeText(displayShortLink)
       .then(() => {
         setCopied(true);
         toast.success('คัดลอกลิงก์แล้ว!');
@@ -656,26 +714,72 @@ export function CreatorBootupMissionPage() {
           <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-6 py-4">
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-foreground">ลิงก์ย่อสำหรับโพสต์</h4>
-              <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
-                <div className="min-w-0 flex-1 overflow-hidden rounded-lg border border-border bg-muted/40 px-3 py-2.5 font-mono text-xs break-all select-all">
-                  {mockShortLink}
+              {isAdminPreview ? (
+                <div className="space-y-2">
+                  <p className="text-[13px] text-amber-700">
+                    Preview — ลิงก์จำลอง (ไม่สร้าง TinyURL จริง)
+                  </p>
+                  <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
+                    <div className="min-w-0 flex-1 overflow-hidden rounded-lg border border-border bg-muted/40 px-3 py-2.5 font-mono text-xs break-all select-all">
+                      {displayShortLink}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyShortLink}
+                      className="flex w-full shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 sm:w-auto"
+                    >
+                      {copied ? (
+                        <>
+                          <Check className="h-4 w-4" /> คัดลอกแล้ว
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4" /> คัดลอก
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleCopyShortLink}
-                  className="flex w-full shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 sm:w-auto"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="h-4 w-4" /> คัดลอกแล้ว
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4" /> คัดลอก
-                    </>
-                  )}
-                </button>
-              </div>
+              ) : shortUrlLoading ? (
+                <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  กำลังสร้างลิงก์...
+                </div>
+              ) : shortUrlError || !shortUrl ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-destructive">สร้างลิงก์ไม่สำเร็จ กรุณาลองใหม่</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void fetchBootcampShortLink()}
+                    className="cursor-pointer"
+                  >
+                    ลองอีกครั้ง
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
+                  <div className="min-w-0 flex-1 overflow-hidden rounded-lg border border-border bg-muted/40 px-3 py-2.5 font-mono text-xs break-all select-all">
+                    {shortUrl}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCopyShortLink}
+                    className="flex w-full shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 sm:w-auto"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="h-4 w-4" /> คัดลอกแล้ว
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" /> คัดลอก
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="min-w-0 space-y-2">
