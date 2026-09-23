@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.23.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.22.0...v2.23.0) (2026-09-23)
+
+
+### Features
+
+* use real shotlink logic for Bootcamp  LDP ([ac823d1](https://github.com/kritsadaskt/asw-creatorclub/commit/ac823d19d1f6a8c4a4af9a5fb848c9d475e36156))
+
 ## [2.22.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.21.0...v2.22.0) (2026-09-22)
 
 
