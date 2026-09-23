@@ -38,11 +38,12 @@ import {
 } from '../ui/dialog';
 import { useSession } from '../../context/SessionContext';
 import {
+  getCreatorById,
   getCreatorEventParticipation,
   getEventBySlug,
   updateEventParticipant,
 } from '../../utils/storage';
-import type { Event, EventParticipant } from '../../types';
+import type { CreatorProfile, Event, EventParticipant } from '../../types';
 import { formatGenericErrorToast } from '../../utils/toast-error';
 import { stripHtmlTags } from '../../utils/strip-html-tags';
 import { BASE_PATH } from '@/lib/publicPath';
@@ -125,6 +126,18 @@ function createAdminPreviewParticipant(eventId: string, adminId: string): EventP
   };
 }
 
+/** Minimum fields needed to ship a prize to the creator. */
+function hasShippingAddress(profile: CreatorProfile | null | undefined): boolean {
+  if (!profile) return false;
+  return Boolean(
+    profile.addressHouseNo?.trim() &&
+      profile.addressProvince?.trim() &&
+      profile.addressDistrict?.trim() &&
+      profile.addressSubDistrict?.trim() &&
+      profile.addressPostalCode?.trim(),
+  );
+}
+
 function ProgressGauge({ completed, total }: { completed: number; total: number }) {
   const pct = total > 0 ? Math.min(1, completed / total) : 0;
   const r = 70;
@@ -180,6 +193,7 @@ export function CreatorBootupMissionPage() {
   const [shortUrl, setShortUrl] = useState<string | null>(null);
   const [shortUrlLoading, setShortUrlLoading] = useState(false);
   const [shortUrlError, setShortUrlError] = useState(false);
+  const [creatorProfile, setCreatorProfile] = useState<CreatorProfile | null>(null);
 
   const loadMission = useCallback(async () => {
     if (!BOOTCAMP_MISSION_ENABLED) {
@@ -197,6 +211,7 @@ export function CreatorBootupMissionPage() {
 
       if (!currentEvent) {
         setParticipant(null);
+        setCreatorProfile(null);
         setIsAdminPreview(false);
         setGate('no_event');
         return;
@@ -208,6 +223,7 @@ export function CreatorBootupMissionPage() {
           if (prev?.id.startsWith('preview-')) return prev;
           return createAdminPreviewParticipant(currentEvent.id, currentUserId);
         });
+        setCreatorProfile(null);
         setIsAdminPreview(true);
         setGate('ready');
         return;
@@ -215,13 +231,18 @@ export function CreatorBootupMissionPage() {
 
       if (!currentUserId || userRole !== 'creator') {
         setParticipant(null);
+        setCreatorProfile(null);
         setIsAdminPreview(false);
         setGate('need_login');
         return;
       }
 
-      const row = await getCreatorEventParticipation(currentEvent.id, currentUserId);
+      const [row, profile] = await Promise.all([
+        getCreatorEventParticipation(currentEvent.id, currentUserId),
+        getCreatorById(currentUserId),
+      ]);
       setParticipant(row);
+      setCreatorProfile(profile);
       setIsAdminPreview(false);
 
       if (!row) {
@@ -261,6 +282,9 @@ export function CreatorBootupMissionPage() {
   const step2Done = Boolean(participant?.surveySubmittedAt);
   const step3Done = (participant?.missionPostLinks?.filter((u) => u.trim()).length ?? 0) >= 1;
   const completedCount = [step1Done, step2Done, step3Done].filter(Boolean).length;
+  const missionComplete = step1Done && step2Done && step3Done;
+  const needsShippingAddress =
+    !isAdminPreview && missionComplete && !hasShippingAddress(creatorProfile);
 
   const displayShortLink = isAdminPreview
     ? currentUserId
@@ -538,6 +562,32 @@ export function CreatorBootupMissionPage() {
                 <ProgressGauge completed={completedCount} total={3} />
               </div>
             </div>
+
+            {needsShippingAddress ? (
+              <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-4 shadow-sm sm:px-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-800">
+                      <MapPin className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-amber-950">
+                        กรุณากรอกที่อยู่ปัจจุบันเพื่อรับรางวัล
+                      </p>
+                      <p className="mt-0.5 text-[13px] text-amber-900/80">
+                        คุณทำครบ 3 ภารกิจแล้ว แต่ยังไม่มีที่อยู่สำหรับจัดส่งของรางวัลในโปรไฟล์
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/profile?edit=address"
+                    className="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                  >
+                    ไปแก้ไขโปรไฟล์
+                  </Link>
+                </div>
+              </div>
+            ) : null}
 
             {/* Step cards grid — 1+2 same row, 3 full width (mobile + desktop) */}
             <div className="grid grid-cols-2 gap-3 sm:gap-4">

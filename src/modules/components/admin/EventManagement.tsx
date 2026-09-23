@@ -100,6 +100,23 @@ function isAswHouseholdType(typeRaw: string | undefined): boolean {
 
 const PAGE_SIZE = 15;
 
+/** Temporary Creators Bootcamp — panel/columns only when this event is filtered. */
+const BOOTCAMP_EVENT_SLUG = 'creator-bootcamp';
+
+type MissionProgressFilter = 'all' | 'prize_ready' | 'posts_done' | 'incomplete';
+
+function hasMissionPosts(participant: EventParticipant): boolean {
+  return (participant.missionPostLinks ?? []).some((url) => url.trim().length > 0);
+}
+
+function isMissionComplete(participant: EventParticipant): boolean {
+  return (
+    Boolean(participant.isShowup) &&
+    Boolean(participant.surveySubmittedAt) &&
+    hasMissionPosts(participant)
+  );
+}
+
 type EventFormState = {
   id?: string;
   name: string;
@@ -133,6 +150,7 @@ export function EventManagement() {
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [participantEventFilter, setParticipantEventFilter] = useState('all');
+  const [missionProgressFilter, setMissionProgressFilter] = useState<MissionProgressFilter>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [participantPage, setParticipantPage] = useState(1);
   const [form, setForm] = useState<EventFormState>(DEFAULT_FORM);
@@ -142,6 +160,7 @@ export function EventManagement() {
   const [selectedCreator, setSelectedCreator] = useState<CreatorProfile | null>(null);
   const [creatorLoading, setCreatorLoading] = useState(false);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [drawerParticipant, setDrawerParticipant] = useState<EventParticipant | null>(null);
 
   const loadData = async () => {
     try {
@@ -184,11 +203,61 @@ export function EventManagement() {
   const pagedEvents = filteredEvents.slice(start, start + PAGE_SIZE);
   const creatorById = useMemo(() => new Map(creators.map((creator) => [creator.id, creator])), [creators]);
   const eventNameById = useMemo(() => new Map(events.map((event) => [event.id, event.name])), [events]);
+  const eventById = useMemo(() => new Map(events.map((event) => [event.id, event])), [events]);
+
+  const bootcampEvent = useMemo(
+    () => events.find((event) => event.slug === BOOTCAMP_EVENT_SLUG) ?? null,
+    [events],
+  );
+  const isBootcampFilter =
+    participantEventFilter !== 'all' &&
+    eventById.get(participantEventFilter)?.slug === BOOTCAMP_EVENT_SLUG;
+
+  const bootcampParticipants = useMemo(() => {
+    if (!bootcampEvent) return [];
+    return participants.filter((participant) => participant.eventId === bootcampEvent.id);
+  }, [bootcampEvent, participants]);
+
+  const bootcampStats = useMemo(() => {
+    let confirmed = 0;
+    let checkedIn = 0;
+    let surveyDone = 0;
+    let postsDone = 0;
+    let prizeReady = 0;
+    for (const participant of bootcampParticipants) {
+      if (participant.isConfirm) confirmed += 1;
+      if (participant.isShowup) checkedIn += 1;
+      if (participant.surveySubmittedAt) surveyDone += 1;
+      if (hasMissionPosts(participant)) postsDone += 1;
+      if (isMissionComplete(participant)) prizeReady += 1;
+    }
+    return {
+      total: bootcampParticipants.length,
+      confirmed,
+      checkedIn,
+      surveyDone,
+      postsDone,
+      prizeReady,
+    };
+  }, [bootcampParticipants]);
 
   const filteredParticipants = useMemo(() => {
-    if (participantEventFilter === 'all') return participants;
-    return participants.filter((participant) => participant.eventId === participantEventFilter);
-  }, [participants, participantEventFilter]);
+    let list =
+      participantEventFilter === 'all'
+        ? participants
+        : participants.filter((participant) => participant.eventId === participantEventFilter);
+
+    if (isBootcampFilter && missionProgressFilter !== 'all') {
+      list = list.filter((participant) => {
+        if (missionProgressFilter === 'prize_ready') return isMissionComplete(participant);
+        if (missionProgressFilter === 'posts_done') return hasMissionPosts(participant);
+        if (missionProgressFilter === 'incomplete') return !isMissionComplete(participant);
+        return true;
+      });
+    }
+
+    return list;
+  }, [participants, participantEventFilter, isBootcampFilter, missionProgressFilter]);
   const participantTotalPages = Math.max(1, Math.ceil(filteredParticipants.length / PAGE_SIZE));
   const safeParticipantPage = Math.min(Math.max(participantPage, 1), participantTotalPages);
   const participantStart = (safeParticipantPage - 1) * PAGE_SIZE;
@@ -196,7 +265,7 @@ export function EventManagement() {
   const participantEventOptions = useMemo(
     () => [
       { value: 'all', label: 'ทั้งหมด' },
-      ...events.map((event) => ({ value: event.id, label: event.name })),
+      ...events.map((event) => ({ value: event.id, label: event.name.replace(/<[^>]+>/g, '') })),
     ],
     [events],
   );
@@ -218,6 +287,7 @@ export function EventManagement() {
       const creator = creatorById.get(participant.creatorId);
       const statusLabel = participant.isConfirm ? 'ยืนยันแล้ว' : 'รอยืนยัน';
       const postLinks = (participant.missionPostLinks ?? []).filter((u) => u.trim());
+      const missionComplete = isMissionComplete(participant);
 
       return {
         eventName: eventNameById.get(participant.eventId) || participant.eventId,
@@ -234,6 +304,8 @@ export function EventManagement() {
         survey: participant.surveySubmittedAt ? 'ส่งแล้ว' : 'ยังไม่ส่ง',
         postLinks: postLinks.length > 0 ? postLinks.join(' | ') : '',
         postLinkCount: String(postLinks.length),
+        missionComplete: missionComplete ? 'Yes' : 'No',
+        prizeEligible: missionComplete ? 'Yes' : 'No',
       };
     });
 
@@ -251,6 +323,8 @@ export function EventManagement() {
       'Survey',
       'Post Link Count',
       'Post Links',
+      'Mission Complete',
+      'Prize Eligible',
     ];
     const csvLines = [
       header.join(','),
@@ -269,6 +343,8 @@ export function EventManagement() {
           row.survey,
           row.postLinkCount,
           row.postLinks,
+          row.missionComplete,
+          row.prizeEligible,
         ]
           .map((cell) => escapeCsv(cell))
           .join(','),
@@ -278,7 +354,12 @@ export function EventManagement() {
     const blob = new Blob([`\uFEFF${csvLines.join('\n')}`], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
-    const suffix = participantEventFilter === 'all' ? 'all-events' : participantEventFilter;
+    const suffix =
+      participantEventFilter === 'all'
+        ? 'all-events'
+        : isBootcampFilter && missionProgressFilter !== 'all'
+          ? `${participantEventFilter}-${missionProgressFilter}`
+          : participantEventFilter;
     anchor.href = url;
     anchor.download = `event-participants-${suffix}.csv`;
     document.body.appendChild(anchor);
@@ -304,7 +385,8 @@ export function EventManagement() {
     }
   };
 
-  const openCreatorDrawer = async (creatorId: string) => {
+  const openCreatorDrawer = async (creatorId: string, participant?: EventParticipant) => {
+    setDrawerParticipant(participant ?? null);
     const cached = creatorById.get(creatorId);
     if (cached) {
       setSelectedCreator(cached);
@@ -319,6 +401,7 @@ export function EventManagement() {
       if (!creator) {
         toast.error('ไม่พบข้อมูลครีเอเตอร์');
         setSelectedCreator(null);
+        setDrawerParticipant(null);
         setIsCreatorDrawerOpen(false);
         return;
       }
@@ -327,11 +410,17 @@ export function EventManagement() {
       console.error('Error loading creator detail:', error);
       toast.error('ไม่สามารถโหลดข้อมูลครีเอเตอร์ได้');
       setSelectedCreator(null);
+      setDrawerParticipant(null);
       setIsCreatorDrawerOpen(false);
     } finally {
       setCreatorLoading(false);
     }
   };
+
+  const drawerShowsMission =
+    Boolean(drawerParticipant) &&
+    eventById.get(drawerParticipant!.eventId)?.slug === BOOTCAMP_EVENT_SLUG;
+  const drawerMissionLinks = (drawerParticipant?.missionPostLinks ?? []).filter((u) => u.trim());
 
   const submitLabel = editingId ? 'บันทึกการแก้ไข' : 'เพิ่มอีเวนต์';
   const editingSlug = editingId ? events.find((event) => event.id === editingId)?.slug : undefined;
@@ -608,6 +697,7 @@ export function EventManagement() {
                   value={participantEventOptions.find((option) => option.value === participantEventFilter)}
                   onChange={(option) => {
                     setParticipantEventFilter(option?.value ?? 'all');
+                    setMissionProgressFilter('all');
                     setParticipantPage(1);
                   }}
                   isClearable={false}
@@ -621,6 +711,73 @@ export function EventManagement() {
               </Button>
             </div>
           </div>
+
+          {isBootcampFilter ? (
+            <div className="mt-5 space-y-4">
+              <div className="rounded-lg border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm text-amber-950">
+                <p className="font-medium">Creators Bootcamp Mission</p>
+                <p className="mt-0.5 text-[13px] text-amber-900/80">
+                  สรุปความคืบหน้า 3 ขั้น — คลิกชื่อครีเอเตอร์เพื่อดูสถานะเช็คอิน / แบบสอบถาม / ลิงก์ผลงาน
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+                {[
+                  { label: 'ผู้เข้าร่วม', value: bootcampStats.total },
+                  { label: 'คอนเฟิร์ม', value: bootcampStats.confirmed },
+                  { label: 'เช็คอิน', value: bootcampStats.checkedIn },
+                  { label: 'แบบสอบถาม', value: bootcampStats.surveyDone },
+                  { label: 'ส่งลิงก์', value: bootcampStats.postsDone },
+                  { label: 'พร้อมรับรางวัล', value: bootcampStats.prizeReady },
+                ].map((stat) => (
+                  <div
+                    key={stat.label}
+                    className="rounded-lg border border-border bg-muted/20 px-3 py-2.5 text-center"
+                  >
+                    <div className="text-xl font-semibold tabular-nums text-foreground">{stat.value}</div>
+                    <div className="mt-0.5 text-[12px] text-muted-foreground">{stat.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {(
+                  [
+                    { value: 'all', label: 'ทั้งหมด' },
+                    { value: 'prize_ready', label: `พร้อมรับรางวัล (${bootcampStats.prizeReady})` },
+                    { value: 'posts_done', label: `ส่งลิงก์แล้ว (${bootcampStats.postsDone})` },
+                    {
+                      value: 'incomplete',
+                      label: `ยังไม่ครบ (${Math.max(0, bootcampStats.total - bootcampStats.prizeReady)})`,
+                    },
+                  ] as const
+                ).map((option) => {
+                  const active = missionProgressFilter === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        setMissionProgressFilter(option.value);
+                        setParticipantPage(1);
+                      }}
+                      className={`cursor-pointer rounded-lg border px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                        active
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-border bg-white text-foreground hover:bg-muted/50'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : bootcampEvent ? (
+            <p className="mt-3 text-[13px] text-muted-foreground">
+              เลือกอีเวนต์ Bootcamp ในตัวกรองเพื่อดูสรุป Mission — คลิกชื่อครีเอเตอร์เพื่อดูสถานะและลิงก์ผลงาน
+            </p>
+          ) : null}
         </div>
 
         <div className="overflow-x-auto">
@@ -660,7 +817,7 @@ export function EventManagement() {
                           <div className="inline-flex flex-wrap items-center gap-1.5">
                             <button
                               type="button"
-                              onClick={() => void openCreatorDrawer(participant.creatorId)}
+                              onClick={() => void openCreatorDrawer(participant.creatorId, participant)}
                               className="inline-flex flex-wrap items-center gap-1.5 text-left text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-sm"
                             >
                               <span>{`${creator.name} ${creator.lastName ?? ''}`.trim()}</span>
@@ -801,13 +958,18 @@ export function EventManagement() {
           setIsCreatorDrawerOpen(open);
           if (!open) {
             setSelectedCreator(null);
+            setDrawerParticipant(null);
           }
         }}
       >
         <DrawerContent className="overflow-y-auto">
           <DrawerHeader className="p-7">
             <DrawerTitle>รายละเอียดครีเอเตอร์</DrawerTitle>
-            <DrawerDescription>ข้อมูลผู้สนใจเข้าร่วมอีเวนต์</DrawerDescription>
+            <DrawerDescription>
+              {drawerShowsMission
+                ? 'ข้อมูลครีเอเตอร์และสถานะ Bootcamp Mission'
+                : 'ข้อมูลผู้สนใจเข้าร่วมอีเวนต์'}
+            </DrawerDescription>
           </DrawerHeader>
           <div className="space-y-3 px-7 pb-7">
             {creatorLoading && !selectedCreator ? (
@@ -888,6 +1050,77 @@ export function EventManagement() {
                   <label className="text-muted-foreground mb-1">บัญชีโซเชียลมีเดีย</label>
                   {socialList(selectedCreator.socialAccounts, selectedCreator.followerCounts)}
                 </div>
+
+                {drawerShowsMission && drawerParticipant ? (
+                  <div className="mt-2 space-y-3 rounded-lg border border-amber-200 bg-amber-50/60 p-3">
+                    <p className="text-sm font-medium text-amber-950">Bootcamp Mission</p>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      <div className="rounded-lg border border-border bg-white px-3 py-2.5 text-center">
+                        <div className="text-[12px] text-muted-foreground">เช็คอิน</div>
+                        <div className="mt-1">
+                          {drawerParticipant.isShowup ? (
+                            <span className="inline-flex rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-medium text-sky-700">
+                              เช็คอินแล้ว
+                            </span>
+                          ) : (
+                            <span className="inline-flex rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                              ยังไม่เช็คอิน
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-border bg-white px-3 py-2.5 text-center">
+                        <div className="text-[12px] text-muted-foreground">แบบสอบถาม</div>
+                        <div className="mt-1">
+                          {drawerParticipant.surveySubmittedAt ? (
+                            <span className="inline-flex rounded-full bg-violet-50 px-2.5 py-0.5 text-xs font-medium text-violet-700">
+                              ส่งแล้ว
+                            </span>
+                          ) : (
+                            <span className="inline-flex rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                              ยังไม่ส่ง
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-border bg-white px-3 py-2.5 text-center">
+                        <div className="text-[12px] text-muted-foreground">ผลงาน</div>
+                        <div className="mt-1">
+                          {drawerMissionLinks.length > 0 ? (
+                            <span className="inline-flex rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-orange-800">
+                              {drawerMissionLinks.length} ลิงก์
+                            </span>
+                          ) : (
+                            <span className="inline-flex rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                              ยังไม่ส่ง
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-[13px] font-medium text-foreground">ลิงก์ผลงาน</p>
+                      {drawerMissionLinks.length > 0 ? (
+                        <ul className="space-y-2">
+                          {drawerMissionLinks.map((link, index) => (
+                            <li key={`${link}-${index}`}>
+                              <a
+                                href={link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block break-all rounded-lg border border-border bg-white px-3 py-2 text-xs text-primary hover:bg-muted/40 hover:underline"
+                              >
+                                {link}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">ยังไม่มีลิงก์ผลงาน</p>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
               </>
             ) : (
               <p className="text-muted-foreground">ไม่พบข้อมูลครีเอเตอร์</p>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, type ChangeEvent } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Camera, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../shared/Button';
@@ -35,6 +36,7 @@ type CategorySelectOption = { value: string; label: string };
 type AddressSelectOption = { value: string; label: string };
 
 export function CreatorProfile({ creatorId }: CreatorProfileProps) {
+  const searchParams = useSearchParams();
   const [profile, setProfile] = useState<CreatorProfileType | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -49,6 +51,7 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
   const [imageUploading, setImageUploading] = useState(false);
   const [categoryOptions, setCategoryOptions] = useState<CategorySelectOption[]>([]);
   const profileImageInputRef = useRef<HTMLInputElement>(null);
+  const addressSectionRef = useRef<HTMLHeadingElement | null>(null);
 
   const provinceOptions = useMemo(() => getProvinceOptions(), []);
 
@@ -104,6 +107,17 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
 
     void loadCategoryOptions();
   }, []);
+
+  useEffect(() => {
+    const edit = searchParams.get('edit');
+    if (edit !== 'address' && edit !== '1') return;
+    setActiveTab('profile');
+    setIsEditing(true);
+    const timer = window.setTimeout(() => {
+      addressSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [searchParams]);
 
   const loadProfile = async () => {
     try {
@@ -426,7 +440,13 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                 )}
 
                 <div className="h-5"></div>
-                <h3 className="text-primary font-bold">ที่อยู่ปัจจุบัน</h3>
+                <h3
+                  ref={addressSectionRef}
+                  id="current-address"
+                  className="scroll-mt-24 text-primary font-bold"
+                >
+                  ที่อยู่ปัจจุบัน
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-7">
                   <Input
                     label="บ้านเลขที่"
