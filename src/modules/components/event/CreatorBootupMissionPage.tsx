@@ -20,6 +20,7 @@ import {
   MapPin,
   Plus,
   QrCode,
+  Star,
 } from 'lucide-react';
 import { FaRegTrashAlt } from 'react-icons/fa';
 import { toast } from 'sonner';
@@ -36,16 +37,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select';
 import { useSession } from '../../context/SessionContext';
 import {
+  getCreatorById,
   getCreatorEventParticipation,
   getEventBySlug,
   updateEventParticipant,
 } from '../../utils/storage';
-import type { Event, EventParticipant } from '../../types';
+import type { CreatorProfile, Event, EventParticipant } from '../../types';
 import { formatGenericErrorToast } from '../../utils/toast-error';
 import { stripHtmlTags } from '../../utils/strip-html-tags';
 import { BASE_PATH } from '@/lib/publicPath';
+import { BOOTCAMP_SURVEY_QUESTIONS } from './bootcamp-survey';
 
 // ── Easy-to-edit constants ──────────────────────────────────────────
 const BOOTCAMP_MISSION_ENABLED = true;
@@ -64,43 +74,6 @@ const BOOTCAMP_SHORT_LINK = {
 
 /** Mock short link for admin preview only; `{uid}` is replaced with the admin id. */
 const BOOTCAMP_MOCK_SHORT_LINK = 'https://asw.to/bootcamp?uid={uid}';
-
-type SurveyQuestion =
-  | { id: string; label: string; type: 'choice'; options: string[] }
-  | { id: string; label: string; type: 'text' };
-
-/** Replace these labels/options before the live event. */
-const SURVEY_QUESTIONS: SurveyQuestion[] = [
-  {
-    id: 'q1',
-    label: 'คุณรู้จัก AssetWise Creator Club จากช่องทางใด?',
-    type: 'choice',
-    options: ['โซเชียลมีเดีย', 'เพื่อนแนะนำ', 'อีเมล/ไลน์', 'อื่นๆ'],
-  },
-  {
-    id: 'q2',
-    label: 'แพลตฟอร์มหลักที่คุณใช้สร้างคอนเทนต์คืออะไร?',
-    type: 'choice',
-    options: ['Facebook', 'Instagram', 'TikTok', 'YouTube', 'อื่นๆ'],
-  },
-  {
-    id: 'q3',
-    label: 'เป้าหมายหลักในการเข้าร่วม Bootcamp ครั้งนี้คืออะไร?',
-    type: 'choice',
-    options: ['เรียนรู้คอนเทนต์', 'สร้างรายได้', 'สร้างเครือข่าย', 'อื่นๆ'],
-  },
-  {
-    id: 'q4',
-    label: 'ประสบการณ์ทำคอนเทนต์อสังหาฯ ของคุณอยู่ในระดับใด?',
-    type: 'choice',
-    options: ['มือใหม่', 'ปานกลาง', 'มีประสบการณ์'],
-  },
-  {
-    id: 'q5',
-    label: 'มีข้อเสนอแนะหรือสิ่งที่อยากได้จากทีมงานเพิ่มเติมไหม?',
-    type: 'text',
-  },
-];
 
 type GateState =
   | 'loading'
@@ -123,6 +96,18 @@ function createAdminPreviewParticipant(eventId: string, adminId: string): EventP
     surveySubmittedAt: undefined,
     missionPostLinks: [],
   };
+}
+
+/** Minimum fields needed to ship a prize to the creator. */
+function hasShippingAddress(profile: CreatorProfile | null | undefined): boolean {
+  if (!profile) return false;
+  return Boolean(
+    profile.addressHouseNo?.trim() &&
+      profile.addressProvince?.trim() &&
+      profile.addressDistrict?.trim() &&
+      profile.addressSubDistrict?.trim() &&
+      profile.addressPostalCode?.trim(),
+  );
 }
 
 function ProgressGauge({ completed, total }: { completed: number; total: number }) {
@@ -180,6 +165,7 @@ export function CreatorBootupMissionPage() {
   const [shortUrl, setShortUrl] = useState<string | null>(null);
   const [shortUrlLoading, setShortUrlLoading] = useState(false);
   const [shortUrlError, setShortUrlError] = useState(false);
+  const [creatorProfile, setCreatorProfile] = useState<CreatorProfile | null>(null);
 
   const loadMission = useCallback(async () => {
     if (!BOOTCAMP_MISSION_ENABLED) {
@@ -197,6 +183,7 @@ export function CreatorBootupMissionPage() {
 
       if (!currentEvent) {
         setParticipant(null);
+        setCreatorProfile(null);
         setIsAdminPreview(false);
         setGate('no_event');
         return;
@@ -208,6 +195,7 @@ export function CreatorBootupMissionPage() {
           if (prev?.id.startsWith('preview-')) return prev;
           return createAdminPreviewParticipant(currentEvent.id, currentUserId);
         });
+        setCreatorProfile(null);
         setIsAdminPreview(true);
         setGate('ready');
         return;
@@ -215,13 +203,18 @@ export function CreatorBootupMissionPage() {
 
       if (!currentUserId || userRole !== 'creator') {
         setParticipant(null);
+        setCreatorProfile(null);
         setIsAdminPreview(false);
         setGate('need_login');
         return;
       }
 
-      const row = await getCreatorEventParticipation(currentEvent.id, currentUserId);
+      const [row, profile] = await Promise.all([
+        getCreatorEventParticipation(currentEvent.id, currentUserId),
+        getCreatorById(currentUserId),
+      ]);
       setParticipant(row);
+      setCreatorProfile(profile);
       setIsAdminPreview(false);
 
       if (!row) {
@@ -261,6 +254,9 @@ export function CreatorBootupMissionPage() {
   const step2Done = Boolean(participant?.surveySubmittedAt);
   const step3Done = (participant?.missionPostLinks?.filter((u) => u.trim()).length ?? 0) >= 1;
   const completedCount = [step1Done, step2Done, step3Done].filter(Boolean).length;
+  const missionComplete = step1Done && step2Done && step3Done;
+  const needsShippingAddress =
+    !isAdminPreview && missionComplete && !hasShippingAddress(creatorProfile);
 
   const displayShortLink = isAdminPreview
     ? currentUserId
@@ -335,7 +331,7 @@ export function CreatorBootupMissionPage() {
   const handleSaveSurvey = async () => {
     if (!participant) return;
 
-    for (const q of SURVEY_QUESTIONS) {
+    for (const q of BOOTCAMP_SURVEY_QUESTIONS) {
       const value = (surveyDraft[q.id] ?? '').trim();
       if (!value) {
         toast.error('กรุณาตอบคำถามให้ครบทุกข้อ');
@@ -346,7 +342,7 @@ export function CreatorBootupMissionPage() {
     try {
       setSavingSurvey(true);
       const answers: Record<string, string> = {};
-      for (const q of SURVEY_QUESTIONS) {
+      for (const q of BOOTCAMP_SURVEY_QUESTIONS) {
         answers[q.id] = (surveyDraft[q.id] ?? '').trim();
       }
       const submittedAt = new Date().toISOString();
@@ -539,6 +535,32 @@ export function CreatorBootupMissionPage() {
               </div>
             </div>
 
+            {needsShippingAddress ? (
+              <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-4 shadow-sm sm:px-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-800">
+                      <MapPin className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-amber-950">
+                        กรุณากรอกที่อยู่ปัจจุบันเพื่อรับรางวัล
+                      </p>
+                      <p className="mt-0.5 text-[13px] text-amber-900/80">
+                        คุณทำครบ 3 ภารกิจแล้ว แต่ยังไม่มีที่อยู่สำหรับจัดส่งของรางวัลในโปรไฟล์
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/profile?edit=address"
+                    className="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                  >
+                    ไปแก้ไขโปรไฟล์
+                  </Link>
+                </div>
+              </div>
+            ) : null}
+
             {/* Step cards grid — 1+2 same row, 3 full width (mobile + desktop) */}
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <MissionStepCard
@@ -585,7 +607,7 @@ export function CreatorBootupMissionPage() {
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 text-accent">
-                      <ClipboardList className="h-3.5 w-3.5" /> {SURVEY_QUESTIONS.length} ข้อ
+                      <ClipboardList className="h-3.5 w-3.5" /> {BOOTCAMP_SURVEY_QUESTIONS.length} ข้อ
                     </span>
                   )
                 }
@@ -641,27 +663,54 @@ export function CreatorBootupMissionPage() {
           </DialogHeader>
 
           <div className="space-y-5 py-2">
-            {SURVEY_QUESTIONS.map((q, index) => (
+            {BOOTCAMP_SURVEY_QUESTIONS.map((q, index) => (
               <div key={q.id} className="space-y-2">
                 <label className="block text-sm font-medium text-foreground">
                   {index + 1}. {q.label}
                 </label>
                 {q.type === 'choice' ? (
-                  <div className="flex flex-col gap-2">
-                    {q.options.map((opt) => {
-                      const selected = surveyDraft[q.id] === opt;
+                  <Select
+                    value={surveyDraft[q.id]?.trim() || undefined}
+                    onValueChange={(value) =>
+                      setSurveyDraft((prev) => ({ ...prev, [q.id]: value }))
+                    }
+                  >
+                    <SelectTrigger className="h-auto min-h-10 w-full cursor-pointer rounded-xl border-border bg-white px-3 py-2.5 text-sm">
+                      {surveyDraft[q.id]?.trim() ? (
+                        <SelectValue />
+                      ) : (
+                        <span className="text-muted-foreground">เลือกคำตอบ</span>
+                      )}
+                    </SelectTrigger>
+                    <SelectContent className="z-[100]">
+                      {q.options.map((opt) => (
+                        <SelectItem key={opt} value={opt} className="cursor-pointer">
+                          {opt}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : q.type === 'rating' ? (
+                  <div className="flex flex-wrap items-center gap-1" role="group" aria-label={q.label}>
+                    {Array.from({ length: q.max }, (_, i) => {
+                      const value = String(i + 1);
+                      const selected = Number(surveyDraft[q.id] || 0) >= i + 1;
                       return (
                         <button
-                          key={opt}
+                          key={value}
                           type="button"
-                          onClick={() => setSurveyDraft((prev) => ({ ...prev, [q.id]: opt }))}
-                          className={`cursor-pointer rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${
-                            selected
-                              ? 'border-accent bg-orange-50 text-foreground'
-                              : 'border-border bg-white hover:border-accent/40'
-                          }`}
+                          onClick={() => setSurveyDraft((prev) => ({ ...prev, [q.id]: value }))}
+                          className="cursor-pointer rounded-lg p-0.5 transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                          aria-label={`${value} ดาว`}
+                          aria-pressed={surveyDraft[q.id] === value}
                         >
-                          {opt}
+                          <Star
+                            className={`h-[32px] w-[32px] shrink-0 ${
+                              selected
+                                ? 'fill-accent text-accent'
+                                : 'fill-transparent text-muted-foreground/40'
+                            }`}
+                          />
                         </button>
                       );
                     })}
