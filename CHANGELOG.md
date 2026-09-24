@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.25.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.24.0...v2.25.0) (2026-09-24)
+
+
+### Features
+
+* เพิ่มการรองรับโหมดพรีวิวใน Creator Bootup Mission Page และปรับปรุงการจัดการผู้เข้าร่วม ([18ea123](https://github.com/kritsadaskt/asw-creatorclub/commit/18ea123855d4f8f95c7d6d96286f49579eef7301))
+
 ## [2.24.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.23.0...v2.24.0) (2026-09-24)
 
 
