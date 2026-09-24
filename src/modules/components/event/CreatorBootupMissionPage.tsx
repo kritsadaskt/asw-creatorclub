@@ -529,7 +529,7 @@ export function CreatorBootupMissionPage() {
           <div className="space-y-5">
             <div className="text-center">
               <h1 className="mt-1 hidden text-2xl font-bold text-foreground md:text-3xl">{eventTitle}</h1>
-              <p className="mt-1 text-sm text-muted-foreground">แค่ทำภารกิจให้ครบ<br/>รับรางวัลขาตั้งกล้อง <span className="text-accent font-bold ">XXXXX</span> มูลค่า <span className="text-accent font-bold">699</span> บาท</p>
+              <p className="mt-1 text-xl text-neutral-700 leading-normal font-medium">MISSION DONE REWARD <br className="block md:hidden" />UNLOCKED 🔓<br/>ทำภารกิจครบ รับ <span className="text-accent font-bold">Ulanzi SK26</span></p>
             </div>
 
             {/* Progress card */}
