@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   Check,
   CheckCircle2,
@@ -84,11 +85,11 @@ type GateState =
   | 'need_confirm'
   | 'ready';
 
-function createAdminPreviewParticipant(eventId: string, adminId: string): EventParticipant {
+function createPreviewParticipant(eventId: string, previewUserId: string): EventParticipant {
   return {
-    id: `preview-${adminId}`,
+    id: `preview-${previewUserId}`,
     eventId,
-    creatorId: adminId,
+    creatorId: previewUserId,
     isShowup: false,
     isConfirm: true,
     submitAt: new Date().toISOString(),
@@ -148,12 +149,14 @@ function ProgressGauge({ completed, total }: { completed: number; total: number 
 }
 
 export function CreatorBootupMissionPage() {
+  const searchParams = useSearchParams();
+  const isPreviewQuery = searchParams.get('preview') === '1';
   const { currentUserId, userRole, sessionReady, handleLogin, handleLogout } = useSession();
   const [event, setEvent] = useState<Event | null>(null);
   const [participant, setParticipant] = useState<EventParticipant | null>(null);
   const [gate, setGate] = useState<GateState>('loading');
-  /** Admin bypass — local-only participant, no DB writes. */
-  const [isAdminPreview, setIsAdminPreview] = useState(false);
+  /** Local-only preview — no DB writes (admin session or ?preview=1). */
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [surveyOpen, setSurveyOpen] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);
@@ -170,10 +173,11 @@ export function CreatorBootupMissionPage() {
   const loadMission = useCallback(async () => {
     if (!BOOTCAMP_MISSION_ENABLED) {
       setGate('disabled');
-      setIsAdminPreview(false);
+      setIsPreviewMode(false);
       return;
     }
-    if (!sessionReady) return;
+    // ?preview=1 can load without waiting for session; otherwise wait for auth check.
+    if (!sessionReady && !isPreviewQuery) return;
 
     try {
       setGate((prev) => (prev === 'ready' ? prev : 'loading'));
@@ -184,19 +188,21 @@ export function CreatorBootupMissionPage() {
       if (!currentEvent) {
         setParticipant(null);
         setCreatorProfile(null);
-        setIsAdminPreview(false);
+        setIsPreviewMode(false);
         setGate('no_event');
         return;
       }
 
-      // Admin can preview the full mission board without registering as a creator.
-      if (currentUserId && userRole === 'admin') {
+      // Preview: admin session OR ?preview=1 — local-only board for testing steps.
+      const allowPreview = isPreviewQuery || (Boolean(currentUserId) && userRole === 'admin');
+      if (allowPreview) {
+        const previewUserId = currentUserId || 'guest';
         setParticipant((prev) => {
           if (prev?.id.startsWith('preview-')) return prev;
-          return createAdminPreviewParticipant(currentEvent.id, currentUserId);
+          return createPreviewParticipant(currentEvent.id, previewUserId);
         });
         setCreatorProfile(null);
-        setIsAdminPreview(true);
+        setIsPreviewMode(true);
         setGate('ready');
         return;
       }
@@ -204,7 +210,7 @@ export function CreatorBootupMissionPage() {
       if (!currentUserId || userRole !== 'creator') {
         setParticipant(null);
         setCreatorProfile(null);
-        setIsAdminPreview(false);
+        setIsPreviewMode(false);
         setGate('need_login');
         return;
       }
@@ -215,7 +221,7 @@ export function CreatorBootupMissionPage() {
       ]);
       setParticipant(row);
       setCreatorProfile(profile);
-      setIsAdminPreview(false);
+      setIsPreviewMode(false);
 
       if (!row) {
         setGate('need_register');
@@ -232,7 +238,7 @@ export function CreatorBootupMissionPage() {
       toast.error(formatGenericErrorToast('ไม่สามารถโหลดภารกิจได้', error));
       setGate('no_event');
     }
-  }, [currentUserId, sessionReady, userRole]);
+  }, [currentUserId, isPreviewQuery, sessionReady, userRole]);
 
   useEffect(() => {
     void loadMission();
@@ -256,16 +262,17 @@ export function CreatorBootupMissionPage() {
   const completedCount = [step1Done, step2Done, step3Done].filter(Boolean).length;
   const missionComplete = step1Done && step2Done && step3Done;
   const needsShippingAddress =
-    !isAdminPreview && missionComplete && !hasShippingAddress(creatorProfile);
+    !isPreviewMode && missionComplete && !hasShippingAddress(creatorProfile);
 
-  const displayShortLink = isAdminPreview
-    ? currentUserId
-      ? BOOTCAMP_MOCK_SHORT_LINK.replace('{uid}', encodeURIComponent(currentUserId))
-      : ''
+  const displayShortLink = isPreviewMode
+    ? BOOTCAMP_MOCK_SHORT_LINK.replace(
+        '{uid}',
+        encodeURIComponent(currentUserId || 'guest'),
+      )
     : shortUrl;
 
   const fetchBootcampShortLink = useCallback(async () => {
-    if (isAdminPreview || userRole !== 'creator' || !currentUserId) {
+    if (isPreviewMode || userRole !== 'creator' || !currentUserId) {
       setShortUrl(null);
       setShortUrlError(false);
       setShortUrlLoading(false);
@@ -302,12 +309,12 @@ export function CreatorBootupMissionPage() {
     } finally {
       setShortUrlLoading(false);
     }
-  }, [currentUserId, isAdminPreview, userRole]);
+  }, [currentUserId, isPreviewMode, userRole]);
 
   useEffect(() => {
-    if (gate !== 'ready' || isAdminPreview) return;
+    if (gate !== 'ready' || isPreviewMode) return;
     void fetchBootcampShortLink();
-  }, [fetchBootcampShortLink, gate, isAdminPreview]);
+  }, [fetchBootcampShortLink, gate, isPreviewMode]);
 
   const openSurvey = () => {
     if (!step1Done) {
@@ -346,7 +353,7 @@ export function CreatorBootupMissionPage() {
         answers[q.id] = (surveyDraft[q.id] ?? '').trim();
       }
       const submittedAt = new Date().toISOString();
-      if (!isAdminPreview) {
+      if (!isPreviewMode) {
         await updateEventParticipant(participant.id, {
           surveyAnswers: answers,
           surveySubmittedAt: submittedAt,
@@ -359,7 +366,7 @@ export function CreatorBootupMissionPage() {
       });
       setSurveyOpen(false);
       toast.success(
-        isAdminPreview
+        isPreviewMode
           ? 'บันทึกแบบสอบถามแล้ว (Preview — ไม่ลงฐานข้อมูล)'
           : 'บันทึกแบบสอบถามเรียบร้อยแล้ว',
       );
@@ -381,13 +388,13 @@ export function CreatorBootupMissionPage() {
 
     try {
       setSavingPosts(true);
-      if (!isAdminPreview) {
+      if (!isPreviewMode) {
         await updateEventParticipant(participant.id, { missionPostLinks: normalized });
       }
       setParticipant({ ...participant, missionPostLinks: normalized });
       setSubmitOpen(false);
       toast.success(
-        isAdminPreview
+        isPreviewMode
           ? 'บันทึกลิงก์โพสต์แล้ว (Preview — ไม่ลงฐานข้อมูล)'
           : 'บันทึกลิงก์โพสต์เรียบร้อยแล้ว',
       );
@@ -400,14 +407,15 @@ export function CreatorBootupMissionPage() {
   };
 
   const togglePreviewCheckIn = () => {
-    if (!participant || !isAdminPreview) return;
+    if (!participant || !isPreviewMode) return;
     setParticipant({ ...participant, isShowup: !participant.isShowup });
     toast.info(participant.isShowup ? 'จำลอง: ยังไม่เช็คอิน' : 'จำลอง: เช็คอินแล้ว');
   };
 
   const resetPreviewProgress = () => {
-    if (!event || !currentUserId || !isAdminPreview) return;
-    setParticipant(createAdminPreviewParticipant(event.id, currentUserId));
+    if (!event || !isPreviewMode) return;
+    const previewUserId = currentUserId || 'guest';
+    setParticipant(createPreviewParticipant(event.id, previewUserId));
     toast.info('รีเซ็ตสถานะ Preview แล้ว');
   };
 
@@ -429,12 +437,12 @@ export function CreatorBootupMissionPage() {
     <div className="min-h-screen bg-[linear-gradient(180deg,#faf8f5_0%,#fff1e6_55%,#ffe8d6_100%)]">
       <Header fixed={false} onLogin={handleLogin} onLogout={handleLogout} />
 
-      {isAdminPreview && gate === 'ready' ? (
+      {isPreviewMode && gate === 'ready' ? (
         <div className="border-b border-amber-200 bg-amber-50">
           <div className="container mx-auto flex flex-col gap-2 px-4 py-2 text-xs text-amber-900 sm:flex-row sm:items-center sm:justify-between">
             <span className="inline-flex items-center gap-2">
               <Eye className="h-4 w-4 shrink-0" />
-              โหมด Preview สำหรับแอดมิน — ไม่บันทึกลงฐานข้อมูล
+              โหมด Preview (?preview=1 หรือแอดมิน) — ไม่บันทึกลงฐานข้อมูล
             </span>
             <div className="flex flex-wrap gap-2">
               <button
@@ -763,7 +771,7 @@ export function CreatorBootupMissionPage() {
           <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-6 py-4">
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-foreground">ลิงก์ย่อสำหรับโพสต์</h4>
-              {isAdminPreview ? (
+              {isPreviewMode ? (
                 <div className="space-y-2">
                   <p className="text-[13px] text-amber-700">
                     Preview — ลิงก์จำลอง (ไม่สร้าง TinyURL จริง)
