@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.24.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.23.0...v2.24.0) (2026-09-24)
+
+
+### Features
+
+* ปรับตาราง Event participant / ขึ้นแจ้งเตือนถ้าส่งผลงานครบแล้วแต่ยังไม่ได้อัพเดตที่อยู่ใน Profile ([717e4c3](https://github.com/kritsadaskt/asw-creatorclub/commit/717e4c3387193753522dbb1f6d702c85f40ed522))
+* เพิ่มฟีเจอร์การจัดการแบบสำรวจ Bootcamp ใน Event Management และ Creator Bootup Mission Page ([0a16b8c](https://github.com/kritsadaskt/asw-creatorclub/commit/0a16b8c00ec161525a800c3483f06795fc195eb3))
+
 ## [2.23.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.22.0...v2.23.0) (2026-09-23)
 
 
