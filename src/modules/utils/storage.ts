@@ -1163,11 +1163,14 @@ const mapDbToEventParticipant = (row: any): EventParticipant => ({
   missionPostLinks: mapMissionPostLinks(row.mission_post_links),
 });
 
-export const getEventParticipants = async (): Promise<EventParticipant[]> => {
-  const { data, error } = await supabase
-    .from('event_participant')
-    .select('*')
-    .order('submit_at', { ascending: false });
+export const getEventParticipants = async (eventId?: string): Promise<EventParticipant[]> => {
+  let query = supabase.from('event_participant').select('*').order('submit_at', { ascending: false });
+
+  if (eventId?.trim()) {
+    query = query.eq('event_id', eventId.trim());
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('Error getting event participants:', error);

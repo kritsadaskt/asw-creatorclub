@@ -1,9 +1,9 @@
 'use client';
 
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { Eye, Loader2, Mail, Pencil, Phone, Plus, Trash2, UserCheck } from 'lucide-react';
+import { Eye, Loader2, Mail, Pencil, Phone, Plus, Star, Trash2, UserCheck } from 'lucide-react';
 import Select from 'react-select';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
@@ -46,6 +46,13 @@ import { CreatorTypeNameByKey } from '../ui/utils';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { getProfileImageUrl } from '../../utils/profileImage';
 import { Lemon8Icon } from '@/modules/utils/svg';
+import {
+  aggregateBootcampSurvey,
+  BOOTCAMP_SURVEY_CSV_HEADERS,
+  BOOTCAMP_SURVEY_QUESTIONS,
+  formatBootcampSurveyAnswerDisplay,
+  getBootcampSurveyAnswer,
+} from '../event/bootcamp-survey';
 
 type SocialPlatform = keyof CreatorProfile['socialAccounts'];
 
@@ -149,10 +156,11 @@ export function EventManagement() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [participantEventFilter, setParticipantEventFilter] = useState('all');
+  const [participantEventFilter, setParticipantEventFilter] = useState('');
   const [missionProgressFilter, setMissionProgressFilter] = useState<MissionProgressFilter>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [participantPage, setParticipantPage] = useState(1);
+  const [participantsLoading, setParticipantsLoading] = useState(false);
   const [form, setForm] = useState<EventFormState>(DEFAULT_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isFormDrawerOpen, setIsFormDrawerOpen] = useState(false);
@@ -165,14 +173,12 @@ export function EventManagement() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [eventsData, participantsData, creatorsData, projectsData] = await Promise.all([
+      const [eventsData, creatorsData, projectsData] = await Promise.all([
         getEvents(),
-        getEventParticipants(),
         getCreators(),
         getProjects(),
       ]);
       setEvents(eventsData);
-      setParticipants(participantsData);
       setCreators(creatorsData);
       setProjects(projectsData);
     } catch (error) {
@@ -183,9 +189,35 @@ export function EventManagement() {
     }
   };
 
+  const loadParticipantsForEvent = useCallback(async (eventId: string) => {
+    if (!eventId) {
+      setParticipants([]);
+      return;
+    }
+    try {
+      setParticipantsLoading(true);
+      const data = await getEventParticipants(eventId);
+      setParticipants(data);
+    } catch (error) {
+      console.error('Error loading event participants:', error);
+      toast.error('ไม่สามารถโหลดข้อมูลผู้เข้าร่วมได้');
+      setParticipants([]);
+    } finally {
+      setParticipantsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     void loadData();
   }, []);
+
+  useEffect(() => {
+    if (!participantEventFilter) {
+      setParticipants([]);
+      return;
+    }
+    void loadParticipantsForEvent(participantEventFilter);
+  }, [participantEventFilter, loadParticipantsForEvent]);
 
   const filteredEvents = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -205,26 +237,24 @@ export function EventManagement() {
   const eventNameById = useMemo(() => new Map(events.map((event) => [event.id, event.name])), [events]);
   const eventById = useMemo(() => new Map(events.map((event) => [event.id, event])), [events]);
 
-  const bootcampEvent = useMemo(
-    () => events.find((event) => event.slug === BOOTCAMP_EVENT_SLUG) ?? null,
-    [events],
-  );
   const isBootcampFilter =
-    participantEventFilter !== 'all' &&
+    Boolean(participantEventFilter) &&
     eventById.get(participantEventFilter)?.slug === BOOTCAMP_EVENT_SLUG;
+  const hasSelectedEvent = Boolean(participantEventFilter);
 
-  const bootcampParticipants = useMemo(() => {
-    if (!bootcampEvent) return [];
-    return participants.filter((participant) => participant.eventId === bootcampEvent.id);
-  }, [bootcampEvent, participants]);
+  /** Participants for the selected event (already scoped by API). */
+  const selectedEventParticipants = participants;
 
   const bootcampStats = useMemo(() => {
+    if (!isBootcampFilter) {
+      return { total: 0, confirmed: 0, checkedIn: 0, surveyDone: 0, postsDone: 0, prizeReady: 0 };
+    }
     let confirmed = 0;
     let checkedIn = 0;
     let surveyDone = 0;
     let postsDone = 0;
     let prizeReady = 0;
-    for (const participant of bootcampParticipants) {
+    for (const participant of selectedEventParticipants) {
       if (participant.isConfirm) confirmed += 1;
       if (participant.isShowup) checkedIn += 1;
       if (participant.surveySubmittedAt) surveyDone += 1;
@@ -232,21 +262,27 @@ export function EventManagement() {
       if (isMissionComplete(participant)) prizeReady += 1;
     }
     return {
-      total: bootcampParticipants.length,
+      total: selectedEventParticipants.length,
       confirmed,
       checkedIn,
       surveyDone,
       postsDone,
       prizeReady,
     };
-  }, [bootcampParticipants]);
+  }, [isBootcampFilter, selectedEventParticipants]);
+
+  const bootcampSurveyAggregate = useMemo(
+    () =>
+      isBootcampFilter
+        ? aggregateBootcampSurvey(selectedEventParticipants)
+        : aggregateBootcampSurvey([]),
+    [isBootcampFilter, selectedEventParticipants],
+  );
 
   const filteredParticipants = useMemo(() => {
-    let list =
-      participantEventFilter === 'all'
-        ? participants
-        : participants.filter((participant) => participant.eventId === participantEventFilter);
+    if (!hasSelectedEvent) return [];
 
+    let list = selectedEventParticipants;
     if (isBootcampFilter && missionProgressFilter !== 'all') {
       list = list.filter((participant) => {
         if (missionProgressFilter === 'prize_ready') return isMissionComplete(participant);
@@ -257,16 +293,22 @@ export function EventManagement() {
     }
 
     return list;
-  }, [participants, participantEventFilter, isBootcampFilter, missionProgressFilter]);
+  }, [
+    hasSelectedEvent,
+    selectedEventParticipants,
+    isBootcampFilter,
+    missionProgressFilter,
+  ]);
   const participantTotalPages = Math.max(1, Math.ceil(filteredParticipants.length / PAGE_SIZE));
   const safeParticipantPage = Math.min(Math.max(participantPage, 1), participantTotalPages);
   const participantStart = (safeParticipantPage - 1) * PAGE_SIZE;
   const pagedParticipants = filteredParticipants.slice(participantStart, participantStart + PAGE_SIZE);
   const participantEventOptions = useMemo(
-    () => [
-      { value: 'all', label: 'ทั้งหมด' },
-      ...events.map((event) => ({ value: event.id, label: event.name.replace(/<[^>]+>/g, '') })),
-    ],
+    () =>
+      events.map((event) => ({
+        value: event.id,
+        label: event.name.replace(/<[^>]+>/g, ''),
+      })),
     [events],
   );
 
@@ -306,9 +348,13 @@ export function EventManagement() {
         postLinkCount: String(postLinks.length),
         missionComplete: missionComplete ? 'Yes' : 'No',
         prizeEligible: missionComplete ? 'Yes' : 'No',
+        surveyAnswers: participant.surveyAnswers,
       };
     });
 
+    const surveyHeaders = BOOTCAMP_SURVEY_QUESTIONS.map(
+      (q) => BOOTCAMP_SURVEY_CSV_HEADERS[q.id] ?? q.id.toUpperCase(),
+    );
     const header = [
       'Event Name',
       'Creator Name',
@@ -325,6 +371,7 @@ export function EventManagement() {
       'Post Links',
       'Mission Complete',
       'Prize Eligible',
+      ...surveyHeaders,
     ];
     const csvLines = [
       header.join(','),
@@ -345,8 +392,11 @@ export function EventManagement() {
           row.postLinks,
           row.missionComplete,
           row.prizeEligible,
+          ...BOOTCAMP_SURVEY_QUESTIONS.map((q) =>
+            getBootcampSurveyAnswer(row.surveyAnswers, q.id),
+          ),
         ]
-          .map((cell) => escapeCsv(cell))
+          .map((cell) => escapeCsv(String(cell)))
           .join(','),
       ),
     ];
@@ -355,8 +405,8 @@ export function EventManagement() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     const suffix =
-      participantEventFilter === 'all'
-        ? 'all-events'
+      !participantEventFilter
+        ? 'no-event'
         : isBootcampFilter && missionProgressFilter !== 'all'
           ? `${participantEventFilter}-${missionProgressFilter}`
           : participantEventFilter;
@@ -686,33 +736,55 @@ export function EventManagement() {
       <div className="mt-6 rounded-xl border border-border bg-white shadow-sm">
         <div className="border-b border-border p-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <h3 className="text-lg font-medium text-foreground">
-              ผู้สนใจเข้าร่วม Event ({filteredParticipants.length})
-            </h3>
+            <div>
+              <h3 className="text-lg font-medium text-foreground">
+                ผู้สนใจเข้าร่วม Event
+                {hasSelectedEvent ? ` (${filteredParticipants.length})` : ''}
+              </h3>
+              <p className="mt-0.5 text-[13px] text-muted-foreground">
+                เลือกอีเวนต์ก่อน แล้วระบบจะโหลดรายชื่อผู้เข้าร่วม
+              </p>
+            </div>
             <div className="flex w-full flex-col gap-5 md:w-auto md:flex-row md:items-end">
-              <div className="w-full md:w-72">
-                <label className="mb-1 hidden text-sm text-muted-foreground">Filter Event</label>
+              <div className="w-full md:w-80">
+                <label className="mb-1 block text-sm text-muted-foreground">เลือก Event</label>
                 <Select
                   options={participantEventOptions}
-                  value={participantEventOptions.find((option) => option.value === participantEventFilter)}
+                  value={
+                    participantEventOptions.find((option) => option.value === participantEventFilter) ??
+                    null
+                  }
                   onChange={(option) => {
-                    setParticipantEventFilter(option?.value ?? 'all');
+                    setParticipantEventFilter(option?.value ?? '');
                     setMissionProgressFilter('all');
                     setParticipantPage(1);
                   }}
-                  isClearable={false}
+                  isClearable
+                  isSearchable
                   classNamePrefix="react-select"
-                  placeholder="ทั้งหมด"
+                  placeholder="เลือกอีเวนต์..."
+                  noOptionsMessage={() => 'ไม่พบอีเวนต์'}
                 />
               </div>
-              <Button variant="outline" className="text-[15px] flex items-center gap-2" onClick={handleExportParticipants}>
+              <Button
+                variant="outline"
+                className="text-[15px] flex items-center gap-2"
+                onClick={handleExportParticipants}
+                disabled={!hasSelectedEvent || participantsLoading || filteredParticipants.length === 0}
+              >
                 <FaFileExcel className="h-4 w-4" />
-                Export {filteredParticipants.length}
+                Export {hasSelectedEvent ? filteredParticipants.length : 0}
               </Button>
             </div>
           </div>
 
-          {isBootcampFilter ? (
+          {!hasSelectedEvent ? (
+            <p className="mt-4 rounded-lg border border-dashed border-border bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground">
+              กรุณาเลือกอีเวนต์ด้านบนเพื่อดูรายชื่อผู้สนใจเข้าร่วม
+            </p>
+          ) : null}
+
+          {hasSelectedEvent && isBootcampFilter ? (
             <div className="mt-5 space-y-4">
               <div className="rounded-lg border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm text-amber-950">
                 <p className="font-medium">Creators Bootcamp Mission</p>
@@ -772,182 +844,249 @@ export function EventManagement() {
                   );
                 })}
               </div>
+
+              <div className="rounded-lg border border-border bg-white p-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h4 className="text-sm font-semibold text-foreground">สรุปแบบสอบถาม</h4>
+                  <p className="text-[12px] text-muted-foreground">
+                    ส่งแล้ว {bootcampSurveyAggregate.submittedCount} / {bootcampStats.total} คน
+                  </p>
+                </div>
+
+                {bootcampSurveyAggregate.submittedCount === 0 ? (
+                  <p className="mt-3 text-sm text-muted-foreground">ยังไม่มีผู้ส่งแบบสอบถาม</p>
+                ) : (
+                  <div className="mt-3 grid gap-4 lg:grid-cols-2">
+                    <div className="space-y-2">
+                      <p className="text-[13px] font-medium text-foreground">ค่าเฉลี่ยคะแนน (1–5)</p>
+                      <div className="space-y-1.5">
+                        {bootcampSurveyAggregate.ratingAverages.map((item) => (
+                          <div
+                            key={item.id}
+                            className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/10 px-3 py-2"
+                          >
+                            <span className="min-w-0 flex-1 truncate text-[12px] text-muted-foreground" title={item.label}>
+                              {item.id.toUpperCase()} · {item.responses} คน
+                            </span>
+                            <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold tabular-nums text-foreground">
+                              <Star className="h-3.5 w-3.5 fill-accent text-accent" />
+                              {item.average == null ? '—' : item.average.toFixed(1)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-[13px] font-medium text-foreground">
+                        ความสนใจ Affiliate (Q5)
+                      </p>
+                      <div className="space-y-1.5">
+                        {bootcampSurveyAggregate.affiliateInterest.map((item) => (
+                          <div key={item.option} className="space-y-1">
+                            <div className="flex items-center justify-between gap-2 text-[12px]">
+                              <span className="text-muted-foreground">{item.option}</span>
+                              <span className="tabular-nums text-foreground">
+                                {item.count} ({item.pct}%)
+                              </span>
+                            </div>
+                            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                              <div
+                                className="h-full rounded-full bg-primary/80"
+                                style={{ width: `${item.pct}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          ) : bootcampEvent ? (
-            <p className="mt-3 text-[13px] text-muted-foreground">
-              เลือกอีเวนต์ Bootcamp ในตัวกรองเพื่อดูสรุป Mission — คลิกชื่อครีเอเตอร์เพื่อดูสถานะและลิงก์ผลงาน
-            </p>
           ) : null}
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[820px]">
-            <thead className="bg-muted/30">
-              <tr>
-                <th className="px-4 py-3 text-left text-sm font-medium">Event</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">ชื่อ</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">หมวดหมู่</th>
-                <th className="px-4 py-3 text-center text-sm font-medium">คอนเฟิร์ม</th>
-                <th className="px-4 py-3 text-center text-sm font-medium">เช็คอิน</th>
-                <th className="px-4 py-3 text-center text-sm font-medium">ยืนยัน</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {pagedParticipants.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
-                    ไม่พบข้อมูลผู้สนใจเข้าร่วม
-                  </td>
-                </tr>
-              ) : (
-                pagedParticipants.map((participant) => {
-                  const creator = creatorById.get(participant.creatorId);
-                  const email = creator?.email?.trim();
-                  const phone = creator?.phone?.trim();
-                  const confirming = confirmingId === participant.id;
-                  return (
-                    <tr key={participant.id} className="hover:bg-muted/20">
-                      <td className="px-4 py-3 text-sm">
-                        {eventNameById.get(participant.eventId)?.replace(/<[^>]+>/g, '') ||
-                          participant.eventId}
-                      </td>
-
-                      <td className="px-4 py-3 text-sm">
-                        {creator ? (
-                          <div className="inline-flex flex-wrap items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => void openCreatorDrawer(participant.creatorId, participant)}
-                              className="inline-flex flex-wrap items-center gap-1.5 text-left text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-sm"
-                            >
-                              <span>{`${creator.name} ${creator.lastName ?? ''}`.trim()}</span>
-                              <CreatorBadge type={creator.type ?? ''} />
-                            </button>
-                            {email ? (
-                              <a
-                                href={`mailto:${email}`}
-                                aria-label={`ส่งอีเมลถึง ${email}`}
-                                title={email}
-                                className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-primary hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                              >
-                                <Mail className="h-3.5 w-3.5" />
-                              </a>
-                            ) : (
-                              <span
-                                className="inline-flex h-7 w-7 items-center justify-center text-muted-foreground/40"
-                                aria-hidden
-                              >
-                                <Mail className="h-3.5 w-3.5" />
-                              </span>
-                            )}
-                            {phone ? (
-                              <a
-                                href={`tel:${phone}`}
-                                aria-label={`โทรหา ${phone}`}
-                                title={phone}
-                                className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-primary hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                              >
-                                <Phone className="h-3.5 w-3.5" />
-                              </a>
-                            ) : (
-                              <span
-                                className="inline-flex h-7 w-7 items-center justify-center text-muted-foreground/40"
-                                aria-hidden
-                              >
-                                <Phone className="h-3.5 w-3.5" />
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          '-'
-                        )}
-                      </td>
-
-                      <td className="px-4 py-3 text-sm">
-                        {creator?.categories && creator.categories.length > 0
-                          ? creator.categories.join(', ')
-                          : '-'}
-                      </td>
-                      <td className="px-4 py-3 text-center text-sm">
-                        {participant.isConfirm ? (
-                          <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
-                            ยืนยันแล้ว
-                          </span>
-                        ) : (
-                          <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800">
-                            รอยืนยัน
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center text-sm">
-                        {participant.isShowup ? (
-                          <span className="inline-flex rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-medium text-sky-700">
-                            เช็คอินแล้ว
-                          </span>
-                        ) : (
-                          <span className="inline-flex rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-                            ยังไม่เช็คอิน
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {participant.isConfirm ? (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        ) : (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            center
-                            className="cursor-pointer flex items-center gap-2 text-sm"
-                            disabled={confirming}
-                            onClick={() => void handleConfirmParticipant(participant)}
-                          >
-                            {confirming ? (
-                              <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
-                            ) : (
-                              <UserCheck className="h-3.5 w-3.5 shrink-0" />
-                            )}
-                            <span>ยืนยัน</span>
-                          </Button>
-                        )}
+        {!hasSelectedEvent ? null : participantsLoading ? (
+          <div className="flex items-center justify-center gap-2 px-4 py-12 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            กำลังโหลดผู้เข้าร่วม...
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[820px]">
+                <thead className="bg-muted/30">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-sm font-medium">Event</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">ชื่อ</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">หมวดหมู่</th>
+                    <th className="px-4 py-3 text-center text-sm font-medium">คอนเฟิร์ม</th>
+                    <th className="px-4 py-3 text-center text-sm font-medium">เช็คอิน</th>
+                    <th className="px-4 py-3 text-center text-sm font-medium">ยืนยัน</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {pagedParticipants.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                        ไม่พบข้อมูลผู้สนใจเข้าร่วมในอีเวนต์นี้
                       </td>
                     </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                  ) : (
+                    pagedParticipants.map((participant) => {
+                      const creator = creatorById.get(participant.creatorId);
+                      const email = creator?.email?.trim();
+                      const phone = creator?.phone?.trim();
+                      const confirming = confirmingId === participant.id;
+                      return (
+                        <tr key={participant.id} className="hover:bg-muted/20">
+                          <td className="px-4 py-3 text-sm">
+                            {eventNameById.get(participant.eventId)?.replace(/<[^>]+>/g, '') ||
+                              participant.eventId}
+                          </td>
 
-        {filteredParticipants.length > 0 && (
-          <div className="flex flex-col items-center justify-between gap-3 border-t border-border px-6 py-4 text-sm text-muted-foreground md:flex-row">
-            <div>
-              แสดง {participantStart + 1}–{Math.min(participantStart + PAGE_SIZE, filteredParticipants.length)} จาก{' '}
-              {filteredParticipants.length} รายการ
+                          <td className="px-4 py-3 text-sm">
+                            {creator ? (
+                              <div className="inline-flex flex-wrap items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => void openCreatorDrawer(participant.creatorId, participant)}
+                                  className="inline-flex flex-wrap items-center gap-1.5 text-left text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-sm"
+                                >
+                                  <span>{`${creator.name} ${creator.lastName ?? ''}`.trim()}</span>
+                                  <CreatorBadge type={creator.type ?? ''} />
+                                </button>
+                                {email ? (
+                                  <a
+                                    href={`mailto:${email}`}
+                                    aria-label={`ส่งอีเมลถึง ${email}`}
+                                    title={email}
+                                    className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-primary hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                                  >
+                                    <Mail className="h-3.5 w-3.5" />
+                                  </a>
+                                ) : (
+                                  <span
+                                    className="inline-flex h-7 w-7 items-center justify-center text-muted-foreground/40"
+                                    aria-hidden
+                                  >
+                                    <Mail className="h-3.5 w-3.5" />
+                                  </span>
+                                )}
+                                {phone ? (
+                                  <a
+                                    href={`tel:${phone}`}
+                                    aria-label={`โทรหา ${phone}`}
+                                    title={phone}
+                                    className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-primary hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                                  >
+                                    <Phone className="h-3.5 w-3.5" />
+                                  </a>
+                                ) : (
+                                  <span
+                                    className="inline-flex h-7 w-7 items-center justify-center text-muted-foreground/40"
+                                    aria-hidden
+                                  >
+                                    <Phone className="h-3.5 w-3.5" />
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              '-'
+                            )}
+                          </td>
+
+                          <td className="px-4 py-3 text-sm">
+                            {creator?.categories && creator.categories.length > 0
+                              ? creator.categories.join(', ')
+                              : '-'}
+                          </td>
+                          <td className="px-4 py-3 text-center text-sm">
+                            {participant.isConfirm ? (
+                              <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+                                ยืนยันแล้ว
+                              </span>
+                            ) : (
+                              <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+                                รอยืนยัน
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-center text-sm">
+                            {participant.isShowup ? (
+                              <span className="inline-flex rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-medium text-sky-700">
+                                เช็คอินแล้ว
+                              </span>
+                            ) : (
+                              <span className="inline-flex rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                                ยังไม่เช็คอิน
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            {participant.isConfirm ? (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            ) : (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                center
+                                className="cursor-pointer flex items-center gap-2 text-sm"
+                                disabled={confirming}
+                                onClick={() => void handleConfirmParticipant(participant)}
+                              >
+                                {confirming ? (
+                                  <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+                                ) : (
+                                  <UserCheck className="h-3.5 w-3.5 shrink-0" />
+                                )}
+                                <span>ยืนยัน</span>
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                className="px-3 py-1 text-sm"
-                onClick={() => setParticipantPage((prev) => Math.max(prev - 1, 1))}
-                disabled={safeParticipantPage === 1}
-              >
-                ก่อนหน้า
-              </Button>
-              <span>
-                หน้า {safeParticipantPage} จาก {participantTotalPages}
-              </span>
-              <Button
-                variant="outline"
-                className="px-3 py-1 text-sm"
-                onClick={() => setParticipantPage((prev) => Math.min(prev + 1, participantTotalPages))}
-                disabled={safeParticipantPage >= participantTotalPages}
-              >
-                ถัดไป
-              </Button>
-            </div>
-          </div>
+
+            {filteredParticipants.length > 0 ? (
+              <div className="flex flex-col items-center justify-between gap-3 border-t border-border px-6 py-4 text-sm text-muted-foreground md:flex-row">
+                <div>
+                  แสดง {participantStart + 1}–
+                  {Math.min(participantStart + PAGE_SIZE, filteredParticipants.length)} จาก{' '}
+                  {filteredParticipants.length} รายการ
+                </div>
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    className="px-3 py-1 text-sm"
+                    onClick={() => setParticipantPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={safeParticipantPage === 1}
+                  >
+                    ก่อนหน้า
+                  </Button>
+                  <span>
+                    หน้า {safeParticipantPage} จาก {participantTotalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    className="px-3 py-1 text-sm"
+                    onClick={() =>
+                      setParticipantPage((prev) => Math.min(prev + 1, participantTotalPages))
+                    }
+                    disabled={safeParticipantPage >= participantTotalPages}
+                  >
+                    ถัดไป
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+          </>
         )}
       </div>
 
@@ -962,7 +1101,7 @@ export function EventManagement() {
           }
         }}
       >
-        <DrawerContent className="overflow-y-auto">
+        <DrawerContent className="overflow-y-auto overflow-x-hidden select-text">
           <DrawerHeader className="p-7">
             <DrawerTitle>รายละเอียดครีเอเตอร์</DrawerTitle>
             <DrawerDescription>
@@ -971,7 +1110,7 @@ export function EventManagement() {
                 : 'ข้อมูลผู้สนใจเข้าร่วมอีเวนต์'}
             </DrawerDescription>
           </DrawerHeader>
-          <div className="space-y-3 px-7 pb-7">
+          <div className="min-w-0 max-w-full space-y-3 overflow-x-hidden px-7 pb-7">
             {creatorLoading && !selectedCreator ? (
               <div className="inline-flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -1001,9 +1140,9 @@ export function EventManagement() {
                     <CreatorBadge type={selectedCreator.type ?? ''} />
                   </p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <label className="text-muted-foreground">อีเมล</label>
-                  <p className="text-foreground">
+                  <p className="min-w-0 break-all text-foreground">
                     <a href={`mailto:${selectedCreator.email}`} className="text-primary hover:underline">
                       {selectedCreator.email || '-'}
                     </a>
@@ -1052,7 +1191,7 @@ export function EventManagement() {
                 </div>
 
                 {drawerShowsMission && drawerParticipant ? (
-                  <div className="mt-2 space-y-3 rounded-lg border border-amber-200 bg-amber-50/60 p-3">
+                  <div className="mt-2 min-w-0 max-w-full space-y-3 overflow-hidden rounded-lg border border-amber-200 bg-amber-50/60 p-3">
                     <p className="text-sm font-medium text-amber-950">Bootcamp Mission</p>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                       <div className="rounded-lg border border-border bg-white px-3 py-2.5 text-center">
@@ -1098,17 +1237,17 @@ export function EventManagement() {
                         </div>
                       </div>
                     </div>
-                    <div className="space-y-2">
+                    <div className="min-w-0 space-y-2">
                       <p className="text-[13px] font-medium text-foreground">ลิงก์ผลงาน</p>
                       {drawerMissionLinks.length > 0 ? (
-                        <ul className="space-y-2">
+                        <ul className="min-w-0 space-y-2">
                           {drawerMissionLinks.map((link, index) => (
-                            <li key={`${link}-${index}`}>
+                            <li key={`${link}-${index}`} className="min-w-0">
                               <a
                                 href={link}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="block break-all rounded-lg border border-border bg-white px-3 py-2 text-xs text-primary hover:bg-muted/40 hover:underline"
+                                className="block max-w-full overflow-hidden break-all rounded-lg border border-border bg-white px-3 py-2 text-xs text-primary hover:bg-muted/40 hover:underline"
                               >
                                 {link}
                               </a>
@@ -1117,6 +1256,58 @@ export function EventManagement() {
                         </ul>
                       ) : (
                         <p className="text-sm text-muted-foreground">ยังไม่มีลิงก์ผลงาน</p>
+                      )}
+                    </div>
+
+                    <div className="min-w-0 space-y-2 border-t border-amber-200/80 pt-3">
+                      <p className="text-[13px] font-medium text-foreground">คำตอบแบบสอบถาม</p>
+                      {drawerParticipant.surveySubmittedAt ? (
+                        <ol className="space-y-2.5">
+                          {BOOTCAMP_SURVEY_QUESTIONS.map((question, index) => {
+                            const raw = getBootcampSurveyAnswer(
+                              drawerParticipant.surveyAnswers,
+                              question.id,
+                            );
+                            const display = formatBootcampSurveyAnswerDisplay(question, raw);
+                            return (
+                              <li
+                                key={question.id}
+                                className="rounded-lg border border-border bg-white px-3 py-2.5"
+                              >
+                                <p className="text-[12px] font-medium text-foreground">
+                                  {index + 1}. {question.label}
+                                </p>
+                                {question.type === 'rating' && raw ? (
+                                  <div className="mt-1.5 flex items-center gap-1">
+                                    {Array.from({ length: question.max }, (_, i) => (
+                                      <Star
+                                        key={i}
+                                        className={`h-3.5 w-3.5 ${
+                                          Number(raw) >= i + 1
+                                            ? 'fill-accent text-accent'
+                                            : 'fill-transparent text-muted-foreground/30'
+                                        }`}
+                                      />
+                                    ))}
+                                    <span className="ml-1 text-[12px] tabular-nums text-muted-foreground">
+                                      {display}
+                                    </span>
+                                  </div>
+                                ) : question.type === 'text' ? (
+                                  <p className="mt-1.5 whitespace-pre-wrap break-words text-[13px] text-foreground">
+                                    {display}
+                                  </p>
+                                ) : (
+                                  <p className="mt-1.5 text-[13px] font-medium text-foreground">
+                                    {display}
+                                  </p>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ol>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">ยังไม่ได้ส่งแบบสอบถาม</p>
                       )}
                     </div>
                   </div>
