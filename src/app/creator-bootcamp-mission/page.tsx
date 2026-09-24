@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { CreatorBootupMissionPage } from '@/modules/components/event/CreatorBootupMissionPage';
 
@@ -6,5 +7,15 @@ export const metadata: Metadata = {
 };
 
 export default function CreatorBootcampMissionRoutePage() {
-  return <CreatorBootupMissionPage />;
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
+          กำลังโหลด...
+        </div>
+      }
+    >
+      <CreatorBootupMissionPage />
+    </Suspense>
+  );
 }
