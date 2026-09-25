@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 import { EventPage } from '@/modules/components/event/EventPage';
 import { stripHtmlTags } from '@/modules/utils/strip-html-tags';
 import { normalizeEventSlugParam } from '@/modules/utils/event-slug';
@@ -27,6 +28,10 @@ export async function generateMetadata({ params }: EventRoutePageProps): Promise
   }
 }
 
-export default function EventRoutePage() {
+export default async function EventRoutePage({ params }: EventRoutePageProps) {
+  const slug = normalizeEventSlugParam((await params).slug);
+  if (!slug) {
+    redirect('/#register-section');
+  }
   return <EventPage />;
 }
