@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.28.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.27.0...v2.28.0) (2026-09-25)
+
+
+### Features
+
+* enhance event routing and landing page behavior ([14665cb](https://github.com/kritsadaskt/asw-creatorclub/commit/14665cb68c19c985ead6e9c6cc6ab74829cad3d0))
+
 ## [2.27.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.26.0...v2.27.0) (2026-09-25)
 
 
