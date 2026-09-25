@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.27.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.26.0...v2.27.0) (2026-09-25)
+
+
+### Features
+
+* เพิ่มฟีเจอร์แสดงแบนเนอร์ภารกิจ Bootcamp ใน Creator Profile และปรับปรุงการจัดการงบประมาณและผู้ติดตาม ([d0028d6](https://github.com/kritsadaskt/asw-creatorclub/commit/d0028d618fd9f47500e568495acf1942e6a378d6))
+
 ## [2.26.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.25.0...v2.26.0) (2026-09-24)
 
 
