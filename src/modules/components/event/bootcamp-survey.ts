@@ -1,5 +1,10 @@
 /** Shared Creators Bootcamp survey schema (mission page + admin Events). */
 
+/** Flip to false / remove profile CTA when the temporary mission ends. */
+export const BOOTCAMP_MISSION_ENABLED = true;
+export const BOOTCAMP_EVENT_SLUG = 'creator-bootcamp';
+export const BOOTCAMP_MISSION_PATH = '/creator-bootcamp-mission';
+
 export type BootcampSurveyQuestion =
   | { id: string; label: string; type: 'choice'; options: string[] }
   | { id: string; label: string; type: 'rating'; max: number }

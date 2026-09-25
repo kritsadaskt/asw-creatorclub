@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, type ChangeEvent } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Camera, Loader2 } from 'lucide-react';
+import { ArrowRight, Camera, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
@@ -8,6 +9,8 @@ import { CreatorProfile as CreatorProfileType } from '../../types';
 import {
   CREATOR_PROFILE_UPDATED_EVENT,
   getCreatorById,
+  getCreatorEventParticipation,
+  getEventBySlug,
   saveCreator,
   uploadCreatorProfileImage,
 } from '../../utils/storage';
@@ -19,6 +22,18 @@ import { hashPassword, validatePassword, validatePasswordConfirm } from '../../u
 import Select from 'react-select';
 import SocialAccounts from '../layout/SocialAccounts';
 import { FaArrowLeft, FaCopy, FaEdit, FaSave, FaUndo } from 'react-icons/fa';
+
+function formatBudget(value: number | undefined): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '';
+  return Math.trunc(value).toLocaleString('en-US');
+}
+
+function parseBudget(value: string): number | undefined {
+  const digits = value.replace(/\D/g, '');
+  if (!digits) return undefined;
+  const numeric = parseInt(digits, 10);
+  return Number.isFinite(numeric) ? numeric : undefined;
+}
 import {
   findDistrictByNameTh,
   findProvinceByNameTh,
@@ -27,6 +42,12 @@ import {
   getProvinceOptions,
   getSubDistrictOptionsByDistrictId,
 } from '@/lib/thai-province-data';
+import {
+  BOOTCAMP_EVENT_SLUG,
+  BOOTCAMP_MISSION_ENABLED,
+  BOOTCAMP_MISSION_PATH,
+} from '../event/bootcamp-survey';
+import { stripHtmlTags } from '../../utils/strip-html-tags';
 
 interface CreatorProfileProps {
   creatorId: string;
@@ -52,6 +73,7 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
   const [categoryOptions, setCategoryOptions] = useState<CategorySelectOption[]>([]);
   const profileImageInputRef = useRef<HTMLInputElement>(null);
   const addressSectionRef = useRef<HTMLHeadingElement | null>(null);
+  const [bootcampMissionBannerTitle, setBootcampMissionBannerTitle] = useState<string | null>(null);
 
   const provinceOptions = useMemo(() => getProvinceOptions(), []);
 
@@ -118,6 +140,41 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
     }, 250);
     return () => window.clearTimeout(timer);
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!BOOTCAMP_MISSION_ENABLED || !creatorId) {
+      setBootcampMissionBannerTitle(null);
+      return;
+    }
+
+    let cancelled = false;
+    const loadBootcampBanner = async () => {
+      try {
+        const event = await getEventBySlug(BOOTCAMP_EVENT_SLUG, { includeInactive: true });
+        if (!event || cancelled) {
+          if (!cancelled) setBootcampMissionBannerTitle(null);
+          return;
+        }
+        const participation = await getCreatorEventParticipation(event.id, creatorId);
+        if (cancelled) return;
+        if (!participation?.isShowup) {
+          setBootcampMissionBannerTitle(null);
+          return;
+        }
+        setBootcampMissionBannerTitle(
+          stripHtmlTags(event.name) || 'Creators Bootcamp Mission',
+        );
+      } catch (error) {
+        console.error('Error loading bootcamp mission banner:', error);
+        if (!cancelled) setBootcampMissionBannerTitle(null);
+      }
+    };
+
+    void loadBootcampBanner();
+    return () => {
+      cancelled = true;
+    };
+  }, [creatorId]);
 
   const loadProfile = async () => {
     try {
@@ -241,8 +298,61 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
         <h2 className='text-neutral-800 md:text-3xl text-2xl font-medium mb-1'>
           {profile.name} {profile.lastName}
         </h2>
-        <small className="text-muted-foreground text-sm flex items-center gap-2">Creator ID : <span className="font-normal text-primary">{creatorId.slice(0, 8)}...{creatorId.slice(-4)}</span> <FaCopy className="w-3 h-3 cursor-pointer" onClick={() => navigator.clipboard.writeText(creatorId)} /></small>
       </div>
+
+      {bootcampMissionBannerTitle ? (
+        <Link
+          href={BOOTCAMP_MISSION_PATH}
+          className="group relative mb-6 block w-full overflow-hidden rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        >
+          <div className="relative flex min-h-[148px] w-full items-center overflow-hidden bg-[#0a2d71] px-5 py-6 sm:min-h-[168px] sm:px-8 md:min-h-[188px] md:px-10">
+            {/* Right-side image */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-y-0 right-0 w-[78%] sm:w-[68%] md:w-[58%]"
+              style={{
+                backgroundImage:
+                  'url(https://assetwise.co.th/wp-content/uploads/2026/09/bootcamp-banner-no-text-expanded.webp)',
+                backgroundPosition: 'right center',
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: 'cover',
+              }}
+            />
+            {/* Fade from left over image */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,#0a2d71_0%,#0a2d71_28%,rgba(10,45,113,0.88)_48%,rgba(10,45,113,0.35)_72%,transparent_100%)]"
+            />
+            {/* Subtle grain */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 opacity-[0.22] mix-blend-overlay"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(
+                  `<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%' height='100%' filter='url(#n)' opacity='0.6'/></svg>`,
+                )}")`,
+                backgroundRepeat: 'repeat',
+                backgroundSize: '140px 140px',
+              }}
+            />
+
+            <div className="relative z-10 flex max-w-md flex-col items-start gap-4 text-left">
+              <div className="space-y-1.5">
+                <p className="text-lg font-medium leading-snug tracking-tight text-white sm:text-xl md:text-2xl">
+                  {bootcampMissionBannerTitle}
+                </p>
+                <p className="text-[13px] text-white/80 sm:text-sm">
+                  ทำภารกิจครบ รับ <span className="font-semibold text-orange-500">Ulanzi SK26</span>
+                </p>
+              </div>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[#0a1628] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.45)] transition-transform group-hover:scale-[1.03]">
+                ไปทำภารกิจ
+                <ArrowRight className="h-4 w-4" />
+              </span>
+            </div>
+          </div>
+        </Link>
+      ) : null}
 
       <div className="bg-white rounded-lg shadow-sm border border-border px-4 py-6 md:px-10 md:py-12 flex flex-col md:flex-row gap-8">
         {/* Sidebar */}
@@ -574,7 +684,6 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                 </div>
 
                 <div className="h-5"></div>
-                <div className="grid grid-cols-2 gap-7">
                   <div className="flex flex-col gap-1.5">
                     <h3 className="text-primary">
                       คุณเป็นครีเอเตอร์สายไหน ? <span className="text-destructive">*</span>
@@ -598,7 +707,6 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
                       isDisabled={!isEditing}
                     />
                   </div>
-                </div>
               </div>
 
               <SocialAccounts
@@ -628,20 +736,11 @@ export function CreatorProfile({ creatorId }: CreatorProfileProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-7">
                 <Input
                   label="Budget เฉลี่ยต่อโพสต์"
-                  type="number"
-                  min={0}
-                  value={profile.budget != null ? String(profile.budget) : ''}
+                  type="text"
+                  inputMode="numeric"
+                  value={formatBudget(profile.budget)}
                   onChange={(value) => {
-                    const next = value.trim();
-                    if (!next) {
-                      setProfile({ ...profile, budget: undefined });
-                      return;
-                    }
-                    const parsed = Number(next);
-                    setProfile({
-                      ...profile,
-                      budget: Number.isFinite(parsed) ? parsed : undefined,
-                    });
+                    setProfile({ ...profile, budget: parseBudget(value) });
                   }}
                   disabled={!isEditing}
                   placeholder="0"

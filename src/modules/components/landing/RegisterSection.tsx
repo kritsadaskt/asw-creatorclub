@@ -1087,9 +1087,10 @@ export function RegisterSection({
                 <div className="flex items-center gap-4">
                   <Input
                     label="Budgets"
-                    type="number"
-                    value={budget}
-                    onChange={setBudget}
+                    type="text"
+                    inputMode="numeric"
+                    value={budget ? Number(budget).toLocaleString('en-US') : ''}
+                    onChange={(value) => setBudget(value.replace(/\D/g, ''))}
                     placeholder="0"
                   />
                   <span className="self-end">บาท/โพสต์</span>

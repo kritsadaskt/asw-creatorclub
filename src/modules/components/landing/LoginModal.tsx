@@ -135,17 +135,17 @@ export function LoginModal({ onClose, onLogin }: LoginModalProps) {
           <X className="w-5 h-5" />
         </button>
 
-        <h3 className="text-primary text-center mb-10 text-3xl font-bold pt-7">
+        <h3 className="text-primary text-center lg:mb-10 mb-6 text-3xl font-bold pt-7">
           เข้าสู่ระบบ
         </h3>
 
-        <hr className='border-border my-4' />
+        <hr className='border-border my-4 block' />
         <p className='text-muted-foreground text-center translate-y-[-27px]'>
           <span className='px-4 bg-white text-muted-foreground inline-block'>หรือ</span>
         </p>
 
         <p className='text-muted-foreground text-center'>
-          <Link href="/#register-section" className='text-primary hover:underline cursor-pointer'>
+          <Link href="/#register-section" className='text-[16px] text-primary hover:underline cursor-pointer translate-y-[-10px]'>
             สมัครเข้าร่วม AssetWise Creator Club <ArrowRightCircle className='w-4 h-4 inline-block ml-1' />
           </Link>
         </p>
