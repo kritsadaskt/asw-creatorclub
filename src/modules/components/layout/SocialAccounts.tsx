@@ -26,6 +26,18 @@ type FollowerCountsMap = {
   lemon8?: number;
 };
 
+function formatFollowerCount(value: number | undefined): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "";
+  return Math.trunc(value).toLocaleString("en-US");
+}
+
+function parseFollowerCount(value: string): number | undefined {
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return undefined;
+  const numeric = parseInt(digits, 10);
+  return Number.isFinite(numeric) ? numeric : undefined;
+}
+
 type SocialAccountsProps = {
   initialSocialAccounts?: SocialAccountsMap;
   initialFollowerCounts?: FollowerCountsMap;
@@ -159,8 +171,7 @@ export default function SocialAccounts({
   };
 
   const handleFollowersChange = (key: keyof FollowerCountsMap, value: string) => {
-    const numeric = value ? parseInt(value, 10) : undefined;
-    const next = { ...followerCounts, [key]: isNaN(Number(numeric)) ? undefined : numeric };
+    const next = { ...followerCounts, [key]: parseFollowerCount(value) };
     setFollowerCounts(next);
     validate(socialAccounts, next);
   };
@@ -196,12 +207,12 @@ export default function SocialAccounts({
         <div>
           <Input
             label="จำนวนผู้ติดตาม"
-            type="number"
-            value={followerCounts.facebook?.toString() || ""}
+            type="text"
+            inputMode="numeric"
+            value={formatFollowerCount(followerCounts.facebook)}
             onChange={(value) => handleFollowersChange("facebook", value)}
             disabled={disabled}
             placeholder="0"
-            min={0}
             error={errors.facebookFollower}
           />
         </div>
@@ -224,12 +235,12 @@ export default function SocialAccounts({
         <div>
           <Input
             label="จำนวนผู้ติดตาม"
-            type="number"
-            value={followerCounts.instagram?.toString() || ""}
+            type="text"
+            inputMode="numeric"
+            value={formatFollowerCount(followerCounts.instagram)}
             onChange={(value) => handleFollowersChange("instagram", value)}
             disabled={disabled}
             placeholder="0"
-            min={0}
             error={errors.instagramFollower}
           />
         </div>
@@ -252,8 +263,9 @@ export default function SocialAccounts({
         <div>
           <Input
             label="จำนวนผู้ติดตาม"
-            type="number"
-            value={followerCounts.tiktok?.toString() || ""}
+            type="text"
+            inputMode="numeric"
+            value={formatFollowerCount(followerCounts.tiktok)}
             onChange={(value) => handleFollowersChange("tiktok", value)}
             disabled={disabled}
             placeholder="0"
@@ -279,8 +291,9 @@ export default function SocialAccounts({
         <div>
           <Input
             label="จำนวนผู้ติดตาม"
-            type="number"
-            value={followerCounts.youtube?.toString() || ""}
+            type="text"
+            inputMode="numeric"
+            value={formatFollowerCount(followerCounts.youtube)}
             onChange={(value) => handleFollowersChange("youtube", value)}
             disabled={disabled}
             placeholder="0"
@@ -306,8 +319,9 @@ export default function SocialAccounts({
         <div>
           <Input
             label="จำนวนผู้ติดตาม"
-            type="number"
-            value={followerCounts.twitter?.toString() || ""}
+            type="text"
+            inputMode="numeric"
+            value={formatFollowerCount(followerCounts.twitter)}
             onChange={(value) => handleFollowersChange("twitter", value)}
             disabled={disabled}
             placeholder="0"
@@ -333,8 +347,9 @@ export default function SocialAccounts({
         <div>
           <Input
             label="จำนวนผู้ติดตาม"
-            type="number"
-            value={followerCounts.lemon8?.toString() || ""}
+            type="text"
+            inputMode="numeric"
+            value={formatFollowerCount(followerCounts.lemon8)}
             onChange={(value) => handleFollowersChange("lemon8", value)}
             disabled={disabled}
             placeholder="0"

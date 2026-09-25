@@ -41,6 +41,9 @@ export function Input({
   // Deterministic across SSR + hydration (fixes "id/htmlFor did not match" warnings).
   const reactId = useId();
   const resolvedId = id ?? `input-${reactId.replace(/:/g, '')}`;
+  // Native date inputs always show dd/mm/yyyy, so the floating label must stay above the field.
+  const floatLabelWhenEmpty =
+    type === 'date' || type === 'datetime-local' || type === 'month' || type === 'time' || type === 'week';
 
   return (
     <div className="">
@@ -76,7 +79,7 @@ export function Input({
           className={`pointer-events-none absolute ${icon ? 'left-7' : 'left-0'} top-5 origin-left transform text-neutral-400 font-normal transition-all duration-150
           peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-neutral-500
           peer-focus:-top-1 peer-focus:text-sm peer-focus:text-primary
-          ${value ? '!-top-1 text-primary' : ''} ${hideLabel ? 'hidden' : ''}`}
+          ${value ? '!-top-1 text-primary' : ''} ${!value && floatLabelWhenEmpty ? '!-top-1 text-sm text-primary' : ''} ${hideLabel ? 'hidden' : ''}`}
         >
           {label} {required && <span className="text-destructive">*</span>}
         </label>

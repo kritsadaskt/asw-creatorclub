@@ -56,11 +56,13 @@ import type { CreatorProfile, Event, EventParticipant } from '../../types';
 import { formatGenericErrorToast } from '../../utils/toast-error';
 import { stripHtmlTags } from '../../utils/strip-html-tags';
 import { BASE_PATH } from '@/lib/publicPath';
-import { BOOTCAMP_SURVEY_QUESTIONS } from './bootcamp-survey';
+import {
+  BOOTCAMP_EVENT_SLUG,
+  BOOTCAMP_MISSION_ENABLED,
+  BOOTCAMP_SURVEY_QUESTIONS,
+} from './bootcamp-survey';
 
 // ── Easy-to-edit constants ──────────────────────────────────────────
-const BOOTCAMP_MISSION_ENABLED = true;
-const BOOTCAMP_EVENT_SLUG = 'creator-bootcamp';
 
 /** Destination + metadata for TinyURL short links created on Step 3. */
 const BOOTCAMP_SHORT_LINK = {
