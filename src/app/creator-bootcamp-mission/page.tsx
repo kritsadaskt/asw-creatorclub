@@ -1,6 +1,21 @@
-import { redirect } from 'next/navigation';
+import { Suspense } from 'react';
+import type { Metadata } from 'next';
+import { CreatorBootupMissionPage } from '@/modules/components/event/CreatorBootupMissionPage';
 
-/** Temporary: send Creators Bootcamp mission traffic to the homepage. Restore from README.md. */
+export const metadata: Metadata = {
+  title: 'Creators Bootcamp Mission',
+};
+
 export default function CreatorBootcampMissionRoutePage() {
-  redirect('/');
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
+          กำลังโหลด...
+        </div>
+      }
+    >
+      <CreatorBootupMissionPage />
+    </Suspense>
+  );
 }
