@@ -36,11 +36,11 @@ async function findExistingAffiliateLink(params: {
 
   if (params.campaignId) {
     query = query.eq('campaign_id', params.campaignId);
+  } else if (params.campaignName?.trim()) {
+    // Campaign-name scope (e.g. Bootcamp) must not collide with plain project links
+    query = query.is('campaign_id', null).eq('campaign_name', params.campaignName.trim());
   } else {
     query = query.is('campaign_id', null);
-    if (!params.projectId && params.campaignName?.trim()) {
-      query = query.eq('campaign_name', params.campaignName.trim());
-    }
   }
 
   const { data, error } = await query
@@ -53,6 +53,44 @@ async function findExistingAffiliateLink(params: {
     return null;
   }
   if (!data?.url?.trim()) return null;
+  return { id: data.id, url: data.url.trim() };
+}
+
+/**
+ * Bootcamp links created before projectId was set (project_id IS NULL).
+ * Reuse that short URL and backfill project_id so creators keep the same link.
+ */
+async function findAndBackfillBootcampLink(params: {
+  creatorId: string;
+  projectId: string;
+  campaignName: string;
+}): Promise<ExistingLinkRow | null> {
+  const { data, error } = await supabaseAdmin
+    .from('affiliate_links')
+    .select('id, url')
+    .eq('creator_id', params.creatorId)
+    .is('project_id', null)
+    .is('campaign_id', null)
+    .eq('campaign_name', params.campaignName.trim())
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error('affiliate/shorten bootcamp backfill lookup:', error);
+    return null;
+  }
+  if (!data?.url?.trim()) return null;
+
+  const { error: updateError } = await supabaseAdmin
+    .from('affiliate_links')
+    .update({ project_id: params.projectId })
+    .eq('id', data.id);
+
+  if (updateError) {
+    console.error('affiliate/shorten bootcamp project_id backfill:', updateError);
+  }
+
   return { id: data.id, url: data.url.trim() };
 }
 
@@ -107,13 +145,25 @@ export async function POST(request: NextRequest) {
 
   const creatorId = auth.session.id;
 
+  const resolvedBootcampCampaignName = campaignName || 'Creators Bootcamp';
+
   // Reuse previously generated short link for the same creator + project (+ campaign)
-  const existing = await findExistingAffiliateLink({
+  let existing = await findExistingAffiliateLink({
     creatorId,
     projectId,
     campaignId,
-    campaignName: isBootcampMission ? campaignName || 'Creators Bootcamp' : campaignName,
+    campaignName: isBootcampMission ? resolvedBootcampCampaignName : campaignName,
   });
+
+  // Older Bootcamp rows had campaign_name only (project_id null) — reuse + backfill
+  if (!existing && isBootcampMission && projectId) {
+    existing = await findAndBackfillBootcampLink({
+      creatorId,
+      projectId,
+      campaignName: resolvedBootcampCampaignName,
+    });
+  }
+
   if (existing) {
     return NextResponse.json({
       shortUrl: existing.url,

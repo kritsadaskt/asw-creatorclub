@@ -68,6 +68,8 @@ import {
 const BOOTCAMP_SHORT_LINK = {
   /** Long URL destination (UTM/ref appended by /api/affiliate/shorten). */
   projectUrl: 'https://assetwise.co.th/condominium/modiz-voyage-srinakarin/',
+  /** `projects.id` for Modiz Voyage Srinakarin */
+  projectId: '6291c7c1-e5ae-4faf-bc58-9a29eff5063a',
   campaignName: 'Modiz Voyage Srinakarin - Creator Bootcamp',
   campaignKey: 'creator-bootcamp',
   utmSource: 'creator_club_affiliate',
@@ -290,6 +292,7 @@ export function CreatorBootupMissionPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           projectUrl: BOOTCAMP_SHORT_LINK.projectUrl,
+          projectId: BOOTCAMP_SHORT_LINK.projectId,
           campaignName: BOOTCAMP_SHORT_LINK.campaignName,
           campaignKey: BOOTCAMP_SHORT_LINK.campaignKey,
           utmSource: BOOTCAMP_SHORT_LINK.utmSource,
