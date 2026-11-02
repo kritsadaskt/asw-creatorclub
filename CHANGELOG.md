@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.31.1](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.31.0...v2.31.1) (2026-11-02)
+
+
+### Bug Fixes
+
+* show full survey question text in Bootcamp admin summary ([f6475e0](https://github.com/kritsadaskt/asw-creatorclub/commit/f6475e04f787a3f618b983bb6e824faadedb210a))
+
 ## [2.31.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.30.0...v2.31.0) (2026-11-02)
 
 
