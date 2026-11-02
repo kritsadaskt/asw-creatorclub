@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.31.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.30.0...v2.31.0) (2026-11-02)
+
+
+### Features
+
+* enhance affiliate link handling for bootcamp missions ([e363829](https://github.com/kritsadaskt/asw-creatorclub/commit/e363829107381699d328f8b964db82082f68ee3b))
+
 ## [2.30.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.29.0...v2.30.0) (2026-11-01)
 
 
