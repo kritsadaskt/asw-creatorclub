@@ -863,12 +863,12 @@ export function EventManagement() {
                         {bootcampSurveyAggregate.ratingAverages.map((item) => (
                           <div
                             key={item.id}
-                            className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/10 px-3 py-2"
+                            className="flex items-start justify-between gap-3 rounded-md border border-border bg-muted/10 px-3 py-2"
                           >
-                            <span className="min-w-0 flex-1 truncate text-[12px] text-muted-foreground" title={item.label}>
-                              {item.id.toUpperCase()} · {item.responses} คน
-                            </span>
-                            <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold tabular-nums text-foreground">
+                            <p className="min-w-0 flex-1 text-[15px] leading-snug text-foreground">
+                              {item.label}
+                            </p>
+                            <span className="inline-flex shrink-0 items-center gap-1 pt-0.5 text-sm font-semibold tabular-nums text-foreground">
                               <Star className="h-3.5 w-3.5 fill-accent text-accent" />
                               {item.average == null ? '—' : item.average.toFixed(1)}
                             </span>
@@ -878,8 +878,9 @@ export function EventManagement() {
                     </div>
 
                     <div className="space-y-2">
-                      <p className="text-[13px] font-medium text-foreground">
-                        ความสนใจ Affiliate (Q5)
+                      <p className="text-[15px] font-medium leading-snug text-foreground">
+                        {BOOTCAMP_SURVEY_QUESTIONS.find((q) => q.id === 'q5')?.label ??
+                          'ความสนใจ Affiliate'}
                       </p>
                       <div className="space-y-1.5">
                         {bootcampSurveyAggregate.affiliateInterest.map((item) => (
