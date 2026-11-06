@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.32.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.31.1...v2.32.0) (2026-11-06)
+
+
+### Features
+
+* export filtered creators with address and social details ([f17c1ec](https://github.com/kritsadaskt/asw-creatorclub/commit/f17c1ec8845bd74d2bdac3507796a009a37411eb))
+* show creator current address in admin detail drawers ([ce0fff1](https://github.com/kritsadaskt/asw-creatorclub/commit/ce0fff15db2e7406faf6bae6cba96bbd22df383f))
+
 ### [2.31.1](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.31.0...v2.31.1) (2026-11-02)
 
 
