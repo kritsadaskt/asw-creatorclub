@@ -34,7 +34,7 @@ import {
   SendHorizontal,
   UserRound,
 } from 'lucide-react';
-import { FaFacebook, FaInstagram, FaTiktok, FaYoutube, FaXTwitter } from 'react-icons/fa6';
+import { FaFacebook, FaFileExcel, FaInstagram, FaTiktok, FaYoutube, FaXTwitter } from 'react-icons/fa6';
 import { FaPhone } from 'react-icons/fa6';
 import { BASE_PATH } from '@/lib/publicPath';
 import { formatStatsSyncedAtBangkok } from '@/lib/format-stats-synced-at';
@@ -50,7 +50,7 @@ import {
 } from '../ui/drawer';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
-import { cn } from '../ui/utils';
+import { cn, CreatorTypeNameByKey } from '../ui/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { AdminDashboardCharts } from './AdminDashboardCharts';
 import { AdminAffiliateReports } from './AdminAffiliateReports';
@@ -663,6 +663,92 @@ export function AdminDashboard() {
   const creatorFrom = filteredCreators.length === 0 ? 0 : creatorStartIndex + 1;
   const creatorTo = Math.min(creatorStartIndex + CREATORS_PAGE_SIZE, filteredCreators.length);
 
+  const formatCurrentAddress = (creator: CreatorProfile) => {
+    const parts = [
+      creator.addressHouseNo?.trim(),
+      creator.addressVillage?.trim() ? `หมู่บ้าน ${creator.addressVillage.trim()}` : '',
+      creator.addressSoi?.trim() ? `ซอย ${creator.addressSoi.trim()}` : '',
+      creator.addressRoad?.trim() ? `ถนน ${creator.addressRoad.trim()}` : '',
+      creator.addressSubDistrict?.trim(),
+      creator.addressDistrict?.trim(),
+      creator.addressProvince?.trim(),
+      creator.addressPostalCode?.trim(),
+    ].filter((part): part is string => Boolean(part));
+    return parts.join(' ');
+  };
+
+  const approvalStatusLabel = (status: CreatorProfile['approvalStatus']) => {
+    if (status === 1) return 'อนุมัติแล้ว';
+    if (status === 0) return 'ถูกปฏิเสธ';
+    if (status === 2) return 'ไม่ใช้งาน';
+    return 'รอการอนุมัติ';
+  };
+
+  const handleExportCreators = async () => {
+    if (filteredCreators.length === 0) {
+      toast.info('ไม่มีข้อมูลสำหรับ export');
+      return;
+    }
+
+    try {
+      const { utils, writeFile } = await import('xlsx');
+      const rows = filteredCreators.map((creator, index) => ({
+        ลำดับ: index + 1,
+        ชื่อ: creator.name,
+        นามสกุล: creator.lastName ?? '',
+        อีเมล: creator.email,
+        เบอร์โทร: creator.phone || '',
+        สถานะ: approvalStatusLabel(creator.approvalStatus),
+        ประเภท: CreatorTypeNameByKey(creator.type ?? '') || '',
+        หมวดหมู่: creator.categories?.join(', ') ?? '',
+        วันเกิด: creator.dob ?? '',
+        พื้นที่: creator.baseLocation || '',
+        จังหวัดที่อยู่อาศัย: creator.province ?? '',
+        บ้านเลขที่: creator.addressHouseNo ?? '',
+        หมู่บ้าน: creator.addressVillage ?? '',
+        ซอย: creator.addressSoi ?? '',
+        ถนน: creator.addressRoad ?? '',
+        ตำบล: creator.addressSubDistrict ?? '',
+        อำเภอ: creator.addressDistrict ?? '',
+        จังหวัด: creator.addressProvince ?? '',
+        รหัสไปรษณีย์: creator.addressPostalCode ?? '',
+        ที่อยู่ปัจจุบัน: formatCurrentAddress(creator),
+        โครงการ: creator.projectName
+          ? projectNameById[creator.projectName] || creator.projectName
+          : '',
+        ปีการประกวด: creator.pageantYear ?? '',
+        ผู้ติดตามรวม: creator.followers ?? 0,
+        งบต่อโพสต์: creator.budget ?? '',
+        Facebook: creator.socialAccounts.facebook ?? '',
+        'ผู้ติดตาม Facebook': creator.followerCounts.facebook ?? '',
+        Instagram: creator.socialAccounts.instagram ?? '',
+        'ผู้ติดตาม Instagram': creator.followerCounts.instagram ?? '',
+        TikTok: creator.socialAccounts.tiktok ?? '',
+        'ผู้ติดตาม TikTok': creator.followerCounts.tiktok ?? '',
+        YouTube: creator.socialAccounts.youtube ?? '',
+        'ผู้ติดตาม YouTube': creator.followerCounts.youtube ?? '',
+        X: creator.socialAccounts.twitter ?? '',
+        'ผู้ติดตาม X': creator.followerCounts.twitter ?? '',
+        Lemon8: creator.socialAccounts.lemon8 ?? '',
+        'ผู้ติดตาม Lemon8': creator.followerCounts.lemon8 ?? '',
+        วันที่ลงทะเบียน: creator.createdAt
+          ? new Date(creator.createdAt).toLocaleString('th-TH')
+          : '',
+        'Creator ID': creator.id,
+      }));
+
+      const worksheet = utils.json_to_sheet(rows);
+      const workbook = utils.book_new();
+      utils.book_append_sheet(workbook, worksheet, 'Creators');
+      const filename = `${new Date().toISOString().slice(0, 10)}_creators.xlsx`;
+      writeFile(workbook, filename);
+      toast.success(`ส่งออก ${rows.length} รายการเรียบร้อยแล้ว`);
+    } catch (error) {
+      console.error('export creators', error);
+      toast.error('ไม่สามารถส่งออกข้อมูลได้');
+    }
+  };
+
   const approvalStatusBadge = (creator: CreatorProfile) => {
     const status = creator.approvalStatus;
     if (status === 1) {
@@ -967,6 +1053,13 @@ export function AdminDashboard() {
         </p>
       </div>
 
+      <div>
+        <label className="text-muted-foreground">ที่อยู่ปัจจุบัน</label>
+        <p className={`break-words ${formatCurrentAddress(creator) ? 'text-foreground' : 'text-destructive'}`}>
+          {formatCurrentAddress(creator) || 'ยังไม่ได้กรอกที่อยู่'}
+        </p>
+      </div>
+
       {isAswHouseholdType(creator.type) && (
         <div>
           <label className="text-muted-foreground">โครงการ</label>
@@ -1239,8 +1332,9 @@ export function AdminDashboard() {
 
           {/* Results */}
           <div className="bg-white rounded-xl shadow-sm border border-border p-6">
-            <div className="flex flex-col gap-1 mb-4">
-              <h3 className="text-primary text-2xl font-medium mb-2">ครีเอเตอร์ทั้งหมด ({filteredCreators.length})</h3>
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex flex-col gap-1">
+                <h3 className="text-primary text-2xl font-medium mb-2">ครีเอเตอร์ทั้งหมด ({filteredCreators.length})</h3>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                 <button
                   type="button"
@@ -1286,6 +1380,17 @@ export function AdminDashboard() {
                   ถูกปฏิเสธ <span className="text-muted-foreground">({creatorStatusCounts.rejected})</span>
                 </button>
               </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex shrink-0 items-center gap-2 text-[15px]"
+                onClick={() => void handleExportCreators()}
+                disabled={loading || filteredCreators.length === 0}
+              >
+                <FaFileExcel className="h-4 w-4" />
+                Export Creator ({filteredCreators.length})
+              </Button>
             </div>
 
             {loading ? (
