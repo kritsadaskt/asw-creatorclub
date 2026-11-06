@@ -56,6 +56,20 @@ import {
 
 type SocialPlatform = keyof CreatorProfile['socialAccounts'];
 
+function formatCurrentAddress(creator: CreatorProfile): string {
+  const parts = [
+    creator.addressHouseNo?.trim(),
+    creator.addressVillage?.trim() ? `หมู่บ้าน ${creator.addressVillage.trim()}` : '',
+    creator.addressSoi?.trim() ? `ซอย ${creator.addressSoi.trim()}` : '',
+    creator.addressRoad?.trim() ? `ถนน ${creator.addressRoad.trim()}` : '',
+    creator.addressSubDistrict?.trim(),
+    creator.addressDistrict?.trim(),
+    creator.addressProvince?.trim(),
+    creator.addressPostalCode?.trim(),
+  ].filter((part): part is string => Boolean(part));
+  return parts.join(' ');
+}
+
 const SOCIAL_ICON_MAP: Record<SocialPlatform, ReactNode> = {
   facebook: <FaFacebook className="h-4 w-4 text-[#1877F2]" />,
   instagram: <FaInstagram className="h-4 w-4 text-pink-500" />,
@@ -1156,6 +1170,16 @@ export function EventManagement() {
                     <a href={`tel:${selectedCreator.phone}`} className="text-primary hover:underline">
                       {selectedCreator.phone || '-'}
                     </a>
+                  </p>
+                </div>
+                <div>
+                  <label className="text-muted-foreground">ที่อยู่ปัจจุบัน</label>
+                  <p
+                    className={`break-words ${
+                      formatCurrentAddress(selectedCreator) ? 'text-foreground' : 'text-destructive'
+                    }`}
+                  >
+                    {formatCurrentAddress(selectedCreator) || 'ยังไม่ได้กรอกที่อยู่'}
                   </p>
                 </div>
                 {isAswHouseholdType(selectedCreator.type) && (

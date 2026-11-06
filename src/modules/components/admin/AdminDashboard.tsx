@@ -906,6 +906,20 @@ export function AdminDashboard() {
     }
   };
 
+  const formatCurrentAddress = (creator: CreatorProfile) => {
+    const parts = [
+      creator.addressHouseNo?.trim(),
+      creator.addressVillage?.trim() ? `หมู่บ้าน ${creator.addressVillage.trim()}` : '',
+      creator.addressSoi?.trim() ? `ซอย ${creator.addressSoi.trim()}` : '',
+      creator.addressRoad?.trim() ? `ถนน ${creator.addressRoad.trim()}` : '',
+      creator.addressSubDistrict?.trim(),
+      creator.addressDistrict?.trim(),
+      creator.addressProvince?.trim(),
+      creator.addressPostalCode?.trim(),
+    ].filter((part): part is string => Boolean(part));
+    return parts.join(' ');
+  };
+
   const getSocialLinks = (creator: CreatorProfile) => {
     const links = [];
     if (creator.socialAccounts.facebook) links.push({ name: 'Facebook', url: creator.socialAccounts.facebook });
@@ -964,6 +978,13 @@ export function AdminDashboard() {
         <p className="text-foreground flex items-center gap-2">
           <FaPhone className="w-4 h-4 text-primary" />
           <a href={`tel:${creator.phone}`} className="text-primary hover:underline">{creator.phone}</a>
+        </p>
+      </div>
+
+      <div>
+        <label className="text-muted-foreground">ที่อยู่ปัจจุบัน</label>
+        <p className={`break-words ${formatCurrentAddress(creator) ? 'text-foreground' : 'text-destructive'}`}>
+          {formatCurrentAddress(creator) || 'ยังไม่ได้กรอกที่อยู่'}
         </p>
       </div>
 
