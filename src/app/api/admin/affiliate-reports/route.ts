@@ -35,6 +35,46 @@ type LinkRow = {
   created_at?: string | null;
 };
 const LIVE_FALLBACK_CONCURRENCY = 8;
+/** PostgREST returns at most 1000 rows per request. */
+const LINK_PAGE_SIZE = 1000;
+/**
+ * Live TinyURL/Shlink lookups are only a gap-fill. A large miss set (for example
+ * when the click cache query fails) used to block this report for about a minute.
+ */
+const MAX_LIVE_FALLBACK = 24;
+
+const PROFILE_ID_CHUNK = 100;
+
+async function fetchAllAffiliateLinks(): Promise<{ rows: LinkRow[]; error: { message: string } | null }> {
+  const rows: LinkRow[] = [];
+  for (let from = 0; ; from += LINK_PAGE_SIZE) {
+    const { data, error } = await supabaseAdmin
+      .from('affiliate_links')
+      .select('id, creator_id, project_id, url, post_links, campaign_name, created_at')
+      .order('id', { ascending: true })
+      .range(from, from + LINK_PAGE_SIZE - 1);
+
+    if (error) return { rows, error };
+    const page = (data ?? []) as LinkRow[];
+    rows.push(...page);
+    if (page.length < LINK_PAGE_SIZE) break;
+  }
+  return { rows, error: null };
+}
+
+async function fetchRowsByIds(
+  ids: string[],
+  load: (chunk: string[]) => PromiseLike<{ data: unknown[] | null; error: { message: string } | null }>,
+): Promise<{ data: Record<string, unknown>[]; error: { message: string } | null }> {
+  const data: Record<string, unknown>[] = [];
+  const unique = [...new Set(ids.filter((id) => id.length > 0))];
+  for (let i = 0; i < unique.length; i += PROFILE_ID_CHUNK) {
+    const { data: page, error } = await load(unique.slice(i, i + PROFILE_ID_CHUNK));
+    if (error) return { data, error };
+    data.push(...((page ?? []) as Record<string, unknown>[]));
+  }
+  return { data, error: null };
+}
 
 function normalizePostLinks(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
@@ -58,9 +98,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const { data: linkRows, error: linksError } = await supabaseAdmin
-      .from('affiliate_links')
-      .select('id, creator_id, project_id, url, post_links, campaign_name, created_at');
+    const { rows: linkRows, error: linksError } = await fetchAllAffiliateLinks();
 
     if (linksError) {
       console.error('affiliate-reports affiliate_links:', linksError);
@@ -100,15 +138,13 @@ export async function GET(request: NextRequest) {
     const allCreatorIds = [...creatorLinkCount.keys()];
     const adminCreatorIds = new Set<string>();
     if (allCreatorIds.length > 0) {
-      const { data: adminRows, error: adminError } = await supabaseAdmin
-        .from('profiles')
-        .select('id')
-        .in('id', allCreatorIds)
-        .eq('is_admin', true);
+      const { data: adminRows, error: adminError } = await fetchRowsByIds(allCreatorIds, (chunk) =>
+        supabaseAdmin.from('profiles').select('id').in('id', chunk).eq('is_admin', true),
+      );
       if (adminError) {
         console.error('affiliate-reports profiles is_admin:', adminError);
       } else {
-        for (const row of adminRows ?? []) {
+        for (const row of adminRows) {
           const r = row as { id: string };
           adminCreatorIds.add(r.id);
         }
@@ -163,15 +199,15 @@ export async function GET(request: NextRequest) {
     const submittedPostNameById = new Map<string, string>();
     const submittedPostInviteTypeById = new Map<string, string>();
     if (submittedCreatorIds.length > 0) {
-      const { data: submittedProfiles, error: submittedProfError } = await supabaseAdmin
-        .from('profiles')
-        .select('id, name, lastname, type')
-        .in('id', submittedCreatorIds);
+      const { data: submittedProfiles, error: submittedProfError } = await fetchRowsByIds(
+        submittedCreatorIds,
+        (chunk) => supabaseAdmin.from('profiles').select('id, name, lastname, type').in('id', chunk),
+      );
 
       if (submittedProfError) {
         console.error('affiliate-reports profiles (submitted posts):', submittedProfError);
       } else {
-        for (const p of submittedProfiles ?? []) {
+        for (const p of submittedProfiles) {
           const r = p as { id: string; name?: string | null; lastname?: string | null; type?: string | null };
           submittedPostNameById.set(r.id, displayNameFromProfile(r.name, r.lastname));
           submittedPostInviteTypeById.set(r.id, (r.type ?? '').trim());
@@ -184,15 +220,15 @@ export async function GET(request: NextRequest) {
     ];
     const submittedProjectNameById = new Map<string, string>();
     if (submittedProjectIds.length > 0) {
-      const { data: submittedProjects, error: submittedProjError } = await supabaseAdmin
-        .from('projects')
-        .select('id, name')
-        .in('id', submittedProjectIds);
+      const { data: submittedProjects, error: submittedProjError } = await fetchRowsByIds(
+        submittedProjectIds,
+        (chunk) => supabaseAdmin.from('projects').select('id, name').in('id', chunk),
+      );
 
       if (submittedProjError) {
         console.error('affiliate-reports projects (submitted posts):', submittedProjError);
       } else {
-        for (const pr of submittedProjects ?? []) {
+        for (const pr of submittedProjects) {
           const r = pr as { id: string; name?: string | null };
           submittedProjectNameById.set(r.id, (r.name ?? '').trim() || r.id);
         }
@@ -257,7 +293,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    if (shlinkConfigured && fallbackTasks.length > 0) {
+    if (shlinkConfigured && fallbackTasks.length > MAX_LIVE_FALLBACK) {
+      console.warn(
+        `affiliate-reports: skip live click fallback for ${fallbackTasks.length} links; using cache only`,
+      );
+    } else if (shlinkConfigured && fallbackTasks.length > 0) {
       await mapWithConcurrency(fallbackTasks, LIVE_FALLBACK_CONCURRENCY, async (task) => {
         const resolved = await resolveAffiliateLinkClickTotals({
           linkId: task.id,
@@ -294,15 +334,14 @@ export async function GET(request: NextRequest) {
     const nameByCreatorId = new Map<string, string>();
     const inviteTypeByCreatorId = new Map<string, string>();
     if (rankingCreatorIds.length > 0) {
-      const { data: profiles, error: profError } = await supabaseAdmin
-        .from('profiles')
-        .select('id, name, lastname, type')
-        .in('id', rankingCreatorIds);
+      const { data: profiles, error: profError } = await fetchRowsByIds(rankingCreatorIds, (chunk) =>
+        supabaseAdmin.from('profiles').select('id, name, lastname, type').in('id', chunk),
+      );
 
       if (profError) {
         console.error('affiliate-reports profiles:', profError);
       } else {
-        for (const p of profiles ?? []) {
+        for (const p of profiles) {
           const r = p as { id: string; name?: string | null; lastname?: string | null; type?: string | null };
           nameByCreatorId.set(r.id, displayNameFromProfile(r.name, r.lastname));
           inviteTypeByCreatorId.set(r.id, (r.type ?? '').trim());
@@ -335,15 +374,14 @@ export async function GET(request: NextRequest) {
 
     const projectNameById = new Map<string, string>();
     if (projectIdsNeedingNames.length > 0) {
-      const { data: projects, error: projError } = await supabaseAdmin
-        .from('projects')
-        .select('id, name')
-        .in('id', projectIdsNeedingNames);
+      const { data: projects, error: projError } = await fetchRowsByIds(projectIdsNeedingNames, (chunk) =>
+        supabaseAdmin.from('projects').select('id, name').in('id', chunk),
+      );
 
       if (projError) {
         console.error('affiliate-reports projects:', projError);
       } else {
-        for (const pr of projects ?? []) {
+        for (const pr of projects) {
           const r = pr as { id: string; name?: string | null };
           projectNameById.set(r.id, (r.name ?? '').trim() || r.id);
         }

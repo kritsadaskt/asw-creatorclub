@@ -22,29 +22,62 @@ export type AffiliateLinkDailyClickRow = {
   synced_at: string;
 };
 
-/** Load cached Shlink aggregates for the given affiliate link ids (single query). */
+/**
+ * Keep each `.in()` filter well under Node's header limit.
+ * One request with every affiliate link id overflows (`UND_ERR_HEADERS_OVERFLOW`)
+ * and the dashboard report then treats the whole cache as empty.
+ */
+const CLICK_STATS_ID_CHUNK = 100;
+
+const CLICK_STATS_COLUMNS_FULL =
+  'affiliate_link_id, total_visits, shlink_baseline, tinyurl_hits, non_bot_visits, long_url, synced_at';
+const CLICK_STATS_COLUMNS_LEGACY =
+  'affiliate_link_id, total_visits, non_bot_visits, long_url, synced_at';
+
+function chunkIds(ids: string[], size: number): string[][] {
+  const chunks: string[][] = [];
+  for (let i = 0; i < ids.length; i += size) {
+    chunks.push(ids.slice(i, i + size));
+  }
+  return chunks;
+}
+
+/** Load cached click aggregates for the given affiliate link ids. */
 export async function getAffiliateLinkClickStatsByIds(
   linkIds: string[],
 ): Promise<Map<string, AffiliateLinkClickStatRow>> {
   const map = new Map<string, AffiliateLinkClickStatRow>();
-  if (linkIds.length === 0) return map;
+  const uniqueIds = [...new Set(linkIds.filter((id) => id.trim().length > 0))];
+  if (uniqueIds.length === 0) return map;
 
-  const { data, error } = await supabaseAdmin
-    .from('affiliate_link_click_stats')
-    .select(
-      'affiliate_link_id, total_visits, shlink_baseline, tinyurl_hits, non_bot_visits, long_url, synced_at',
-    )
-    .in('affiliate_link_id', linkIds);
+  let useLegacyColumns = false;
 
-  if (error) {
-    console.warn('affiliate_link_click_stats select (with baseline cols):', error.message);
+  for (const chunk of chunkIds(uniqueIds, CLICK_STATS_ID_CHUNK)) {
+    if (!useLegacyColumns) {
+      const { data, error } = await supabaseAdmin
+        .from('affiliate_link_click_stats')
+        .select(CLICK_STATS_COLUMNS_FULL)
+        .in('affiliate_link_id', chunk);
+
+      if (!error) {
+        for (const row of data ?? []) {
+          const r = row as AffiliateLinkClickStatRow;
+          map.set(r.affiliate_link_id, r);
+        }
+        continue;
+      }
+
+      console.warn('affiliate_link_click_stats select (with baseline cols):', error.message);
+      useLegacyColumns = true;
+    }
+
     const fallback = await supabaseAdmin
       .from('affiliate_link_click_stats')
-      .select('affiliate_link_id, total_visits, non_bot_visits, long_url, synced_at')
-      .in('affiliate_link_id', linkIds);
+      .select(CLICK_STATS_COLUMNS_LEGACY)
+      .in('affiliate_link_id', chunk);
     if (fallback.error) {
       console.error('affiliate_link_click_stats select:', fallback.error);
-      return map;
+      continue;
     }
     for (const row of fallback.data ?? []) {
       const r = row as AffiliateLinkClickStatRow;
@@ -54,13 +87,8 @@ export async function getAffiliateLinkClickStatsByIds(
         tinyurl_hits: 0,
       });
     }
-    return map;
   }
 
-  for (const row of data ?? []) {
-    const r = row as AffiliateLinkClickStatRow;
-    map.set(r.affiliate_link_id, r);
-  }
   return map;
 }
 
