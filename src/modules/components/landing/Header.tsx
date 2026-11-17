@@ -4,13 +4,11 @@ import {
   useCallback,
   useEffect,
   useState,
-  type Dispatch,
   type ReactNode,
-  type SetStateAction,
 } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, LayoutGrid, LogOut, Menu, User, Users, X } from 'lucide-react';
+import { LayoutDashboard, LogOut, Menu, User, Users, X } from 'lucide-react';
 import { LoginModal } from './LoginModal';
 import { BASE_PATH } from '@/lib/publicPath';
 import { useSession } from '@/modules/context/SessionContext';
@@ -48,6 +46,27 @@ interface HeaderProps {
 }
 
 type HeaderNavRouter = { push: (href: string) => void };
+
+function isNavItemActive(link: Pick<NavLinkItem, 'to' | 'end'>, normalizedPath: string) {
+  if (link.to.includes('#')) return false;
+  if (link.end) return normalizedPath === link.to;
+  return normalizedPath === link.to || normalizedPath.startsWith(`${link.to}/`);
+}
+
+type MobileMenuEntry =
+  | { type: 'link'; key: string; label: string; to: string; end?: boolean }
+  | { type: 'action'; key: string; label: string; onSelect: () => void; destructive?: boolean };
+
+function pushMobileLink(entries: MobileMenuEntry[], link: NavLinkItem) {
+  if (entries.some((entry) => entry.type === 'link' && entry.to === link.to)) return;
+  entries.push({
+    type: 'link',
+    key: link.to,
+    label: link.label,
+    to: link.to,
+    end: link.end,
+  });
+}
 
 /** Stable component identity — avoids remounting Radix menus every Header render. */
 function HeaderUserDropdownMenu({
@@ -148,27 +167,27 @@ function HeaderMainMenu({
   navLinks,
   isLoggedIn,
   isMobileMenuOpen,
-  setIsMobileMenuOpen,
+  onToggleMobileMenu,
   onOpenLoginModal,
   userDropdown,
 }: {
   navLinks: NavLinkItem[];
   isLoggedIn: boolean;
   isMobileMenuOpen: boolean;
-  setIsMobileMenuOpen: Dispatch<SetStateAction<boolean>>;
+  onToggleMobileMenu: () => void;
   onOpenLoginModal: () => void;
   userDropdown: ReactNode;
 }) {
   return (
     <>
-      <div className="hidden md:flex items-center gap-4">
+      <div className="hidden items-center gap-4 md:flex">
         {navLinks.length > 0 && (
           <div className="flex items-center gap-4">
             {navLinks.map((link) => (
               <Link
                 key={link.to}
                 href={link.to}
-                className="cursor-pointer hover:text-primary border-r border-border pr-4"
+                className="cursor-pointer border-r border-border pr-4 hover:text-primary"
               >
                 {link.label}
               </Link>
@@ -186,7 +205,7 @@ function HeaderMainMenu({
             <button
               type="button"
               onClick={onOpenLoginModal}
-              className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 cursor-pointer"
+              className="cursor-pointer rounded-md bg-primary px-4 py-2 text-white hover:bg-primary/90"
             >
               เข้าสู่ระบบ
             </button>
@@ -194,17 +213,16 @@ function HeaderMainMenu({
         )}
       </div>
 
-      <div className="md:hidden flex items-center">
-        <button
-          type="button"
-          onClick={() => setIsMobileMenuOpen((v) => !v)}
-          className="inline-flex items-center justify-center rounded-md p-2 hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/30"
-          aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
-          aria-expanded={isMobileMenuOpen}
-        >
-          {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={onToggleMobileMenu}
+        className="inline-flex items-center justify-center rounded-md p-2 hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/30 md:hidden"
+        aria-label={isMobileMenuOpen ? 'ปิดเมนู' : 'เปิดเมนู'}
+        aria-expanded={isMobileMenuOpen}
+        aria-controls="mobile-nav-panel"
+      >
+        {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+      </button>
     </>
   );
 }
@@ -232,7 +250,6 @@ export function Header({
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [role, setRole] = useState<'creator' | 'admin' | 'marketing' | null>(null);
-  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
 
@@ -251,7 +268,6 @@ export function Header({
       setDisplayName(null);
       setAvatarUrl(null);
       setRole(null);
-      setIsLoadingProfile(false);
       return;
     }
 
@@ -259,7 +275,6 @@ export function Header({
 
     if (session.role === 'creator') {
       try {
-        setIsLoadingProfile(true);
         const creator = await getCreatorById(session.id);
         if (creator) {
           setDisplayName(creator.name || null);
@@ -267,13 +282,10 @@ export function Header({
         }
       } catch (error) {
         console.warn('Failed to load creator profile for header:', error);
-      } finally {
-        setIsLoadingProfile(false);
       }
     } else {
       setDisplayName(session.role === 'marketing' ? 'Marketing' : 'Admin');
       setAvatarUrl(null);
-      setIsLoadingProfile(false);
     }
   }, []);
 
@@ -293,6 +305,20 @@ export function Header({
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsMobileMenuOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isMobileMenuOpen]);
+
   const handleLogout = () => {
     setDisplayName(null);
     setAvatarUrl(null);
@@ -310,6 +336,53 @@ export function Header({
   };
 
   const hasNavTabs = navTabs && navTabs.length > 0;
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+
+  const mobileMenuEntries: MobileMenuEntry[] = [];
+  if (hasNavTabs) {
+    for (const tab of navTabs) pushMobileLink(mobileMenuEntries, tab);
+  }
+  for (const link of navLinks) pushMobileLink(mobileMenuEntries, link);
+  if (!isLoggedIn) {
+    pushMobileLink(mobileMenuEntries, { label: 'สมัครเป็นครีเอเตอร์', to: '/#register-section' });
+    mobileMenuEntries.push({
+      type: 'action',
+      key: 'login',
+      label: 'เข้าสู่ระบบ',
+      onSelect: () => {
+        closeMobileMenu();
+        setShowLoginModal(true);
+      },
+    });
+  } else {
+    const hasCreatorsLink = mobileMenuEntries.some((entry) => entry.type === 'link' && entry.to === '/creators');
+    const hasProfileLink = mobileMenuEntries.some((entry) => entry.type === 'link' && entry.to === '/profile');
+    if (role === 'admin') {
+      mobileMenuEntries.push({
+        type: 'link',
+        key: 'dashboard',
+        label: 'Dashboard',
+        to: '/admin/dashboard',
+        end: true,
+      });
+    }
+    if ((role === 'admin' || role === 'marketing') && !hasCreatorsLink) {
+      pushMobileLink(mobileMenuEntries, { label: 'Creators', to: '/creators' });
+    }
+    if (role === 'creator' && isCreatorApproved && !hasProfileLink) {
+      pushMobileLink(mobileMenuEntries, { label: 'โปรไฟล์ของฉัน', to: '/profile', end: true });
+    }
+    mobileMenuEntries.push({
+      type: 'action',
+      key: 'logout',
+      label: 'ออกจากระบบ',
+      destructive: true,
+      onSelect: () => {
+        closeMobileMenu();
+        handleLogout();
+      },
+    });
+  }
 
   const userDropdown = (
     <HeaderUserDropdownMenu
@@ -331,8 +404,7 @@ export function Header({
         }`}
       >
         <div className={`container mx-auto px-4 md:px-6 ${hasNavTabs ? 'pt-4' : 'py-3 md:py-4'}`}>
-          {/* Top row: logo · menu */}
-          <div className={`flex justify-between items-center ${hasNavTabs ? 'mb-4' : ''}`}>
+          <div className={`flex items-center justify-between ${hasNavTabs ? 'md:mb-4' : ''}`}>
             {/* Logo */}
             <div className="flex items-center gap-3">
               <Link href="/" className="cursor-pointer" title="Creator Club">
@@ -350,82 +422,17 @@ export function Header({
                 navLinks={navLinks}
                 isLoggedIn={isLoggedIn}
                 isMobileMenuOpen={isMobileMenuOpen}
-                setIsMobileMenuOpen={setIsMobileMenuOpen}
+                onToggleMobileMenu={() => setIsMobileMenuOpen((open) => !open)}
                 onOpenLoginModal={() => setShowLoginModal(true)}
                 userDropdown={userDropdown}
               />
             </div>
           </div>
 
-          {/* Mobile menu panel */}
-          <div className={`md:hidden ${isMobileMenuOpen ? 'pb-3' : ''}`}>
-            <div
-              className={[
-                'rounded-lg overflow-hidden',
-                isMobileMenuOpen ? 'mt-2 border border-border bg-white shadow-sm' : 'mt-0 border border-transparent bg-transparent shadow-none',
-                'transition-all duration-200 ease-out',
-                isMobileMenuOpen
-                  ? 'max-h-[70vh] opacity-100 translate-y-0'
-                  : 'max-h-0 opacity-0 -translate-y-1 pointer-events-none',
-              ].join(' ')}
-            >
-              {navLinks && navLinks.length > 0 && (
-                <div className="flex flex-col">
-                  {navLinks.map((link) => (
-                    <Link
-                      key={link.to}
-                      href={link.to}
-                      className="px-4 py-3 hover:bg-muted/40 transition-colors"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      {link.label}
-                    </Link>
-                  ))}
-                </div>
-              )}
-
-              <div className="border-t border-border" />
-
-              <div className="px-4 py-3 flex flex-col gap-3">
-                {isLoggedIn ? (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground truncate">
-                      {isLoadingProfile ? 'Loading…' : displayName ?? 'User'}
-                    </span>
-                    {userDropdown}
-                  </div>
-                ) : (
-                  <>
-                    <Link
-                      href="/#register-section"
-                      className="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 hover:bg-muted/40 transition-colors"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      สมัครเป็นครีเอเตอร์
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsMobileMenuOpen(false);
-                        setShowLoginModal(true);
-                      }}
-                      className="inline-flex items-center justify-center rounded-md bg-primary text-white px-4 py-2 hover:bg-primary/90 cursor-pointer"
-                    >
-                      เข้าสู่ระบบ
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Second row: nav tabs (admin-style) */}
           {hasNavTabs && (
-            <div className="flex gap-4">
-              {navTabs!.map((tab) => {
-                const isActive = tab.end
-                  ? normalizedPath === tab.to
-                  : normalizedPath === tab.to || normalizedPath.startsWith(`${tab.to}/`);
+            <div className="hidden gap-4 md:flex">
+              {navTabs.map((tab) => {
+                const isActive = isNavItemActive(tab, normalizedPath);
                 return (
                   <Link
                     key={tab.to}
@@ -445,8 +452,78 @@ export function Header({
         </div>
       </header>
 
-      {/* Spacer so fixed header doesn't overlap content */}
-      {fixed && <div className="h-16" />}
+      <div
+        className={`fixed inset-0 z-[60] md:hidden ${isMobileMenuOpen ? '' : 'pointer-events-none'}`}
+        aria-hidden={!isMobileMenuOpen}
+        inert={!isMobileMenuOpen}
+      >
+        <button
+          type="button"
+          tabIndex={isMobileMenuOpen ? 0 : -1}
+          aria-label="ปิดเมนู"
+          className={`absolute inset-0 bg-black/40 transition-opacity duration-200 ${
+            isMobileMenuOpen ? 'opacity-100' : 'opacity-0'
+          }`}
+          onClick={closeMobileMenu}
+        />
+        <nav
+          id="mobile-nav-panel"
+          aria-label="เมนู"
+          className={`absolute top-0 right-0 flex h-full w-72 max-w-[85vw] flex-col bg-white shadow-xl transition-transform duration-200 ease-out ${
+            isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
+        >
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <p className="font-medium text-foreground">เมนู</p>
+            <button
+              type="button"
+              onClick={closeMobileMenu}
+              className="inline-flex items-center justify-center rounded-md p-2 hover:bg-muted/50"
+              aria-label="ปิดเมนู"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <ul className="flex-1 overflow-y-auto py-2">
+            {mobileMenuEntries.map((entry) => {
+              if (entry.type === 'link') {
+                const isActive = isNavItemActive(entry, normalizedPath);
+                return (
+                  <li key={entry.key}>
+                    <Link
+                      href={entry.to}
+                      aria-current={isActive ? 'page' : undefined}
+                      onClick={closeMobileMenu}
+                      className={`block px-4 py-3 text-sm transition-colors ${
+                        isActive
+                          ? 'bg-primary/10 font-medium text-primary'
+                          : 'text-foreground hover:bg-muted/50'
+                      }`}
+                    >
+                      {entry.label}
+                    </Link>
+                  </li>
+                );
+              }
+              return (
+                <li key={entry.key}>
+                  <button
+                    type="button"
+                    onClick={entry.onSelect}
+                    className={`block w-full px-4 py-3 text-left text-sm transition-colors hover:bg-muted/50 ${
+                      entry.destructive ? 'text-destructive' : 'text-foreground'
+                    }`}
+                  >
+                    {entry.label}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+      </div>
+
+      {fixed && <div className="h-[65px] md:h-16" aria-hidden />}
 
       {showLoginModal && (
         <LoginModal
