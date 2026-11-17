@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.33.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.32.1...v2.33.0) (2026-11-17)
+
+
+### Features
+
+* open the mobile menu as a single off-canvas list ([4ba9c8e](https://github.com/kritsadaskt/asw-creatorclub/commit/4ba9c8efb8063e1da0aed7e72a021a13add8c92a))
+* separate Partner creators on the admin dashboard ([53d1f88](https://github.com/kritsadaskt/asw-creatorclub/commit/53d1f88781119f57d93aee178fdd315ddf31639a))
+
 ### [2.32.1](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.32.0...v2.32.1) (2026-11-09)
 
 
