@@ -1033,7 +1033,9 @@ export function AdminDashboard() {
           <span>
             {creator.name} {creator.lastName}
           </span>
-          {creator.type === 'assetwise_staff' && <CreatorBadge type="assetwise_staff" />}
+          {(creator.type === 'assetwise_staff' || creator.type === 'asw_partners') && (
+            <CreatorBadge type={creator.type} />
+          )}
         </p>
       </div>
 
@@ -1563,7 +1565,10 @@ export function AdminDashboard() {
                     <span className="inline-flex flex-wrap items-center gap-1.5">
                       <span className="inline-flex items-center flex-wrap gap-1.5">
                         {fgfNestedCreator.name}
-                        {fgfNestedCreator.type === 'assetwise_staff' && <CreatorBadge type="assetwise_staff" />}
+                        {(fgfNestedCreator.type === 'assetwise_staff' ||
+                          fgfNestedCreator.type === 'asw_partners') && (
+                          <CreatorBadge type={fgfNestedCreator.type} />
+                        )}
                       </span>
                       <span aria-hidden>·</span>
                       <span>{fgfNestedCreator.email}</span>

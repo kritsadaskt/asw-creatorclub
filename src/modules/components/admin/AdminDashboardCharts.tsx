@@ -91,6 +91,7 @@ const creatorTypeChartConfig = {
   household: { label: 'ลูกบ้าน', color: 'hsl(142 71% 45%)' },
   general: { label: 'บุคคลทั่วไป', color: 'hsl(262 83% 58%)' },
   pageant: { label: 'ผู้เข้าประกวด', color: 'hsla(333, 100%, 63%, 1.00)' },
+  partner: { label: 'Partner', color: 'hsl(45 93% 47%)' },
 } satisfies ChartConfig;
 
 const baseLocationChartConfig = {
@@ -151,10 +152,13 @@ function getRegistrationInterval(
   return { start, end: monthEnd > today ? today : monthEnd };
 }
 
-function normalizeCreatorType(typeRaw: string | undefined): 'staff' | 'household' | 'general' | 'pageant' {
+function normalizeCreatorType(
+  typeRaw: string | undefined,
+): 'staff' | 'household' | 'general' | 'pageant' | 'partner' {
   const type = (typeRaw ?? '').trim().toLowerCase();
   if (type === 'assetwise_staff' || type === 'staff') return 'staff';
   if (type === 'household' || type === 'asw_household') return 'household';
+  if (type === 'asw_partners') return 'partner';
   if (
     type === 'pageant' ||
     type === 'mister_int' ||
@@ -282,7 +286,7 @@ export function AdminDashboardCharts({
   }, [lineData, monthOptions, rangeMode, selectedMonth]);
 
   const creatorTypePieData = useMemo(() => {
-    const agg = { staff: 0, household: 0, general: 0, pageant: 0 };
+    const agg = { staff: 0, household: 0, general: 0, pageant: 0, partner: 0 };
     for (const creator of approvedListed) {
       const key = normalizeCreatorType(creator.type);
       agg[key] += 1;
@@ -291,7 +295,8 @@ export function AdminDashboardCharts({
       { key: 'staff', name: 'พนักงาน', value: agg.staff, fill: creatorTypeChartConfig.staff.color },
       { key: 'household', name: 'ลูกบ้าน', value: agg.household, fill: creatorTypeChartConfig.household.color },
       { key: 'general', name: 'บุคคลทั่วไป', value: agg.general, fill: creatorTypeChartConfig.general.color },
-      { key: 'pageant', name: 'ผู้เข้าประกวด', value: agg.pageant, fill: creatorTypeChartConfig.pageant.color }
+      { key: 'pageant', name: 'ผู้เข้าประกวด', value: agg.pageant, fill: creatorTypeChartConfig.pageant.color },
+      { key: 'partner', name: 'Partner', value: agg.partner, fill: creatorTypeChartConfig.partner.color },
     ];
   }, [approvedListed]);
 
