@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.34.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.33.0...v2.34.0) (2026-11-23)
+
+
+### Features
+
+* relabel and reorder creator categories ([d7d9c4a](https://github.com/kritsadaskt/asw-creatorclub/commit/d7d9c4ad5e35e41b001072d9d382428a700e9a56))
+
 ## [2.33.0](https://github.com/kritsadaskt/asw-creatorclub/compare/v2.32.1...v2.33.0) (2026-11-17)
 
 
