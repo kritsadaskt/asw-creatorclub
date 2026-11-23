@@ -47,6 +47,7 @@ next-env.d.ts
 
 # Supabase
 /supabase/.temp/
+/supabase/backups/
 
 # IDE / AI tools
 .claude/
